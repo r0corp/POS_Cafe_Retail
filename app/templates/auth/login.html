@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block nav %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+  <div class="card card-hover" style="max-width: 380px; width: 100%;">
+    <div class="card-body p-4">
+      <div class="text-center mb-4">
+        {% if site_settings.app_logo_filename %}
+          <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
+               alt="{{ cafe_name }}" style="max-height: 56px; max-width: 180px; object-fit: contain;">
+        {% else %}
+          <i class="bi bi-cup-hot-fill" style="font-size: 2.2rem; color: var(--color-accent);"></i>
+        {% endif %}
+        <h4 class="mt-2 mb-0">{{ cafe_name }}</h4>
+        <span class="text-muted small">{{ _('Masuk ke sistem POS') }}</span>
+      </div>
+
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">{{ _('Username') }}</label>
+          <input type="text" name="username" class="form-control" required autofocus>
+        </div>
+        <div class="mb-4">
+          <label class="form-label small fw-semibold">{{ _('Password') }}</label>
+          <input type="password" name="password" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-accent w-100 btn-lg">
+          <i class="bi bi-box-arrow-in-right"></i> {{ _('Login') }}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<p class="text-center text-muted small mt-3">
+  {{ _('© 2026. Semua hak dilindungi.') }}
+</p>
+{% endblock %}

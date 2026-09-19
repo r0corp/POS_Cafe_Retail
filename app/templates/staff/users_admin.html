@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Kelola User') }}{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-people"></i> {{ _('Kelola User & Hak Akses') }}</h4>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h6 class="mb-3">{{ _('Tambah User') }}</h6>
+        <form method="post">
+          <div class="mb-2">
+            <label class="form-label small">{{ _('Username') }}</label>
+            <input type="text" name="username" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">{{ _('Password') }}</label>
+            <input type="password" name="password" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small">{{ _('Role') }}</label>
+            <select name="role" class="form-select" required>
+              {% for role in roles %}
+                <option value="{{ role }}">{{ role_labels[role] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="btn btn-accent w-100" type="submit"><i class="bi bi-person-plus"></i> {{ _('Tambah User') }}</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="alert alert-secondary small mt-3 border-0" style="background: var(--color-accent-light); color: var(--color-primary-dark);">
+      <i class="bi bi-info-circle"></i>
+      <strong>{{ _('Owner') }}</strong>: {{ _('akses penuh') }} &middot;
+      <strong>{{ _('Kasir') }}</strong>: {{ _('order baru & pembayaran') }} &middot;
+      <strong>{{ _('Dapur') }}</strong>: {{ _('antrian dapur') }} &middot;
+      <strong>{{ _('Pelayan') }}</strong>: {{ _('order baru') }}
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <h6 class="mb-0">{{ _('Daftar User') }}</h6>
+          <span class="text-muted small"><span class="legend-dot" style="background: var(--color-success);"></span> {{ _('Online (aktif <%(minutes)s menit)', minutes=3) }}</span>
+        </div>
+        <div class="list-group list-group-flush">
+          {% for user in users %}
+            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <div class="d-flex align-items-center gap-2">
+                <button type="button" class="avatar-thumb border-0 p-0" data-bs-toggle="modal" data-bs-target="#photoModal{{ user.id }}" title="{{ _('Ubah foto profil') }}">
+                  {% if user.photo %}
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + user.photo) }}" alt="{{ user.username }}">
+                  {% else %}
+                    <i class="bi bi-person-fill"></i>
+                  {% endif %}
+                </button>
+                <div>
+                  <div class="fw-semibold">
+                    <span class="online-dot" data-user-id="{{ user.id }}" style="display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: {{ 'var(--color-success)' if user.is_online else 'var(--color-border)' }}; margin-right: 4px;"></span>
+                    {{ user.username }}
+                    {% if user.id == current_user.id %}<span class="text-muted small">({{ _('Anda') }})</span>{% endif %}
+                  </div>
+                  <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-primary-dark);">
+                    {{ user.role_label }}
+                  </span>
+                  {% if not user.is_active_user %}
+                    <span class="badge-soft badge-status-served">{{ _('Nonaktif') }}</span>
+                  {% endif %}
+                  <div class="text-muted small mt-1 last-seen-label" data-user-id="{{ user.id }}">
+                    {% if user.is_online %}
+                      {{ _('Online sekarang') }}
+                    {% elif user.last_seen_at %}
+                      {{ _('Terakhir aktif %(time)s', time=user.last_seen_at.strftime('%d/%m %H:%M')) }}
+                    {% else %}
+                      {{ _('Belum pernah login') }}
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <form method="post" action="{{ url_for('staff.toggle_user', user_id=user.id) }}">
+                  <button class="btn btn-sm badge-soft border-0 {{ 'badge-status-served' if user.is_active_user else 'badge-status-ready' }}"
+                          type="submit" {% if user.id == current_user.id %}disabled{% endif %}>
+                    {{ _('Nonaktifkan') if user.is_active_user else _('Aktifkan') }}
+                  </button>
+                </form>
+                {% if user.id != current_user.id %}
+                  <form method="post" action="{{ url_for('staff.delete_user', user_id=user.id) }}"
+                        onsubmit="return confirm('{{ _('Hapus user %(username)s? Tidak bisa dibatalkan.', username=user.username) }}');">
+                    <button type="submit" class="icon-btn-danger" title="{{ _('Hapus User') }}">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="modal fade" id="photoModal{{ user.id }}" tabindex="-1">
+              <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h6 class="modal-title">{{ _('Foto Profil - %(username)s', username=user.username) }}</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body text-center">
+                    <div class="avatar-thumb mx-auto mb-3" style="width: 88px; height: 88px; font-size: 2.2rem;">
+                      {% if user.photo %}
+                        <img src="{{ url_for('static', filename='uploads/avatars/' + user.photo) }}" alt="{{ user.username }}">
+                      {% else %}
+                        <i class="bi bi-person-fill"></i>
+                      {% endif %}
+                    </div>
+                    <form method="post" action="{{ url_for('staff.update_user_photo', user_id=user.id) }}" enctype="multipart/form-data">
+                      <input type="file" name="photo" class="form-control form-control-sm mb-3" accept=".png,.jpg,.jpeg,.webp,.svg">
+                      <button type="submit" class="btn btn-accent btn-sm w-100 mb-2"><i class="bi bi-upload"></i> {{ _('Upload Foto') }}</button>
+                    </form>
+                    {% if user.photo %}
+                      <form method="post" action="{{ url_for('staff.update_user_photo', user_id=user.id) }}">
+                        <input type="hidden" name="remove_photo" value="1">
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-trash"></i> {{ _('Hapus Foto') }}</button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <p class="text-muted small mb-0">{{ _('Belum ada user.') }}</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <h6 class="mb-3"><i class="bi bi-clock-history"></i> {{ _('Log Aktivitas Login') }}</h6>
+        {% if recent_logs %}
+          <div class="list-group list-group-flush" style="max-height: 320px; overflow-y: auto;">
+            {% for log in recent_logs %}
+              <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                <div class="small">
+                  <span class="fw-semibold">{{ log.username }}</span>
+                  <span class="badge-soft {{ 'badge-status-ready' if log.event == 'login' else 'badge-status-served' }}">
+                    {{ _('Login') if log.event == 'login' else _('Logout') }}
+                  </span>
+                </div>
+                <div class="text-muted small">{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0">{{ _('Belum ada aktivitas login tercatat.') }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function refreshOnlineStatus() {
+    fetch("{{ url_for('staff.admin_users_status') }}")
+      .then((res) => res.json())
+      .then((data) => {
+        data.users.forEach((u) => {
+          const dot = document.querySelector('.online-dot[data-user-id="' + u.id + '"]');
+          if (dot) {
+            dot.style.background = u.is_online ? "var(--color-success)" : "var(--color-border)";
+          }
+          const label = document.querySelector('.last-seen-label[data-user-id="' + u.id + '"]');
+          if (label) {
+            if (u.is_online) {
+              label.textContent = "Online sekarang";
+            } else if (u.last_seen_label) {
+              label.textContent = "Terakhir aktif " + u.last_seen_label;
+            } else {
+              label.textContent = "Belum pernah login";
+            }
+          }
+        });
+      })
+      .catch(() => {});
+  }
+
+  setInterval(refreshOnlineStatus, 15000);
+</script>
+{% endblock %}

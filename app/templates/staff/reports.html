@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Laporan') }}{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-bar-chart"></i> {{ _('Laporan Penjualan') }}</h4>
+
+<ul class="nav nav-tabs settings-tabs mb-0" role="tablist">
+  {% for key, period in periods.items() %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link{% if loop.first %} active{% endif %}" data-bs-toggle="tab" data-bs-target="#tab-{{ key }}" type="button">
+        {{ period.label }}
+      </button>
+    </li>
+  {% endfor %}
+</ul>
+
+<div class="card settings-card">
+  <div class="card-body">
+    <div class="tab-content">
+      {% for key, period in periods.items() %}
+        <div class="tab-pane fade{% if loop.first %} show active{% endif %}" id="tab-{{ key }}">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <p class="text-muted small mb-0">
+              <i class="bi bi-calendar3"></i> {{ _('Periode: %(range)s', range=period.range_label) }}
+            </p>
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('staff.export_report_excel', period_key=key) }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-filetype-xlsx"></i> {{ _('Unduh Excel') }}
+              </a>
+              <a href="{{ url_for('staff.export_report_pdf', period_key=key) }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-filetype-pdf"></i> {{ _('Unduh PDF') }}
+              </a>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <div class="card card-hover h-100">
+                <div class="card-body">
+                  <i class="bi bi-cash-stack" style="color: var(--color-accent);"></i>
+                  <div class="text-muted small mt-1">{{ _('Total Penjualan') }}</div>
+                  <div class="fs-5 fw-bold" style="font-family: var(--font-heading);">Rp {{ "{:,}".format(period.data.total_sales).replace(",", ".") }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card card-hover h-100">
+                <div class="card-body">
+                  <i class="bi bi-receipt" style="color: var(--color-accent);"></i>
+                  <div class="text-muted small mt-1">{{ _('Transaksi') }}</div>
+                  <div class="fs-5 fw-bold" style="font-family: var(--font-heading);">{{ period.data.transaction_count }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card card-hover h-100">
+                <div class="card-body">
+                  <i class="bi bi-graph-up" style="color: var(--color-accent);"></i>
+                  <div class="text-muted small mt-1">{{ _('Rata-rata/Transaksi') }}</div>
+                  <div class="fs-5 fw-bold" style="font-family: var(--font-heading);">Rp {{ "{:,}".format(period.data.avg_per_transaction|round|int).replace(",", ".") }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card card-hover h-100">
+                <div class="card-body">
+                  <i class="bi bi-box-seam" style="color: var(--color-accent);"></i>
+                  <div class="text-muted small mt-1">{{ _('Item Terjual') }}</div>
+                  <div class="fs-5 fw-bold" style="font-family: var(--font-heading);">{{ period.data.items_sold }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h6 class="mb-3">{{ _('Item Terlaris') }}</h6>
+          {% if period.data.top_items %}
+            <div class="list-group list-group-flush">
+              {% for name, qty in period.data.top_items %}
+                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                  <span>{{ loop.index }}. {{ name }}</span>
+                  <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-primary-dark);">{{ _('%(qty)s terjual', qty=qty) }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <i class="bi bi-graph-up"></i>
+              <div class="small">{{ _('Belum ada penjualan di periode ini.') }}</div>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

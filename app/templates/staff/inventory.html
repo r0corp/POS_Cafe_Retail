@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Inventory') }}{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-boxes"></i> {{ _('Inventory Bahan Baku') }}</h4>
+
+<div class="row g-4">
+  <div class="col-md-3">
+    <div class="card">
+      <div class="card-body">
+        <h6 class="mb-3">{{ _('Tambah Bahan Baku') }}</h6>
+        <form method="post">
+          <div class="mb-2">
+            <input type="text" name="name" class="form-control" placeholder="{{ _('Nama bahan (misal: Kopi Bubuk)') }}" required>
+          </div>
+          <div class="mb-2">
+            <input type="text" name="unit" class="form-control" placeholder="{{ _('Satuan (gram, ml, pcs)') }}" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">{{ _('Stok Awal') }}</label>
+            <input type="number" step="0.01" min="0" name="stock_quantity" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small">{{ _('Batas Stok Menipis') }}</label>
+            <input type="number" step="0.01" min="0" name="low_stock_threshold" class="form-control" placeholder="0">
+            <div class="form-text">{{ _('Diberi peringatan kalau stok sudah di bawah atau sama dengan angka ini.') }}</div>
+          </div>
+          <button class="btn btn-accent w-100" type="submit"><i class="bi bi-plus-circle"></i> {{ _('Tambah Bahan') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-body">
+        <h6 class="mb-3">{{ _('Daftar Bahan Baku') }}</h6>
+        {% if ingredients %}
+          <div class="list-group list-group-flush">
+            {% for ingredient in ingredients %}
+              <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2 px-0">
+                <div>
+                  <div class="fw-semibold">
+                    {{ ingredient.name }}
+                    {% if ingredient.is_low_stock %}
+                      <span class="badge-soft badge-status-served">{{ _('Menipis') }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="text-muted small">
+                    {{ _('Stok') }}: {{ "{:g}".format(ingredient.stock_quantity) }} {{ ingredient.unit }}
+                    &middot; {{ _('Batas menipis') }}: {{ "{:g}".format(ingredient.low_stock_threshold) }} {{ ingredient.unit }}
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <form method="post" action="{{ url_for('staff.restock_ingredient', ingredient_id=ingredient.id) }}" class="d-flex gap-2">
+                    <input type="number" step="0.01" min="0" name="amount" class="form-control form-control-sm" style="width: 100px;" placeholder="{{ _('Tambah stok') }}" required>
+                    <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plus-lg"></i></button>
+                  </form>
+                  <form method="post" action="{{ url_for('staff.delete_ingredient', ingredient_id=ingredient.id) }}"
+                        onsubmit="return confirm('{{ _('Hapus %(name)s? Tidak bisa dibatalkan.', name=ingredient.name) }}');">
+                    <button type="submit" class="icon-btn-danger" title="{{ _('Hapus Bahan') }}">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0">{{ _('Belum ada bahan baku. Tambahkan lewat form di samping.') }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <p class="text-muted small mt-3">
+      <i class="bi bi-info-circle"></i>
+      {{ _('Untuk mengatur resep (bahan baku apa saja & berapa jumlahnya untuk 1 porsi menu), buka menu Kelola Menu lalu klik foto item menunya.') }}
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="{{ current_lang or 'id' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ cafe_name }}{% endblock %}</title>
+  <link rel="manifest" href="{{ url_for('web_manifest') }}">
+  <meta name="theme-color" content="#4E2F1B">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="{{ cafe_name }}">
+  <link rel="apple-touch-icon" href="{{ url_for('pwa_icon', size=192) }}">
+  <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap-icons/font/bootstrap-icons.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/fonts/google-fonts.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+
+{% block nav %}
+<nav class="navbar app-navbar mb-4">
+  <div class="container-fluid position-relative d-flex align-items-center justify-content-between flex-nowrap">
+    <a class="navbar-brand text-truncate mb-0" href="{{ url_for('staff.dashboard') }}" style="min-width: 0;">
+      {% if site_settings.app_logo_filename %}
+        <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
+             alt="{{ cafe_name }}" style="height: 28px; max-width: 100px; object-fit: contain; border-radius: 6px; vertical-align: -6px;">
+      {% else %}
+        <i class="bi bi-cup-hot-fill"></i>
+      {% endif %}
+      {{ cafe_name }}
+    </a>
+
+    {% if current_user.is_authenticated %}
+      <div class="navbar-clock d-none d-md-block">
+        <div class="navbar-clock-date" id="liveClockDate"></div>
+        <div class="navbar-clock-time" id="liveClockTime"></div>
+      </div>
+
+      <div class="dropdown flex-shrink-0">
+        <a class="nav-link d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="profile-avatar">
+            {% if current_user.photo %}
+              <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.photo) }}" alt="{{ current_user.username }}">
+            {% else %}
+              <i class="bi bi-person-fill"></i>
+            {% endif %}
+          </span>
+          <span class="d-none d-sm-inline">{{ current_user.username }}</span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width: 220px;">
+          <li><span class="dropdown-item-text small text-muted">{{ current_user.role_label }}</span></li>
+
+          <li>
+            <div class="dropdown-item-text d-flex align-items-center justify-content-between">
+              <span class="small text-muted">{{ _('Bahasa') }}</span>
+              <span class="d-flex align-items-center gap-2">
+                <a href="{{ url_for('set_language', lang='id') }}"
+                   class="lang-flag-btn {{ 'active' if current_lang == 'id' else '' }}"
+                   title="Bahasa Indonesia">
+                  <svg viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="1" fill="#e70011"/><rect width="3" height="1" y="1" fill="#fff"/></svg>
+                </a>
+                <a href="{{ url_for('set_language', lang='en') }}"
+                   class="lang-flag-btn {{ 'active' if current_lang == 'en' else '' }}"
+                   title="English">
+                  <svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="60" height="30" fill="#00247d"/>
+                    <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+                    <path d="M0,0 L60,30 M60,0 L0,30" stroke="#cf142b" stroke-width="2"/>
+                    <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
+                    <path d="M30,0 V30 M0,15 H60" stroke="#cf142b" stroke-width="6"/>
+                  </svg>
+                </a>
+              </span>
+            </div>
+          </li>
+
+          {% if current_user.role == 'owner' %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <span class="dropdown-item-text small fw-semibold" style="color: var(--color-primary-dark);">
+                <i class="bi bi-people"></i> {{ _('Staf Online') }} ({{ online_staff|length }})
+              </span>
+            </li>
+            {% if online_staff %}
+              {% for staff in online_staff %}
+                <li>
+                  <span class="dropdown-item-text small d-flex align-items-center gap-2">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--color-success); display: inline-block; flex-shrink: 0;"></span>
+                    {{ staff.username }}
+                    <span class="text-muted">({{ staff.role_label }})</span>
+                  </span>
+                </li>
+              {% endfor %}
+            {% else %}
+              <li><span class="dropdown-item-text small text-muted">{{ _('Tidak ada staf yang online') }}</span></li>
+            {% endif %}
+            <li>
+              <a class="dropdown-item small" href="{{ url_for('staff.admin_users') }}">
+                <i class="bi bi-arrow-right"></i> {{ _('Lihat semua user') }}
+              </a>
+            </li>
+          {% endif %}
+
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+              <i class="bi bi-box-arrow-right"></i> {{ _('Keluar') }}
+            </a>
+          </li>
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+</nav>
+
+{% if current_user.is_authenticated %}
+<script>
+  function updateLiveClock() {
+    const clockLocale = "{{ current_lang }}" === "en" ? "en-US" : "id-ID";
+    const now = new Date();
+    const dateStr = now.toLocaleDateString(clockLocale, { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+    const timeStr = now.toLocaleTimeString(clockLocale, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+    const dateEl = document.getElementById("liveClockDate");
+    if (dateEl) dateEl.textContent = dateStr;
+    const timeEl = document.getElementById("liveClockTime");
+    if (timeEl) timeEl.textContent = timeStr;
+  }
+  updateLiveClock();
+  setInterval(updateLiveClock, 1000);
+</script>
+{% endif %}
+{% endblock %}
+
+<div class="container pb-5">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+{% block footer %}
+  {% if site_settings.footer_text %}
+    <footer class="text-center text-muted small py-4" style="border-top: 1px solid var(--color-border);">
+      {{ site_settings.footer_text }}
+    </footer>
+  {% endif %}
+{% endblock %}
+
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

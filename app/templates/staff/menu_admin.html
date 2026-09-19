@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Kelola Menu') }}{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-list-ul"></i> {{ _('Kelola Menu') }}</h4>
+
+<div class="row g-4">
+  <div class="col-md-3">
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6 class="mb-3">{{ _('Tambah Kategori') }}</h6>
+        <form method="post">
+          <input type="hidden" name="form_type" value="category">
+          <div class="input-group">
+            <input type="text" name="name" class="form-control" placeholder="{{ _('Nama kategori') }}" required>
+            <button class="btn btn-primary" type="submit"><i class="bi bi-plus"></i></button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <h6 class="mb-3">{{ _('Tambah Menu') }}</h6>
+        <form method="post">
+          <input type="hidden" name="form_type" value="menu_item">
+          <div class="mb-2">
+            <select name="category_id" class="form-select" required>
+              <option value="">{{ _('-- Kategori --') }}</option>
+              {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <input type="text" name="name" class="form-control" placeholder="{{ _('Nama menu') }}" required>
+          </div>
+          <div class="mb-3">
+            <input type="number" name="price" class="form-control" placeholder="{{ _('Harga (Rp)') }}" required>
+          </div>
+          <button class="btn btn-accent w-100" type="submit"><i class="bi bi-plus-circle"></i> {{ _('Tambah Menu') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-9">
+    {% for category in categories %}
+      <div class="card mb-3">
+        <div class="card-body">
+          <h6 class="mb-3">{{ category.name }}</h6>
+          {% if category.items %}
+            <div class="menu-grid">
+              {% for item in category.items %}
+                <div class="menu-item-card">
+                  <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#menuPhotoModal{{ item.id }}" title="{{ _('Ubah foto menu') }}">
+                    {% if item.photo %}
+                      <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                      <i class="bi bi-camera-fill thumb-hint-icon"></i>
+                    {% else %}
+                      <i class="bi bi-image"></i>
+                    {% endif %}
+                  </button>
+                  <div class="menu-item-body text-center">
+                    <div class="menu-item-name">{{ item.name }}</div>
+                    <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                  </div>
+                </div>
+
+              <div class="modal fade" id="menuPhotoModal{{ item.id }}" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                      <h6 class="modal-title">{{ item.name }}</h6>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center pt-2">
+                      <div class="photo-preview-lg mx-auto">
+                        {% if item.photo %}
+                          <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                        {% else %}
+                          <i class="bi bi-image"></i>
+                        {% endif %}
+                        <div class="photo-preview-actions">
+                          <button type="button" class="photo-action-btn" title="{{ _('Ganti Foto') }}"
+                                  onclick="document.getElementById('menuPhotoFile{{ item.id }}').click()">
+                            <i class="bi bi-camera-fill"></i>
+                          </button>
+                          {% if item.photo %}
+                            <button type="button" class="photo-action-btn photo-action-danger" title="{{ _('Hapus Foto') }}"
+                                    onclick="if(confirm('{{ _('Hapus foto ini?') }}')) document.getElementById('menuRemovePhotoForm{{ item.id }}').submit()">
+                              <i class="bi bi-trash-fill"></i>
+                            </button>
+                          {% endif %}
+                        </div>
+                      </div>
+
+                      <form method="post" action="{{ url_for('staff.update_menu_item_photo', item_id=item.id) }}"
+                            enctype="multipart/form-data" id="menuUploadPhotoForm{{ item.id }}">
+                        <input type="file" name="photo" id="menuPhotoFile{{ item.id }}" class="d-none"
+                               accept=".png,.jpg,.jpeg,.webp,.svg"
+                               onchange="document.getElementById('menuUploadPhotoForm{{ item.id }}').submit()">
+                      </form>
+                      {% if item.photo %}
+                        <form method="post" action="{{ url_for('staff.update_menu_item_photo', item_id=item.id) }}"
+                              id="menuRemovePhotoForm{{ item.id }}">
+                          <input type="hidden" name="remove_photo" value="1">
+                        </form>
+                      {% endif %}
+
+                      <hr class="my-3" style="border-color: var(--color-border);">
+
+                      <div class="text-start">
+                        <h6 class="small fw-semibold mb-2">
+                          <i class="bi bi-clipboard-data"></i> {{ _('Resep Bahan Baku') }}
+                          {% if item.recipe and not item.is_in_stock %}
+                            <span class="badge-soft badge-status-served">{{ _('Stok bahan habis') }}</span>
+                          {% endif %}
+                        </h6>
+                        {% if item.recipe %}
+                          <ul class="list-unstyled small mb-2">
+                            {% for row in item.recipe %}
+                              <li class="d-flex justify-content-between align-items-center mb-1">
+                                <span>
+                                  {{ row.ingredient.name }}
+                                  <span class="text-muted">- {{ _('%(qty)s %(unit)s/porsi', qty="{:g}".format(row.quantity_used), unit=row.ingredient.unit) }}</span>
+                                  {% if row.ingredient.stock_quantity < row.quantity_used %}
+                                    <i class="bi bi-exclamation-triangle-fill" style="color: var(--color-danger);" title="{{ _('Stok tidak cukup') }}"></i>
+                                  {% endif %}
+                                </span>
+                                <form method="post" action="{{ url_for('staff.remove_recipe_item', item_id=item.id, ingredient_id=row.ingredient.id) }}">
+                                  <button type="submit" class="icon-btn-danger" style="width: 26px; height: 26px; font-size: 0.7rem;" title="{{ _('Hapus dari resep') }}">
+                                    <i class="bi bi-x"></i>
+                                  </button>
+                                </form>
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        {% else %}
+                          <p class="text-muted small mb-2">{{ _('Belum ada resep - item ini dianggap selalu tersedia (tidak dibatasi stok).') }}</p>
+                        {% endif %}
+                        <form method="post" action="{{ url_for('staff.add_recipe_item', item_id=item.id) }}" class="d-flex gap-2">
+                          <select name="ingredient_id" class="form-select form-select-sm" required>
+                            <option value="">{{ _('-- Bahan --') }}</option>
+                            {% for ingredient in ingredients %}
+                              <option value="{{ ingredient.id }}">{{ ingredient.name }} ({{ ingredient.unit }})</option>
+                            {% endfor %}
+                          </select>
+                          <input type="number" step="0.01" min="0" name="quantity_used" class="form-control form-control-sm" style="max-width: 90px;" placeholder="{{ _('Jumlah') }}" required>
+                          <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plus-lg"></i></button>
+                        </form>
+                      </div>
+                    </div>
+                    <div class="modal-footer d-flex align-items-center justify-content-center flex-wrap gap-2">
+                      <form method="post" action="{{ url_for('staff.toggle_menu_item', item_id=item.id) }}">
+                        <button class="btn btn-sm badge-soft border-0 {{ 'badge-status-ready' if item.is_available else 'badge-status-served' }}" type="submit">
+                          {{ _('Tersedia') if item.is_available else _('Habis') }}
+                        </button>
+                      </form>
+                      {% if item.order_items %}
+                        <span class="text-muted small">
+                          <i class="bi bi-lock"></i> {{ _('Tidak bisa dihapus - sudah punya riwayat pesanan') }}
+                        </span>
+                      {% else %}
+                        <form method="post" action="{{ url_for('staff.delete_menu_item', item_id=item.id) }}"
+                              onsubmit="return confirm('{{ _('Hapus %(name)s? Tidak bisa dibatalkan.', name=item.name) }}');">
+                          <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i> {{ _('Hapus Menu') }}
+                          </button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted small mb-0">{{ _('Belum ada menu di kategori ini.') }}</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Status Pesanan') }}{% endblock %}
+{% block nav %}{% endblock %}
+
+{% block content %}
+{% set steps = [('pending', _('Diterima')), ('processing', _('Diproses')), ('ready', _('Siap')), ('served', _('Diantar'))] %}
+{% set status_order = ['pending', 'processing', 'ready', 'served'] %}
+{% set current_index = status_order.index(order.status) %}
+
+<div class="public-header">
+  {% if site_settings.app_logo_filename %}
+    <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
+         alt="{{ cafe_name }}" style="max-height: 44px; max-width: 220px; object-fit: contain; margin-bottom: 6px;">
+  {% else %}
+    <h4 class="mb-0 text-white">{{ cafe_name }}</h4>
+  {% endif %}
+  <div>
+    <span class="table-pill"><i class="bi bi-geo-alt-fill"></i> {{ table.label }} &middot; {{ _('Lantai %(floor)s', floor=table.floor) }}</span>
+  </div>
+</div>
+
+<div class="card card-hover">
+  <div class="card-body text-center p-4">
+    <p class="text-muted mb-1 small">{{ _('Pesanan #%(id)s', id=order.id) }}</p>
+    <h3 class="mb-0">{{ order.status_label }}</h3>
+
+    <div class="status-stepper">
+      {% for key, label in steps %}
+        {% set idx = loop.index0 %}
+        <div class="step {% if idx < current_index %}done{% elif idx == current_index %}current{% endif %}">
+          {{ label }}
+        </div>
+      {% endfor %}
+    </div>
+
+    <ul class="list-group list-group-flush text-start mb-3">
+      {% for item in order.items %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>{{ item.quantity }}x {{ item.name_snapshot }}</span>
+          <span>Rp {{ "{:,}".format(item.subtotal).replace(",", ".") }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <div class="d-flex justify-content-between align-items-center">
+      <span class="text-muted">{{ _('Total') }}</span>
+      <span class="fw-bold fs-5" style="color: var(--color-accent);">Rp {{ "{:,}".format(order.total).replace(",", ".") }}</span>
+    </div>
+  </div>
+</div>
+
+<p class="text-muted small text-center mt-3">
+  <i class="bi bi-arrow-repeat"></i> {{ _('Halaman ini otomatis diperbarui.') }}
+</p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  setTimeout(() => window.location.reload(), 5000);
+</script>
+{% endblock %}

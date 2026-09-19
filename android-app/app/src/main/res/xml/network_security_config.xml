@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Server toko jalan di HTTP biasa (jaringan lokal tanpa internet),
+         jadi cleartext cuma diizinkan khusus ke IP server itu - bukan ke
+         semua domain (usesCleartextTraffic global lebih longgar & tidak
+         perlu di sini).
+
+         WAJIB diganti sebelum build - samakan dengan IP di server_url
+         (res/values/strings.xml) dan BASE_URL (.env server). -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.1.10</domain>
+    </domain-config>
+</network-security-config>

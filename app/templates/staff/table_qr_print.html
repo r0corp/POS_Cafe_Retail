@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QR {{ table.label }}</title>
+  <style>
+    /* Halaman berdiri sendiri (tidak pakai base.html/CDN luar) supaya
+       tetap bisa dicetak walau jaringan lokal tanpa akses internet. */
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #ddd;
+      font-family: Arial, sans-serif;
+      color: #111;
+    }
+
+    .toolbar {
+      max-width: 340px;
+      margin: 0 auto;
+      padding: 20px 16px 8px;
+      text-align: center;
+    }
+
+    .toolbar-title {
+      color: #333;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #D98324;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(217, 131, 36, 0.35);
+    }
+
+    .btn:hover { background: #C06F1A; }
+
+    .card-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 10px 16px 40px;
+    }
+
+    .table-card {
+      width: 340px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      padding: 28px 24px;
+      text-align: center;
+      border: 3px solid #6B4226;
+    }
+
+    .table-card .logo {
+      max-width: 60%;
+      max-height: 50px;
+      object-fit: contain;
+      margin-bottom: 6px;
+    }
+
+    .shop-name {
+      font-weight: 700;
+      font-size: 15px;
+      color: #6B4226;
+      letter-spacing: 0.5px;
+    }
+
+    .divider {
+      border-top: 1px dashed #ccc;
+      margin: 14px 0;
+    }
+
+    .table-label {
+      font-size: 30px;
+      font-weight: 800;
+      color: #4E2F1B;
+      line-height: 1.1;
+    }
+
+    .floor-label {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 14px;
+    }
+
+    .qr-box {
+      display: inline-block;
+      padding: 10px;
+      border: 1px solid #eee;
+      border-radius: 10px;
+    }
+
+    .qr-box img {
+      width: 210px;
+      height: 210px;
+      display: block;
+    }
+
+    .scan-hint {
+      margin-top: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #D98324;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .scan-sub {
+      font-size: 12px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none; }
+      .card-wrap { padding: 0; }
+      .table-card { box-shadow: none; margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="toolbar-title">{{ _('QR Meja - %(label)s', label=table.label) }}</div>
+  <button class="btn" onclick="window.print()">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 8a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5H13v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11.5H2a.5.5 0 0 1-.5-.5zM12 12h-8v2h8zM3 3.5V6h10V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5"/><path d="M4 3V1.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V3z"/></svg>
+    {{ _('Cetak') }}
+  </button>
+</div>
+
+<div class="card-wrap">
+  <div class="table-card">
+    {% if settings.app_logo_filename %}
+      <img class="logo" src="{{ url_for('static', filename='uploads/branding/' + settings.app_logo_filename) }}" alt="{{ settings.shop_name }}">
+    {% else %}
+      <div class="shop-name">{{ settings.shop_name }}</div>
+    {% endif %}
+
+    <div class="divider"></div>
+
+    <div class="table-label">{{ table.label }}</div>
+    <div class="floor-label">{{ _('Lantai %(floor)s', floor=table.floor) }}</div>
+
+    <div class="qr-box">
+      <img src="{{ url_for('static', filename='qrcodes/' + table.code + '.png') }}" alt="QR {{ table.label }}">
+    </div>
+
+    <div class="scan-hint">{{ _('Scan untuk pesan') }}</div>
+    <div class="scan-sub">{{ _('Lihat menu & pesan langsung dari HP Anda') }}</div>
+  </div>
+</div>
+
+{% if settings.footer_text %}
+  <div class="toolbar" style="padding-top: 0;">
+    <div style="font-size: 12px; color: #999;">{{ settings.footer_text }}</div>
+  </div>
+{% endif %}
+
+</body>
+</html>

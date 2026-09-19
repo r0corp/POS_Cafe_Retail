@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Meja') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+  <h4 class="mb-0"><i class="bi bi-grid-3x3-gap-fill"></i> {{ _('Meja') }}</h4>
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-primary-dark);">
+      {{ _('%(available)s / %(total)s kosong', available=available_count, total=total_count) }}
+    </span>
+    {% if is_owner %}
+      <button class="btn btn-sm btn-accent" type="button" data-bs-toggle="collapse" data-bs-target="#addTableForm">
+        <i class="bi bi-plus-circle"></i> {{ _('Tambah Meja') }}
+      </button>
+    {% endif %}
+  </div>
+</div>
+<p class="text-muted small mb-3">
+  <span class="legend-dot" style="background: var(--color-success);"></span>{{ _('Kosong') }} &middot;
+  <span class="legend-dot" style="background: var(--color-warning);"></span>{{ _('Terisi') }}
+  {% if is_owner %}&middot; <i class="bi bi-qr-code"></i> {{ _('lihat QR / hapus meja') }}{% endif %}
+</p>
+
+{% if is_owner %}
+  <div class="collapse mb-4" id="addTableForm">
+    <div class="card">
+      <div class="card-body">
+        <h6 class="mb-3">{{ _('Tambah Meja Baru') }}</h6>
+        <form method="post" class="row g-2 align-items-end">
+          <div class="col-sm-4">
+            <label class="form-label small">{{ _('Label Meja') }}</label>
+            <input type="text" name="label" class="form-control" placeholder="{{ _('Contoh: Meja 4') }}" required>
+          </div>
+          <div class="col-sm-3">
+            <label class="form-label small">{{ _('Lantai') }}</label>
+            <select name="floor" class="form-select" required>
+              <option value="1">{{ _('Lantai 1') }}</option>
+              <option value="2">{{ _('Lantai 2') }}</option>
+            </select>
+          </div>
+          <div class="col-sm-3">
+            <label class="form-label small">{{ _('Kode Unik') }}</label>
+            <input type="text" name="code" class="form-control" placeholder="l1-04" required>
+          </div>
+          <div class="col-sm-2">
+            <button class="btn btn-accent w-100" type="submit"><i class="bi bi-qr-code"></i> {{ _('Tambah') }}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% if not floors %}
+  <div class="empty-state card">
+    <i class="bi bi-grid"></i>
+    <div class="fw-semibold">{{ _('Belum ada meja') }}</div>
+    <div class="small">{{ _('Tambahkan meja lewat tombol "Tambah Meja" di atas.') if is_owner else _('Hubungi Owner untuk menambahkan meja.') }}</div>
+  </div>
+{% endif %}
+
+{% for floor_number, items in floors %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <h6 class="mb-3">{{ _('Lantai %(floor)s', floor=floor_number) }}</h6>
+      <div class="seat-grid">
+        {% for entry in items %}
+          {% set table = entry.table %}
+          {% set order = entry.order %}
+          <div class="seat {{ 'seat-occupied' if order else 'seat-available' }}">
+            {% if is_owner %}
+              <button type="button" class="seat-qr-btn" data-bs-toggle="modal" data-bs-target="#qrModal{{ table.id }}" title="{{ _('Detail meja') }}">
+                <i class="bi bi-qr-code"></i>
+              </button>
+            {% endif %}
+
+            <i class="bi {{ 'bi-cup-hot-fill' if order else 'bi-cup' }} seat-icon"></i>
+            <div class="seat-label">{{ table.label }}</div>
+            {% if order %}
+              <div class="seat-sub">{{ _('Terisi') }} &middot; #{{ order.id }}</div>
+              <div class="seat-sub">Rp {{ "{:,}".format(order.total).replace(",", ".") }}</div>
+            {% else %}
+              <div class="seat-sub">{{ _('Kosong') }}</div>
+            {% endif %}
+
+            {% if order and can_use_cashier %}
+              <div class="seat-actions">
+                <a href="{{ url_for('staff.cashier') }}" class="seat-btn seat-btn-cashier">
+                  <i class="bi bi-cash-coin"></i> {{ _('Ke Kasir') }}
+                </a>
+              </div>
+            {% elif not order and can_order %}
+              <div class="seat-actions">
+                <a href="{{ url_for('staff.new_order', table_id=table.id) }}" class="seat-btn seat-btn-order">
+                  <i class="bi bi-plus-circle"></i> {{ _('Pesan') }}
+                </a>
+              </div>
+            {% endif %}
+          </div>
+
+          {% if is_owner %}
+            <div class="modal fade" id="qrModal{{ table.id }}" tabindex="-1">
+              <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h6 class="modal-title">{{ _('Detail Meja') }} - {{ table.label }}</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body text-center">
+                    <img src="{{ url_for('static', filename='qrcodes/' + table.code + '.png') }}"
+                         class="img-fluid mb-2" style="max-width: 220px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px;"
+                         alt="QR {{ table.label }}" onerror="this.style.display='none'">
+                    <div class="text-muted small mb-3">/t/{{ table.code }}</div>
+                    <a href="{{ url_for('staff.table_qr_print', table_id=table.id) }}" target="_blank" class="btn btn-sm btn-accent">
+                      <i class="bi bi-printer"></i> {{ _('Cetak QR untuk Meja') }}
+                    </a>
+                  </div>
+                  <div class="modal-footer justify-content-center">
+                    {% if table.orders %}
+                      <span class="text-muted small">
+                        <i class="bi bi-lock"></i> {{ _('Tidak bisa dihapus - sudah punya riwayat pesanan') }}
+                      </span>
+                    {% else %}
+                      <form method="post" action="{{ url_for('staff.delete_table', table_id=table.id) }}"
+                            onsubmit="return confirm('{{ _('Hapus %(label)s? QR code-nya juga akan terhapus.', label=table.label) }}');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                          <i class="bi bi-trash"></i> {{ _('Hapus Meja') }}
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Auto-refresh halaman Meja begitu ada perubahan data dari server
+  // (meja baru terisi/kosong dari device lain) - silent, tanpa suara,
+  // supaya tampilan di HP pelayan/kasir selalu sinkron sama kondisi
+  // sebenarnya tanpa perlu reload manual.
+  (function () {
+    let lastSnapshot = null;
+
+    function snapshotOf(data) {
+      return data.tables.map(function (t) { return t.id + ":" + (t.order_id || ""); }).join(",");
+    }
+
+    function poll() {
+      fetch("{{ url_for('staff.tables_status') }}")
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          const snapshot = snapshotOf(data);
+          if (lastSnapshot === null) {
+            lastSnapshot = snapshot;
+            return;
+          }
+          if (snapshot !== lastSnapshot) {
+            window.location.reload();
+          }
+        })
+        .catch(function () {});
+    }
+
+    poll();
+    setInterval(poll, 8000);
+  })();
+</script>
+{% endblock %}

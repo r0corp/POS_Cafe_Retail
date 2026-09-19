@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Akses Ditolak') }}{% endblock %}
+
+{% block content %}
+<div class="empty-state card mt-4">
+  <i class="bi bi-shield-lock"></i>
+  <div class="fw-semibold fs-5">{{ _('Akses Ditolak') }}</div>
+  <div class="small">{{ _('Akun Anda tidak punya izin untuk membuka halaman ini.') }}</div>
+  <a href="{{ url_for('staff.dashboard') }}" class="btn btn-accent mt-3">
+    <i class="bi bi-arrow-left"></i> {{ _('Kembali ke Dashboard') }}
+  </a>
+</div>
+{% endblock %}

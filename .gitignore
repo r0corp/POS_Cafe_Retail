@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Environment / secrets
+.env
+
+# Runtime data (database, backups, generated uploads & QR codes)
+instance/
+backups/
+app/static/uploads/
+app/static/qrcodes/
+
+# Editor / OS
+.DS_Store
+*.log
+
+# Android app
+android-app/app/build/
+android-app/.gradle/
+android-app/local.properties
+android-app/*.iml
+android-app/.idea/

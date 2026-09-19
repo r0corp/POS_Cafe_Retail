@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Pesanan') }}{% endblock %}
+
+{% block content %}
+<h4 class="mb-1"><i class="bi bi-plus-circle"></i> {{ _('Input Pesanan Manual') }}</h4>
+<p class="text-muted small mb-4">{{ _('Untuk tamu yang tidak pesan sendiri lewat QR code.') }}</p>
+
+<form method="post" id="orderForm">
+  <div class="row g-3 mb-4">
+    <div class="col-md-8">
+      <div class="card h-100">
+        <div class="card-body">
+          <label class="form-label fw-semibold small">{{ _('Kategori') }}</label>
+          <div class="category-nav mb-0">
+            {% for category in categories %}
+              {% if category.items | selectattr('is_orderable') | list %}
+                <a href="#cat-{{ category.id }}">{{ category.name }}</a>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <label class="form-label fw-semibold small">{{ _('Meja') }}</label>
+          <select name="table_id" class="form-select" required>
+            <option value="">{{ _('-- Pilih Meja --') }}</option>
+            {% for table in tables %}
+              <option value="{{ table.id }}" {% if preselected_table_id == table.id %}selected{% endif %}>{{ table.label }} ({{ _('Lantai %(floor)s', floor=table.floor) }})</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% for category in categories %}
+    {% set available_items = category.items | selectattr('is_orderable') | list %}
+    {% if available_items %}
+      <h6 id="cat-{{ category.id }}" class="mt-4 mb-2">{{ category.name }}</h6>
+      <div class="menu-grid mb-3">
+        {% for item in available_items %}
+          <div class="menu-item-card">
+            {% if item.photo %}
+              <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#viewPhotoModal{{ item.id }}" title="{{ _('Perbesar foto') }}">
+                <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                <i class="bi bi-arrows-fullscreen thumb-hint-icon"></i>
+              </button>
+            {% else %}
+              <div class="menu-item-thumb w-100">
+                <i class="bi bi-cup-hot"></i>
+              </div>
+            {% endif %}
+            <div class="menu-item-body">
+              <div class="menu-item-name-row">
+                <div class="menu-item-name">{{ item.name }}</div>
+                <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+              </div>
+              <div class="qty-stepper" data-price="{{ item.price }}">
+                <button type="button" class="qty-minus"><i class="bi bi-dash"></i></button>
+                <input type="number" class="qty-input" name="qty_{{ item.id }}" value="0" min="0" readonly>
+                <button type="button" class="qty-plus"><i class="bi bi-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          {% if item.photo %}
+            <div class="modal fade" id="viewPhotoModal{{ item.id }}" tabindex="-1">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                  <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title">{{ item.name }}</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body text-center pt-2">
+                    <div class="photo-preview-lg mx-auto">
+                      <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  <div class="cart-bar-spacer"></div>
+  <div class="cart-bar">
+    <div>
+      <div class="cart-total" id="cartTotal">Rp 0</div>
+      <div class="cart-count" id="cartCount">{{ _('Belum ada item dipilih') }}</div>
+    </div>
+    <button type="submit" class="btn btn-accent btn-lg" id="submitBtn" disabled>
+      <i class="bi bi-check2"></i> {{ _('Buat Pesanan') }}
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function formatRupiah(n) { return "Rp " + n.toLocaleString("id-ID"); }
+
+  const CART_ITEMS_SELECTED_LABEL = {{ _('item dipilih')|tojson }};
+  const CART_EMPTY_LABEL = {{ _('Belum ada item dipilih')|tojson }};
+
+  function updateCart() {
+    let total = 0, count = 0;
+    document.querySelectorAll(".qty-stepper").forEach((stepper) => {
+      const price = parseInt(stepper.dataset.price, 10);
+      const qty = parseInt(stepper.querySelector(".qty-input").value, 10) || 0;
+      total += price * qty;
+      count += qty;
+    });
+    document.getElementById("cartTotal").textContent = formatRupiah(total);
+    document.getElementById("cartCount").textContent = count > 0 ? (count + " " + CART_ITEMS_SELECTED_LABEL) : CART_EMPTY_LABEL;
+    document.getElementById("submitBtn").disabled = count === 0;
+  }
+
+  function refreshRowState(stepper) {
+    const card = stepper.closest(".menu-item-card");
+    if (!card) return;
+    const qty = parseInt(stepper.querySelector(".qty-input").value, 10) || 0;
+    card.classList.toggle("is-selected", qty > 0);
+  }
+
+  document.querySelectorAll(".qty-stepper").forEach((stepper) => {
+    const input = stepper.querySelector(".qty-input");
+    stepper.querySelector(".qty-plus").addEventListener("click", () => {
+      input.value = (parseInt(input.value, 10) || 0) + 1;
+      refreshRowState(stepper);
+      updateCart();
+    });
+    stepper.querySelector(".qty-minus").addEventListener("click", () => {
+      input.value = Math.max(0, (parseInt(input.value, 10) || 0) - 1);
+      refreshRowState(stepper);
+      updateCart();
+    });
+  });
+
+  updateCart();
+</script>
+{% endblock %}

@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ _('Struk #%(id)s', id=order.id) }}</title>
+  <style>
+    /* Halaman ini sengaja berdiri sendiri (tidak pakai base.html / CDN
+       luar) supaya tetap bisa dicetak walau jaringan lokal tanpa akses
+       internet - printer thermal biasanya jalan di jaringan tertutup. */
+    @page {
+      size: {{ settings.receipt_paper_width }}mm auto;
+      margin: 0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #6B4226 0%, #FBF6EF 260px);
+      font-family: "Courier New", Courier, monospace;
+      color: #111;
+      padding-bottom: 40px;
+    }
+
+    /* ---------- Toolbar (layar saja, tidak ikut kecetak) ---------- */
+    .toolbar {
+      max-width: 340px;
+      margin: 0 auto;
+      padding: 20px 16px 8px;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+
+    .toolbar-title {
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 14px;
+      opacity: 0.9;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .btn {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .btn-print {
+      background: #D98324;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(217, 131, 36, 0.4);
+    }
+
+    .btn-print:hover { background: #C06F1A; }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+    }
+
+    .btn-back:hover { background: rgba(255, 255, 255, 0.26); }
+
+    /* ---------- Struk ---------- */
+    .receipt-wrap {
+      max-width: 340px;
+      margin: 18px auto 0;
+      padding: 0 16px;
+    }
+
+    .receipt {
+      width: {{ '58mm' if settings.receipt_paper_width == '58' else '80mm' }};
+      margin: 0 auto;
+      background: #fff;
+      padding: 14px 10px;
+      font-size: {{ '10.5px' if settings.receipt_paper_width == '58' else '12px' }};
+      line-height: 1.5;
+      border-radius: 6px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .logo { max-width: 70%; max-height: 60px; object-fit: contain; margin-bottom: 4px; }
+    .shop-tag {
+      letter-spacing: 1.5px;
+      font-size: 0.85em;
+      margin-top: 2px;
+    }
+    .divider { border-top: 1px dashed #111; margin: 8px 0; }
+    .divider-solid { border-top: 1px solid #111; margin: 8px 0; }
+    .row { display: flex; justify-content: space-between; gap: 6px; }
+    .muted { color: #444; }
+    .total-box {
+      border-top: 1px solid #111;
+      border-bottom: 3px double #111;
+      padding: 6px 0;
+      margin: 6px 0;
+    }
+    .total-box .row { font-size: 1.15em; }
+
+    @media print {
+      body { background: #fff; padding-bottom: 0; }
+      .toolbar { display: none; }
+      .receipt-wrap { margin: 0; padding: 0; max-width: none; }
+      .receipt { box-shadow: none; border-radius: 0; margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="toolbar-title">{{ _('Struk #%(id)s siap dicetak', id=order.id) }}</div>
+  <div class="btn-row">
+    <button class="btn btn-print" onclick="window.print()">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 8a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5H13v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11.5H2a.5.5 0 0 1-.5-.5zM12 12h-8v2h8zM3 3.5V6h10V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5"/><path d="M4 3V1.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V3z"/></svg>
+      {{ _('Cetak Struk') }}
+    </button>
+    <a class="btn btn-back" href="{{ url_for('staff.cashier') }}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>
+      {{ _('Kembali ke Kasir') }}
+    </a>
+  </div>
+</div>
+
+<div class="receipt-wrap">
+  <div class="receipt">
+    {% if settings.receipt_logo_filename %}
+      <div class="center">
+        <img class="logo" src="{{ url_for('static', filename='uploads/branding/' + settings.receipt_logo_filename) }}" alt="{{ settings.shop_name }}">
+      </div>
+    {% endif %}
+
+    <div class="center bold">{{ settings.shop_name }}</div>
+    {% if settings.address %}<div class="center">{{ settings.address }}</div>{% endif %}
+    {% if settings.phone %}<div class="center">{{ _('Telp: %(phone)s', phone=settings.phone) }}</div>{% endif %}
+
+    <div class="center shop-tag muted">{{ _('*** STRUK PEMBAYARAN ***') }}</div>
+
+    <div class="divider"></div>
+
+    <div class="row"><span>{{ _('No. Struk') }}</span><span>#{{ order.id }}</span></div>
+    <div class="row"><span>{{ _('Meja') }}</span><span>{{ order.table.label }} ({{ _('Lt.%(floor)s', floor=order.table.floor) }})</span></div>
+    <div class="row"><span>{{ _('Tanggal') }}</span><span>{{ (order.paid_at or order.created_at).strftime('%d/%m/%Y %H:%M') }}</span></div>
+    {% if order.served_by %}
+      <div class="row"><span>{{ _('Kasir') }}</span><span>{{ order.served_by }}</span></div>
+    {% endif %}
+
+    <div class="divider"></div>
+
+    {% for item in order.items %}
+      <div class="row">
+        <span>{{ item.name_snapshot }}</span>
+      </div>
+      <div class="row muted">
+        <span>{{ item.quantity }} x {{ "{:,}".format(item.price_snapshot).replace(",", ".") }}</span>
+        <span>{{ "{:,}".format(item.subtotal).replace(",", ".") }}</span>
+      </div>
+    {% endfor %}
+
+    <div class="total-box">
+      <div class="row bold">
+        <span>{{ _('TOTAL') }}</span>
+        <span>Rp {{ "{:,}".format(order.total).replace(",", ".") }}</span>
+      </div>
+    </div>
+    <div class="row muted">
+      <span>{{ _('Bayar') }}</span>
+      <span>{{ 'Cash' if order.payment_method == 'cash' else 'QRIS' }}</span>
+    </div>
+    {% if order.payment_method == 'cash' and order.cash_received is not none %}
+      <div class="row muted">
+        <span>{{ _('Tunai') }}</span>
+        <span>Rp {{ "{:,}".format(order.cash_received).replace(",", ".") }}</span>
+      </div>
+      <div class="row muted">
+        <span>{{ _('Kembalian') }}</span>
+        <span>Rp {{ "{:,}".format(order.change_amount).replace(",", ".") }}</span>
+      </div>
+    {% endif %}
+
+    {% if settings.footer_text or settings.instagram or settings.tiktok or settings.whatsapp or settings.other_social %}
+      <div class="divider"></div>
+      <div class="center">
+        {% if settings.footer_text %}<div>{{ settings.footer_text }}</div>{% endif %}
+        {% if settings.instagram %}<div>{{ _('IG: %(handle)s', handle=settings.instagram) }}</div>{% endif %}
+        {% if settings.tiktok %}<div>{{ _('TikTok: %(handle)s', handle=settings.tiktok) }}</div>{% endif %}
+        {% if settings.whatsapp %}<div>{{ _('WA: %(handle)s', handle=settings.whatsapp) }}</div>{% endif %}
+        {% if settings.other_social %}<div>{{ settings.other_social }}</div>{% endif %}
+      </div>
+    {% endif %}
+
+    <div class="divider-solid"></div>
+    <div class="center bold">{{ _('Terima kasih!') }}</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Menu') }} - {{ table.label }}{% endblock %}
+
+{% block nav %}{% endblock %}
+
+{% block content %}
+<div class="public-header">
+  {% if site_settings.app_logo_filename %}
+    <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
+         alt="{{ cafe_name }}" style="max-height: 44px; max-width: 220px; object-fit: contain; margin-bottom: 6px;">
+  {% else %}
+    <h4 class="mb-0 text-white">{{ cafe_name }}</h4>
+  {% endif %}
+  <div>
+    <span class="table-pill"><i class="bi bi-geo-alt-fill"></i> {{ table.label }} &middot; {{ _('Lantai %(floor)s', floor=table.floor) }}</span>
+  </div>
+</div>
+
+<div class="alert alert-info small border-0 shadow-sm" style="background: var(--color-info-bg); color: var(--color-info);">
+  <i class="bi bi-info-circle"></i>
+  {{ _('Pilih menu & jumlah, lalu kirim pesanan di bagian bawah. Kalau tidak nyaman pesan sendiri, cukup panggil pelayan dan sebutkan pesanan Anda.') }}
+</div>
+
+<div class="category-nav">
+  {% for category in categories %}
+    {% if category.items | selectattr('is_orderable') | list %}
+      <a href="#cat-{{ category.id }}">{{ category.name }}</a>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<form method="post" action="{{ url_for('public.submit_order', code=table.code) }}" id="orderForm">
+  {% for category in categories %}
+    {% set available_items = category.items | selectattr('is_orderable') | list %}
+    {% if available_items %}
+      <h6 id="cat-{{ category.id }}" class="mt-4 mb-2">{{ category.name }}</h6>
+      <div class="menu-grid mb-3">
+        {% for item in available_items %}
+          <div class="menu-item-card">
+            {% if item.photo %}
+              <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#viewPhotoModal{{ item.id }}" title="{{ _('Perbesar foto') }}">
+                <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                <i class="bi bi-arrows-fullscreen thumb-hint-icon"></i>
+              </button>
+            {% else %}
+              <div class="menu-item-thumb w-100">
+                <i class="bi bi-cup-hot"></i>
+              </div>
+            {% endif %}
+            <div class="menu-item-body">
+              <div class="menu-item-name-row">
+                <div class="menu-item-name">{{ item.name }}</div>
+                <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+              </div>
+              <div class="qty-stepper" data-price="{{ item.price }}">
+                <button type="button" class="qty-minus"><i class="bi bi-dash"></i></button>
+                <input type="number" class="qty-input" name="qty_{{ item.id }}" value="0" min="0" inputmode="numeric" readonly>
+                <button type="button" class="qty-plus"><i class="bi bi-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          {% if item.photo %}
+            <div class="modal fade" id="viewPhotoModal{{ item.id }}" tabindex="-1">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                  <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title">{{ item.name }}</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body text-center pt-2">
+                    <div class="photo-preview-lg mx-auto">
+                      <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  <div class="cart-bar-spacer"></div>
+  <div class="cart-bar">
+    <div>
+      <div class="cart-total" id="cartTotal">Rp 0</div>
+      <div class="cart-count" id="cartCount">{{ _('Belum ada item dipilih') }}</div>
+    </div>
+    <button type="submit" class="btn btn-accent btn-lg" id="submitBtn" disabled>
+      <i class="bi bi-send"></i> {{ _('Kirim Pesanan') }}
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function formatRupiah(n) {
+    return "Rp " + n.toLocaleString("id-ID");
+  }
+
+  function updateCart() {
+    let total = 0;
+    let count = 0;
+
+    document.querySelectorAll(".qty-stepper").forEach((stepper) => {
+      const price = parseInt(stepper.dataset.price, 10);
+      const qty = parseInt(stepper.querySelector(".qty-input").value, 10) || 0;
+      total += price * qty;
+      count += qty;
+    });
+
+    document.getElementById("cartTotal").textContent = formatRupiah(total);
+    document.getElementById("cartCount").textContent =
+      count > 0 ? count + " {{ _('item dipilih') }}" : "{{ _('Belum ada item dipilih') }}";
+    document.getElementById("submitBtn").disabled = count === 0;
+  }
+
+  document.querySelectorAll(".qty-stepper").forEach((stepper) => {
+    const input = stepper.querySelector(".qty-input");
+
+    stepper.querySelector(".qty-plus").addEventListener("click", () => {
+      input.value = (parseInt(input.value, 10) || 0) + 1;
+      updateCart();
+    });
+
+    stepper.querySelector(".qty-minus").addEventListener("click", () => {
+      input.value = Math.max(0, (parseInt(input.value, 10) || 0) - 1);
+      updateCart();
+    });
+  });
+
+  updateCart();
+</script>
+{% endblock %}
