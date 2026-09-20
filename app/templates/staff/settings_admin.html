@@ -2,254 +2,899 @@
 {% block title %}{{ _('Pengaturan Toko') }}{% endblock %}
 
 {% block content %}
-<h4 class="mb-4"><i class="bi bi-gear"></i> {{ _('Pengaturan Toko') }}</h4>
+<h4 class="mb-1"><i class="bi bi-gear"></i> {{ _('Pengaturan Toko') }}</h4>
+<p class="text-muted small mb-4">{{ _('Atur identitas toko, lantai, logo, struk & pembayaran, notifikasi, dan sistem dari sini.') }}</p>
 
-<form method="post" enctype="multipart/form-data">
-      <ul class="nav nav-tabs settings-tabs mb-0" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-identity" type="button">
-            <i class="bi bi-shop"></i> {{ _('Identitas') }}
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-logo" type="button">
-            <i class="bi bi-image"></i> {{ _('Logo') }}
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-payment" type="button">
-            <i class="bi bi-receipt"></i> {{ _('Struk & Pembayaran') }}
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-contact" type="button">
-            <i class="bi bi-geo-alt"></i> {{ _('Kontak & Sosial') }}
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-notification" type="button">
-            <i class="bi bi-bell"></i> {{ _('Notifikasi') }}
-          </button>
-        </li>
-      </ul>
+<ul class="nav nav-tabs settings-tabs mb-0" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-identity" type="button">
+      <i class="bi bi-shop"></i> {{ _('Aplikasi') }}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-logo" type="button">
+      <i class="bi bi-image"></i> {{ _('Logo') }}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-payment" type="button">
+      <i class="bi bi-receipt"></i> {{ _('Struk & Pembayaran') }}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-notification" type="button">
+      <i class="bi bi-bell"></i> {{ _('Notifikasi') }}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-system" type="button">
+      <i class="bi bi-hdd-stack"></i> {{ _('Sistem') }}
+    </button>
+  </li>
+</ul>
 
-      <div class="card settings-card">
-        <div class="card-body">
-          <div class="tab-content">
+<div class="card settings-card">
+  <div class="card-body">
 
-            <!-- ============ IDENTITAS ============ -->
+    <!-- Tab Aplikasi/Logo/Struk & Pembayaran/Notifikasi berbagi 1 form
+         dengan tombol "Simpan Pengaturan" di bawah (lihat form="settingsForm"
+         pada tombolnya) - tab Sistem SENGAJA di .tab-content TERPISAH,
+         di luar form ini, karena isinya 3 aksi independen (Bersihkan
+         Cache/Backup/Mode Demo) yang masing-masing punya form & tombolnya
+         sendiri (form tidak boleh nested di HTML). Bootstrap cuma butuh
+         tiap .tab-pane jadi ANAK LANGSUNG dari SEBUAH .tab-content (CSS-nya
+         ".tab-content > .tab-pane") - tidak harus .tab-content yang sama,
+         jadi aman dipisah begini selama tombol nav-tabs-nya tetap 1 grup. -->
+    <form method="post" enctype="multipart/form-data" id="settingsForm">
+      <div class="tab-content">
+
+            <!-- ============ APLIKASI (Identitas + Lantai + Kontak & Sosial) ============ -->
             <div class="tab-pane fade show active" id="tab-identity">
-              <div class="mb-3">
-                <label class="form-label small fw-semibold">{{ _('Nama Toko') }}</label>
-                <input type="text" name="shop_name" class="form-control" value="{{ settings.shop_name }}" required>
-                <div class="form-text">{{ _('Tampil di navbar, halaman login, dan menu tamu.') }}</div>
-              </div>
+              <div class="row g-4">
 
-              <div class="mb-2">
-                <label class="form-label small fw-semibold">{{ _('Footer') }}</label>
-                <input type="text" name="footer_text" class="form-control"
-                       value="{{ settings.footer_text or '' }}"
-                       placeholder="{{ _('Contoh: Kafe Saya © 2026. Hak cipta dilindungi.') }}">
-                <div class="form-text">{{ _('Ditampilkan di bagian bawah halaman menu & status pesanan tamu.') }}</div>
+                <div class="col-12 col-lg-4">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">1</span> {{ _('Identitas Toko') }}
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold">{{ _('Nama Toko') }}</label>
+                    <input type="text" name="shop_name" class="form-control" value="{{ settings.shop_name }}" placeholder="Orulabs Cafe" required>
+                    <div class="form-text">{{ _('Tampil di navbar, halaman login, dan menu tamu.') }}</div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold">{{ _('Nomor Telepon') }}</label>
+                    <input type="text" name="phone" class="form-control" value="{{ settings.phone or '' }}" placeholder="{{ _('Contoh: 081388xxxxx') }}">
+                  </div>
+                  <div class="mb-1">
+                    <label class="form-label small fw-semibold">{{ _('Alamat Toko') }}</label>
+                    <textarea name="address" class="form-control" rows="2" placeholder="{{ _('Contoh: Jl. Mahoni Blk. E Gg. 2 No.9, Jakarta Utara') }}">{{ settings.address or '' }}</textarea>
+                  </div>
+                </div>
+
+                <div class="col-12 col-lg-4 settings-col-divider">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">2</span> {{ _('Lantai Toko') }}
+                  </div>
+                  <p class="text-muted small mb-3">
+                    {{ _('Atur jumlah lantai toko Anda dan beri nama masing-masing - dipakai di halaman Meja dan saat menambah meja baru.') }}
+                  </p>
+
+                  {% if not floors %}
+                    <p class="text-muted small mb-3">{{ _('Belum ada lantai. Tambahkan minimal 1 lantai dulu.') }}</p>
+                  {% else %}
+                    <div class="floor-list mb-3">
+                      {% for floor in floors %}
+                        <div class="floor-row">
+                          <input type="text" name="floor_name_{{ floor.id }}" class="form-control form-control-sm" value="{{ floor.name }}" placeholder="{{ floor_display_name(floor.number) }}" maxlength="50">
+                          <button type="submit" formaction="{{ url_for('staff.delete_floor', floor_id=floor.id) }}" formmethod="post"
+                                  class="icon-btn-danger" title="{{ _('Hapus Lantai') }}"
+                                  onclick="return confirm('{{ _('Hapus %(name)s? Meja yang sudah ada di lantai ini tidak ikut terhapus.', name=floor_display_name(floor.number)) }}');">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+
+                  <button type="submit" formaction="{{ url_for('staff.add_floor') }}" formmethod="post" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-plus-circle"></i> {{ _('Tambah Lantai') }}
+                  </button>
+                </div>
+
+                <div class="col-12 col-lg-4 settings-col-divider">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">3</span> {{ _('Kontak & Sosial') }}
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold"><i class="bi bi-whatsapp"></i> WhatsApp</label>
+                    <input type="text" name="whatsapp" class="form-control" value="{{ settings.whatsapp or '' }}" placeholder="081388xxxxx">
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold"><i class="bi bi-instagram"></i> Instagram</label>
+                    <input type="text" name="instagram" class="form-control" value="{{ settings.instagram or '' }}" placeholder="@r0corp">
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold"><i class="bi bi-tiktok"></i> TikTok</label>
+                    <input type="text" name="tiktok" class="form-control" value="{{ settings.tiktok or '' }}" placeholder="@r0corp">
+                  </div>
+
+                  <div class="mb-1">
+                    <label class="form-label small fw-semibold"><i class="bi bi-facebook"></i> Facebook</label>
+                    <input type="text" name="other_social" class="form-control" value="{{ settings.other_social or '' }}" placeholder="@r0corp">
+                  </div>
+                </div>
+
               </div>
             </div>
 
             <!-- ============ LOGO ============ -->
             <div class="tab-pane fade" id="tab-logo">
-              <div class="row g-3 mb-3">
-                <div class="col-6">
-                  <label class="form-label small fw-semibold">{{ _('Logo Persegi') }}</label>
-                  <div class="d-flex align-items-center gap-2 mb-2">
-                    {% if settings.logo_square %}
-                      <img src="{{ url_for('static', filename='uploads/branding/' + settings.logo_square) }}"
-                           alt="{{ _('Logo persegi') }}" style="width: 56px; height: 56px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px;">
-                    {% else %}
-                      <div class="d-flex align-items-center justify-content-center text-muted" style="width: 56px; height: 56px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">
-                        <i class="bi bi-image"></i>
-                      </div>
-                    {% endif %}
+
+              <div class="row g-4">
+                <div class="col-sm-4 d-flex flex-column">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">1</span> {{ _('Upload Logo') }}
                   </div>
-                  <input type="file" name="logo_square" class="form-control form-control-sm mb-2" accept=".png,.jpg,.jpeg,.webp,.svg">
-                  {% if settings.logo_square %}
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" name="remove_logo_square" value="1" id="removeSquare">
-                      <label class="form-check-label small text-muted" for="removeSquare">{{ _('Hapus logo ini') }}</label>
+                  <div class="card flex-grow-1">
+                    <div class="card-body system-card-body">
+                      <div class="mb-3">
+                        <label class="form-label small fw-semibold">{{ _('Logo Persegi') }}</label>
+                        <div class="d-flex align-items-start gap-3 mb-2">
+                          <div class="flex-grow-1">
+                            <input type="file" name="logo_square" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                            {% if settings.logo_square %}
+                              <input type="checkbox" class="btn-check" name="remove_logo_square" value="1" id="removeSquare" autocomplete="off">
+                              <label class="btn btn-sm btn-outline-danger mt-2" for="removeSquare">{{ _('Reset') }}</label>
+                            {% endif %}
+                          </div>
+                          {% if settings.logo_square %}
+                            <img src="{{ url_for('static', filename='uploads/branding/' + settings.logo_square) }}"
+                                 alt="{{ _('Logo persegi') }}" style="width: 56px; height: 56px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px; flex-shrink: 0;">
+                          {% else %}
+                            <div class="d-flex align-items-center justify-content-center text-muted" style="width: 56px; height: 56px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm); flex-shrink: 0;">
+                              <i class="bi bi-image"></i>
+                            </div>
+                          {% endif %}
+                        </div>
+                        <div class="form-text">{{ _('Navbar & halaman login. Idealnya rasio 1:1.') }}</div>
+                      </div>
+
+                      <div>
+                        <label class="form-label small fw-semibold">{{ _('Logo Panjang') }}</label>
+                        <div class="d-flex align-items-start gap-3 mb-2">
+                          <div class="flex-grow-1">
+                            <input type="file" name="logo_wide" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                            {% if settings.logo_wide %}
+                              <input type="checkbox" class="btn-check" name="remove_logo_wide" value="1" id="removeWide" autocomplete="off">
+                              <label class="btn btn-sm btn-outline-danger mt-2" for="removeWide">{{ _('Reset') }}</label>
+                            {% endif %}
+                          </div>
+                          {% if settings.logo_wide %}
+                            <img src="{{ url_for('static', filename='uploads/branding/' + settings.logo_wide) }}"
+                                 alt="{{ _('Logo panjang') }}" style="width: 100px; height: 56px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px; flex-shrink: 0;">
+                          {% else %}
+                            <div class="d-flex align-items-center justify-content-center text-muted" style="width: 100px; height: 56px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm); flex-shrink: 0;">
+                              <i class="bi bi-image"></i>
+                            </div>
+                          {% endif %}
+                        </div>
+                        <div class="form-text">{{ _('Header menu tamu & kop struk. Rasio landscape.') }}</div>
+                      </div>
                     </div>
-                  {% endif %}
-                  <div class="form-text">{{ _('Navbar & halaman login. Idealnya rasio 1:1.') }}</div>
+                  </div>
                 </div>
 
-                <div class="col-6">
-                  <label class="form-label small fw-semibold">{{ _('Logo Panjang') }}</label>
-                  <div class="d-flex align-items-center gap-2 mb-2">
-                    {% if settings.logo_wide %}
-                      <img src="{{ url_for('static', filename='uploads/branding/' + settings.logo_wide) }}"
-                           alt="{{ _('Logo panjang') }}" style="max-width: 140px; max-height: 56px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px;">
-                    {% else %}
-                      <div class="d-flex align-items-center justify-content-center text-muted" style="width: 140px; height: 56px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">
-                        <i class="bi bi-image"></i>
-                      </div>
-                    {% endif %}
+                <div class="col-sm-4 d-flex flex-column">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">2</span> {{ _('Logo di Setiap Halaman') }}
                   </div>
-                  <input type="file" name="logo_wide" class="form-control form-control-sm mb-2" accept=".png,.jpg,.jpeg,.webp,.svg">
-                  {% if settings.logo_wide %}
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" name="remove_logo_wide" value="1" id="removeWide">
-                      <label class="form-check-label small text-muted" for="removeWide">{{ _('Hapus logo ini') }}</label>
+                  <div class="card flex-grow-1">
+                    <div class="card-body system-card-body">
+                      <div class="mb-3">
+                        <label class="form-label small fw-semibold">{{ _('Logo Halaman Login') }}</label>
+                        <select name="login_logo_choice" class="form-select" data-elegant-select>
+                          <option value="square" {% if settings.login_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
+                          <option value="wide" {% if settings.login_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
+                        </select>
+                        <div class="form-text">{{ _('Ditampilkan di kartu login sebelum masuk.') }}</div>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label small fw-semibold">{{ _('Logo Aplikasi') }}</label>
+                        <select name="app_logo_choice" class="form-select" data-elegant-select>
+                          <option value="square" {% if settings.app_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
+                          <option value="wide" {% if settings.app_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
+                        </select>
+                        <div class="form-text">{{ _('Navbar aplikasi & menu tamu.') }}</div>
+                      </div>
+                      <div>
+                        <label class="form-label small fw-semibold">{{ _('Logo untuk Struk') }}</label>
+                        <select name="receipt_logo_choice" class="form-select" data-elegant-select>
+                          <option value="square" {% if settings.receipt_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
+                          <option value="wide" {% if settings.receipt_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
+                        </select>
+                        <div class="form-text">{{ _('Kop struk penjualan.') }}</div>
+                      </div>
                     </div>
-                  {% endif %}
-                  <div class="form-text">{{ _('Header menu tamu & kop struk. Rasio landscape.') }}</div>
+                  </div>
+                </div>
+
+                <div class="col-sm-4 d-flex flex-column">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">3</span> {{ _('Tampilan Navbar Aplikasi') }}
+                  </div>
+                  <div class="card flex-grow-1">
+                    <div class="card-body system-card-body">
+                      <div>
+                        <select name="navbar_display" class="form-select" data-elegant-select>
+                          <option value="both" {% if settings.navbar_display == 'both' %}selected{% endif %}>{{ _('Logo dan Nama Aplikasi') }}</option>
+                          <option value="logo" {% if settings.navbar_display == 'logo' %}selected{% endif %}>{{ _('Hanya Logo') }}</option>
+                          <option value="name" {% if settings.navbar_display == 'name' %}selected{% endif %}>{{ _('Hanya Nama Aplikasi') }}</option>
+                        </select>
+                        <div class="form-text">{{ _('Bagian kiri navbar (setelah login), tidak berlaku di halaman login.') }}</div>
+                      </div>
+
+                      <p class="text-muted small mb-0 mt-3">
+                        <i class="bi bi-info-circle"></i>
+                        {{ _('Kalau logo pilihan belum diupload, otomatis pakai logo lain yang sudah ada.') }}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <hr style="border-color: var(--color-border);">
-
-              <div class="row g-3 mb-2">
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold">{{ _('Logo untuk Aplikasi') }}</label>
-                  <select name="app_logo_choice" class="form-select">
-                    <option value="square" {% if settings.app_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
-                    <option value="wide" {% if settings.app_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
-                  </select>
-                  <div class="form-text">{{ _('Navbar, halaman login & menu tamu.') }}</div>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold">{{ _('Logo untuk Struk') }}</label>
-                  <select name="receipt_logo_choice" class="form-select">
-                    <option value="square" {% if settings.receipt_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
-                    <option value="wide" {% if settings.receipt_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
-                  </select>
-                  <div class="form-text">{{ _('Kop struk penjualan.') }}</div>
-                </div>
-              </div>
-              <p class="text-muted small mb-0">
-                <i class="bi bi-info-circle"></i>
-                {{ _('Kalau logo pilihan belum diupload, otomatis pakai logo lain yang sudah ada.') }}
-              </p>
             </div>
 
             <!-- ============ STRUK & PEMBAYARAN ============ -->
             <div class="tab-pane fade" id="tab-payment">
-              <div class="mb-4" style="max-width: 260px;">
-                <label class="form-label small fw-semibold">{{ _('Lebar Kertas Printer Thermal') }}</label>
-                <select name="receipt_paper_width" class="form-select">
-                  <option value="80" {% if settings.receipt_paper_width == '80' %}selected{% endif %}>{{ _('80mm (umum)') }}</option>
-                  <option value="58" {% if settings.receipt_paper_width == '58' %}selected{% endif %}>58mm</option>
-                </select>
-                <div class="form-text">{{ _('Sesuaikan dengan ukuran kertas printer thermal Anda.') }}</div>
-              </div>
+              <div class="row g-4">
 
-              <hr style="border-color: var(--color-border);">
-
-              <h6 class="mb-2"><i class="bi bi-qr-code"></i> QRIS Offline</h6>
-              <p class="text-muted small mb-3">
-                {{ _('Upload gambar QRIS statis toko Anda (dari GoPay Bisnis/DANA Bisnis/bank). Muncul tombol "Tampilkan QRIS" di halaman Kasir, supaya pelayan bisa langsung tunjukkan QR-nya ke tamu untuk di-scan di meja.') }}
-              </p>
-
-              <div class="d-flex align-items-center gap-2 mb-2">
-                {% if settings.qris_image %}
-                  <img src="{{ url_for('static', filename='uploads/branding/' + settings.qris_image) }}"
-                       alt="QRIS" style="width: 100px; height: 100px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px;">
-                {% else %}
-                  <div class="d-flex align-items-center justify-content-center text-muted" style="width: 100px; height: 100px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">
-                    <i class="bi bi-qr-code fs-3"></i>
+                <div class="col-12 col-lg-4">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">1</span> {{ _('PPN (Pajak Pertambahan Nilai)') }}
                   </div>
-                {% endif %}
-              </div>
-              <input type="file" name="qris_image" class="form-control form-control-sm mb-2" style="max-width: 320px;" accept=".png,.jpg,.jpeg,.webp,.svg">
-              {% if settings.qris_image %}
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="remove_qris_image" value="1" id="removeQris">
-                  <label class="form-check-label small text-muted" for="removeQris">{{ _('Hapus gambar QRIS ini') }}</label>
+                  <p class="text-muted small mb-3">
+                    {{ _('Kalau ada ketentuan PPN dari pemerintah, aktifkan dan masukkan persentasenya di sini - otomatis dihitung & ditambahkan ke total tagihan mulai dari Kasir sampai struk cetak dan laporan penjualan.') }}
+                  </p>
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" role="switch" name="ppn_enabled" value="1" id="ppnEnabled"
+                           {% if settings.ppn_enabled %}checked{% endif %}>
+                    <label class="form-check-label small fw-semibold" for="ppnEnabled">{{ _('Aktifkan PPN') }}</label>
+                  </div>
+                  <div class="mb-1" style="max-width: 150px;">
+                    <div class="input-group input-group-sm">
+                      <input type="number" name="ppn_percentage" class="form-control" value="{{ settings.ppn_percentage }}"
+                             min="0" max="100" step="0.1" aria-label="{{ _('Persentase PPN') }}">
+                      <span class="input-group-text">%</span>
+                    </div>
+                  </div>
+                  <div class="form-text">{{ _('Contoh: 11 untuk PPN 11%%.') }}</div>
                 </div>
-              {% endif %}
-            </div>
 
-            <!-- ============ KONTAK & SOSIAL ============ -->
-            <div class="tab-pane fade" id="tab-contact">
-              <p class="text-muted small mb-3">{{ _('Disimpan untuk dilampirkan di struk pembelian, supaya pelanggan gampang ikuti/follow toko Anda.') }}</p>
-
-              <div class="mb-3">
-                <label class="form-label small fw-semibold">{{ _('Alamat Toko') }}</label>
-                <textarea name="address" class="form-control" rows="2" placeholder="{{ _('Contoh: Jl. Mahoni Blk. E Gg. 2 No.9, Jakarta Utara') }}">{{ settings.address or '' }}</textarea>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label small fw-semibold">{{ _('Nomor Telepon') }}</label>
-                <input type="text" name="phone" class="form-control" value="{{ settings.phone or '' }}" placeholder="{{ _('Contoh: 081388xxxxx') }}">
-              </div>
-
-              <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold"><i class="bi bi-instagram"></i> Instagram</label>
-                  <input type="text" name="instagram" class="form-control" value="{{ settings.instagram or '' }}" placeholder="@r0corp">
+                <div class="col-12 col-lg-4 settings-col-divider">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">2</span> {{ _('Kertas Struk') }}
+                  </div>
+                  <div class="mb-1" style="max-width: 260px;">
+                    <select name="receipt_paper_width" class="form-select" data-elegant-select>
+                      <option value="80" {% if settings.receipt_paper_width == '80' %}selected{% endif %}>{{ _('80mm (umum)') }}</option>
+                      <option value="58" {% if settings.receipt_paper_width == '58' %}selected{% endif %}>58mm</option>
+                    </select>
+                    <div class="form-text">{{ _('Sesuaikan dengan ukuran kertas printer thermal Anda.') }}</div>
+                  </div>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold"><i class="bi bi-tiktok"></i> TikTok</label>
-                  <input type="text" name="tiktok" class="form-control" value="{{ settings.tiktok or '' }}" placeholder="@r0corp">
-                </div>
-              </div>
 
-              <div class="row g-3 mb-1">
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold"><i class="bi bi-whatsapp"></i> WhatsApp</label>
-                  <input type="text" name="whatsapp" class="form-control" value="{{ settings.whatsapp or '' }}" placeholder="081388xxxxx">
+                <div class="col-12 col-lg-4 settings-col-divider">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">3</span> {{ _('QRIS Offline') }}
+                  </div>
+                  <p class="text-muted small mb-3">
+                    {{ _('Upload gambar QRIS statis toko Anda (dari GoPay Bisnis/DANA Bisnis/bank). Muncul tombol "Tampilkan QRIS" di halaman Kasir, supaya pelayan bisa langsung tunjukkan QR-nya ke tamu untuk di-scan di meja.') }}
+                  </p>
+
+                  <div class="d-flex align-items-start gap-4 mb-2">
+                    <div class="flex-grow-1">
+                      <input type="file" name="qris_image" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                      {% if settings.qris_image %}
+                        <input type="checkbox" class="btn-check" name="remove_qris_image" value="1" id="removeQris" autocomplete="off">
+                        <label class="btn btn-sm btn-outline-danger mt-2" for="removeQris">{{ _('Reset') }}</label>
+                      {% endif %}
+                    </div>
+                    {% if settings.qris_image %}
+                      <img src="{{ url_for('static', filename='uploads/branding/' + settings.qris_image) }}"
+                           alt="QRIS" style="width: 100px; height: 100px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px; flex-shrink: 0;">
+                    {% else %}
+                      <div class="d-flex align-items-center justify-content-center text-muted" style="width: 100px; height: 100px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm); flex-shrink: 0;">
+                        <i class="bi bi-qr-code fs-3"></i>
+                      </div>
+                    {% endif %}
+                  </div>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold">{{ _('Sosial Media Lain') }}</label>
-                  <input type="text" name="other_social" class="form-control" value="{{ settings.other_social or '' }}" placeholder="{{ _('Contoh: Facebook @r0corp') }}">
-                </div>
+
               </div>
             </div>
 
             <!-- ============ NOTIFIKASI ============ -->
             <div class="tab-pane fade" id="tab-notification">
-              <p class="text-muted small mb-3">
-                {{ _('Mengatur bunyi notifikasi pesanan baru di halaman Dapur & Kasir. Staf tetap bisa matikan sementara dari tombol suara di halaman masing-masing, terpisah dari pengaturan ini.') }}
-              </p>
+              <div class="row g-4">
 
-              <div class="form-check form-switch mb-4">
-                <input class="form-check-input" type="checkbox" role="switch" name="notification_enabled" value="1"
-                       id="notifEnabled" {% if settings.notification_enabled %}checked{% endif %}>
-                <label class="form-check-label fw-semibold" for="notifEnabled">{{ _('Aktifkan Notifikasi Suara') }}</label>
-                <div class="form-text">{{ _('Kalau dimatikan, halaman Dapur & Kasir tidak akan bunyi sama sekali (mode bisu penuh).') }}</div>
+                <div class="col-12 col-lg-8">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">1</span> {{ _('Nada Owner (Default Toko)') }}
+                  </div>
+                  <p class="text-muted small mb-3">
+                    {{ _('Mengatur bunyi notifikasi pesanan baru di halaman Dapur & Kasir. Staf tetap bisa matikan sementara dari tombol suara di halaman masing-masing, terpisah dari pengaturan ini.') }}
+                  </p>
+
+                  <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" role="switch" name="notification_enabled" value="1"
+                           id="notifEnabled" {% if settings.notification_enabled %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="notifEnabled">{{ _('Aktifkan Notifikasi Suara') }}</label>
+                    <div class="form-text">{{ _('Kalau dimatikan, halaman Dapur & Kasir tidak akan bunyi sama sekali (mode bisu penuh).') }}</div>
+                  </div>
+
+                  <div class="mb-4">
+                    <label class="form-label small fw-semibold d-flex justify-content-between">
+                      <span><i class="bi bi-volume-up-fill"></i> {{ _('Volume Notifikasi') }}</span>
+                      <span id="volumeValueLabel" class="text-muted">{{ settings.notification_volume }}%</span>
+                    </label>
+                    <input type="range" class="form-range" name="notification_volume" id="volumeRange"
+                           min="0" max="100" step="5" value="{{ settings.notification_volume }}">
+                  </div>
+
+                  <p class="text-muted small mb-3">{{ _('Klik ikon play untuk coba dengarkan, klik kartunya untuk memilih. Nada ini juga jadi fallback untuk role lain yang belum ditentukan nadanya di samping.') }}</p>
+
+                  <input type="hidden" name="notification_sound" id="notificationSoundInput" value="{{ settings.notification_sound }}">
+                  <div id="soundPicker" class="row g-2 mb-3"></div>
+
+                  <div class="custom-sound-box">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <i class="bi bi-music-note-beamed" style="color: var(--color-accent); font-size: 1.1rem;"></i>
+                      <span class="small fw-semibold">{{ _('Nada Sendiri (Upload)') }}</span>
+                    </div>
+
+                    {% if settings.notification_sound_file %}
+                      <div class="custom-sound-file">
+                        <button type="button" id="customSoundPlayBtn" class="sound-play-btn" title="{{ _('Coba dengarkan') }}">
+                          <i class="bi bi-play-fill"></i>
+                        </button>
+                        <span class="small text-truncate flex-grow-1">{{ settings.notification_sound_file }}</span>
+                        <button type="button" id="customSoundSelectBtn" class="btn btn-sm btn-outline-secondary text-nowrap">
+                          {{ _('Pilih') }}
+                        </button>
+                      </div>
+                      <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="remove_notification_sound_file" value="1" id="removeCustomSound">
+                        <label class="form-check-label small text-muted" for="removeCustomSound">{{ _('Hapus nada ini') }}</label>
+                      </div>
+                    {% else %}
+                      <p class="text-muted small mb-2">{{ _('Belum ada nada yang diupload.') }}</p>
+                    {% endif %}
+
+                    <input type="file" name="notification_sound_file" class="form-control form-control-sm mt-2" accept="audio/*">
+                    <div class="form-text">{{ _('Format MP3, WAV, OGG, atau M4A.') }}</div>
+                  </div>
+                </div>
+
+                <div class="col-12 col-lg-4 settings-col-divider">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">2</span> {{ _('Nada per Role Staf') }}
+                  </div>
+                  <p class="text-muted small mb-3">
+                    {{ _('Beda nada per role membantu Anda mengenali device siapa yang bunyi saat notifikasi masuk. Kosongkan supaya ikut nada Owner di samping.') }}
+                  </p>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold">{{ _('Nada untuk Dapur') }}</label>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="sound-play-btn role-sound-play" data-role-select="roleSoundDapur" title="{{ _('Coba dengarkan') }}">
+                        <i class="bi bi-play-fill"></i>
+                      </button>
+                      <select name="notification_sound_dapur" id="roleSoundDapur" class="form-select form-select-sm">
+                        <option value="">{{ _('Ikuti Nada Owner') }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold">{{ _('Nada untuk Kasir') }}</label>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="sound-play-btn role-sound-play" data-role-select="roleSoundKasir" title="{{ _('Coba dengarkan') }}">
+                        <i class="bi bi-play-fill"></i>
+                      </button>
+                      <select name="notification_sound_kasir" id="roleSoundKasir" class="form-select form-select-sm">
+                        <option value="">{{ _('Ikuti Nada Owner') }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="form-label small fw-semibold">{{ _('Nada untuk Pelayan') }}</label>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="sound-play-btn role-sound-play" data-role-select="roleSoundPelayan" title="{{ _('Coba dengarkan') }}">
+                        <i class="bi bi-play-fill"></i>
+                      </button>
+                      <select name="notification_sound_pelayan" id="roleSoundPelayan" class="form-select form-select-sm">
+                        <option value="">{{ _('Ikuti Nada Owner') }}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <p class="text-muted small mt-3 mb-0">
+                    <i class="bi bi-lightbulb"></i>
+                    {{ _('Pelayan dengar nada ini saat ada pesanan yang siap diantar dari Dapur. Kasir juga dengar nada ini saat ada pembayaran selesai diproses kasir lain.') }}
+                  </p>
+                </div>
+
               </div>
-
-              <div class="mb-4" style="max-width: 420px;">
-                <label class="form-label small fw-semibold d-flex justify-content-between">
-                  <span>{{ _('Volume Notifikasi') }}</span>
-                  <span id="volumeValueLabel" class="text-muted">{{ settings.notification_volume }}%</span>
-                </label>
-                <input type="range" class="form-range" name="notification_volume" id="volumeRange"
-                       min="0" max="100" step="5" value="{{ settings.notification_volume }}">
-              </div>
-
-              <label class="form-label small fw-semibold">{{ _('Pilih Nada Notifikasi') }}</label>
-              <p class="text-muted small mb-3">{{ _('Klik ikon play untuk coba dengarkan, klik kartunya untuk memilih.') }}</p>
-
-              <input type="hidden" name="notification_sound" id="notificationSoundInput" value="{{ settings.notification_sound }}">
-              <div id="soundPicker" class="row g-2 mb-2"></div>
             </div>
 
+      </div>
+    </form>
+
+    <!-- .tab-content KEDUA, terpisah dari punya form di atas (lihat
+         catatan struktur di komentar dekat pembukaan form). -->
+    <div class="tab-content">
+      <!-- ============ SISTEM (Cache, Backup, Mode Demo) ============ -->
+      <div class="tab-pane fade" id="tab-system">
+        {% set cache_bar_colors = ['var(--color-accent)', 'var(--color-primary)', 'var(--color-warning)', 'var(--color-success)'] %}
+        <div class="row g-4">
+          <div class="col-sm-4 d-flex flex-column">
+            <div class="settings-section-title">
+              <span class="settings-section-num">1</span> {{ _('Bersihkan Cache Aplikasi') }}
+            </div>
+            <div class="card flex-grow-1">
+              <div class="card-body system-card-body">
+                <p class="text-muted small mb-3">
+                  {{ _('Paksa semua device ambil gambar (logo, foto, QR) versi terbaru.') }}
+                </p>
+
+                <div class="cache-size-box mb-3">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small fw-semibold">{{ _('Ukuran Cache Gambar') }}</span>
+                    <span class="fw-bold" style="color: var(--color-accent);">{{ cache_info.total_mb }} MB</span>
+                  </div>
+                  {% if cache_info.categories %}
+                    <div class="cache-size-bar">
+                      {% for item in cache_info.categories %}
+                        <span class="cache-size-bar-segment" style="width: {{ item.percent }}%; background: {{ cache_bar_colors[loop.index0 % cache_bar_colors|length] }};" title="{{ item.label }} - {{ item.percent }}%"></span>
+                      {% endfor %}
+                    </div>
+                    <div class="cache-size-legend">
+                      {% for item in cache_info.categories %}
+                        <div class="cache-size-legend-item">
+                          <span class="cache-size-dot" style="background: {{ cache_bar_colors[loop.index0 % cache_bar_colors|length] }};"></span>
+                          {{ item.label }} <span class="text-muted">{{ item.mb }} MB &middot; {{ item.percent }}%</span>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <div class="text-muted small mb-0">{{ _('Belum ada gambar yang diupload.') }}</div>
+                  {% endif %}
+                </div>
+
+                <form method="post" action="{{ url_for('staff.clear_cache') }}" class="mt-auto">
+                  <button type="submit" class="btn btn-accent w-100">
+                    <i class="bi bi-arrow-repeat"></i> {{ _('Bersihkan Cache') }}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-4 d-flex flex-column">
+            <div class="settings-section-title">
+              <span class="settings-section-num">2</span> {{ _('Backup Database') }}
+            </div>
+            <div class="card flex-grow-1">
+              <div class="card-body system-card-body">
+                <p class="text-muted small mb-3">
+                  {{ _('Backup database & semua gambar dalam 1 file .zip.') }}
+                </p>
+
+                <div class="cache-size-box backup-list-box mb-3">
+                  {% if not backups %}
+                    <div class="empty-state py-3">
+                      <i class="bi bi-archive"></i>
+                      <div class="small">{{ _('Belum ada backup. Klik "Buat Backup Baru" untuk membuat yang pertama.') }}</div>
+                    </div>
+                  {% else %}
+                    <div class="list-group list-group-flush" style="max-height: 220px; overflow-y: auto; overflow-x: hidden;">
+                      {% for backup in backups %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+                          <div class="text-break" style="min-width: 0;">
+                            <div class="fw-semibold small">{{ backup.name }}</div>
+                            <div class="text-muted small">
+                              {{ backup.created_at.strftime('%d/%m/%Y %H:%M:%S') }} &middot; {{ backup.size_mb }} MB
+                            </div>
+                          </div>
+                          <div class="d-flex gap-2">
+                            <a href="{{ url_for('staff.backup_download', filename=backup.name) }}" class="btn btn-sm btn-outline-secondary">
+                              <i class="bi bi-download"></i>
+                            </a>
+                            <form method="post" action="{{ url_for('staff.backup_delete', filename=backup.name) }}"
+                                  onsubmit="return confirm('{{ _('Hapus backup %(name)s? Tidak bisa dibatalkan.', name=backup.name) }}');">
+                              <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <form method="post" action="{{ url_for('staff.backup_create') }}" class="mt-auto">
+                  <button type="submit" class="btn btn-accent w-100">
+                    <i class="bi bi-plus-circle"></i> {{ _('Buat Backup Baru') }}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-4 d-flex flex-column">
+            <div class="settings-section-title">
+              <span class="settings-section-num">3</span> {{ _('Mode Demo') }}
+            </div>
+            <div class="card flex-grow-1">
+              <div class="card-body system-card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="small text-muted">{{ _('Status') }}</span>
+                  {% if demo_mode_active %}
+                    <span class="badge-soft badge-status-ready" style="text-transform: none;">{{ _('Aktif') }}</span>
+                  {% else %}
+                    <span class="badge-soft badge-status-served" style="text-transform: none;">{{ _('Nonaktif') }}</span>
+                  {% endif %}
+                </div>
+
+                <div id="demoModePinRow" class="input-group mb-3 {{ 'd-none' if demo_mode_unlocked else '' }}">
+                  <input type="password" class="form-control" id="demoModePin" placeholder="{{ _('PIN Mode Demo') }}" autocomplete="off">
+                  <button type="button" class="btn btn-accent" id="demoModeUnlockBtn">
+                    <i class="bi bi-unlock"></i> {{ _('Buka Kunci') }}
+                  </button>
+                </div>
+                <div id="demoModeInvalidMsg" class="small mb-3 d-none" style="color: var(--color-danger);">
+                  <i class="bi bi-exclamation-triangle-fill"></i> {{ _('PIN salah.') }}
+                </div>
+                <button type="button" class="btn btn-outline-secondary w-100 mb-3 {{ '' if demo_mode_unlocked else 'd-none' }}" id="demoModeLockBtn">
+                  <i class="bi bi-lock"></i> {{ _('Kunci Demo') }}
+                </button>
+
+                <div id="demoModeLockedArea" class="{{ 'pin-locked-area' if not demo_mode_unlocked else '' }}">
+                <p class="text-muted small mb-3">
+                  {{ _('Isi menu & inventory contoh untuk demo - aman, tidak menyentuh data asli toko.') }}
+                </p>
+
+                <div class="cache-size-box mb-3">
+                  <div class="small fw-semibold mb-2">
+                    {% if demo_mode_active %}
+                      {{ _('Data contoh yang sedang dimuat') }}
+                    {% else %}
+                      {{ _('Isi data contoh kalau dinyalakan') }}
+                    {% endif %}
+                  </div>
+                  <div class="cache-size-legend">
+                    <div class="cache-size-legend-item">
+                      <span class="cache-size-dot" style="background: var(--color-accent);"></span>
+                      {{ _('%(count)s kategori', count=demo_stats.categories) }}
+                    </div>
+                    <div class="cache-size-legend-item">
+                      <span class="cache-size-dot" style="background: var(--color-primary);"></span>
+                      {{ _('%(count)s menu (dengan foto)', count=demo_stats.menu_items) }}
+                    </div>
+                    <div class="cache-size-legend-item">
+                      <span class="cache-size-dot" style="background: var(--color-warning);"></span>
+                      {{ _('%(count)s bahan baku', count=demo_stats.ingredients) }}
+                    </div>
+                    <div class="cache-size-legend-item">
+                      <span class="cache-size-dot" style="background: var(--color-success);"></span>
+                      {{ _('%(count)s meja (Lantai 1)', count=demo_stats.tables) }}
+                    </div>
+                    <div class="cache-size-legend-item">
+                      <span class="cache-size-dot" style="background: var(--color-info);"></span>
+                      {{ _('Identitas & logo toko (sementara)') }}
+                    </div>
+                  </div>
+                </div>
+
+                <form method="post" action="{{ url_for('staff.demo_mode_toggle') }}" class="mt-auto"
+                      {% if demo_mode_active %}onsubmit="return confirm('{{ _('Matikan Mode Demo? Semua data contoh akan dihapus.') }}');"{% endif %}>
+                  {% if demo_mode_active %}
+                    <button type="submit" class="btn btn-accent w-100" {% if not demo_mode_unlocked %}disabled{% endif %}>
+                      <i class="bi bi-toggle-off"></i> {{ _('Matikan Mode Demo') }}
+                    </button>
+                  {% else %}
+                    <button type="submit" class="btn btn-accent w-100" {% if not demo_mode_unlocked %}disabled{% endif %}>
+                      <i class="bi bi-toggle-on"></i> {{ _('Aktifkan Mode Demo') }}
+                    </button>
+                  {% endif %}
+                </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4 mt-0">
+          <div class="col-sm-6 d-flex flex-column">
+            <div class="settings-section-title">
+              <span class="settings-section-num">4</span> {{ _('Mode Perbaikan (Maintenance)') }}
+            </div>
+            <div class="card flex-grow-1">
+              <div class="card-body system-card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                  <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-tools fs-2" style="color: var(--color-accent);"></i>
+                    <div>
+                      <div class="fw-semibold mb-1">{{ _('Status') }}</div>
+                      {% if maintenance_mode_active %}
+                        <span class="badge-soft badge-status-pending" style="text-transform: none;">{{ _('Aktif - hanya Owner yang bisa akses') }}</span>
+                      {% else %}
+                        <span class="badge-soft badge-status-served" style="text-transform: none;">{{ _('Nonaktif') }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <form method="post" action="{{ url_for('staff.maintenance_mode_toggle') }}"
+                        {% if not maintenance_mode_active %}onsubmit="return confirm('{{ _('Aktifkan Mode Perbaikan? Kasir, dapur, dan pelayan tidak akan bisa memakai aplikasi sampai kamu matikan lagi.') }}');"{% endif %}>
+                    {% if maintenance_mode_active %}
+                      <button type="submit" class="btn btn-accent">
+                        <i class="bi bi-toggle-off"></i> {{ _('Matikan Mode Perbaikan') }}
+                      </button>
+                    {% else %}
+                      <button type="submit" class="btn btn-outline-secondary">
+                        <i class="bi bi-toggle-on"></i> {{ _('Aktifkan Mode Perbaikan') }}
+                      </button>
+                    {% endif %}
+                  </form>
+                </div>
+
+                <p class="text-muted small mb-0">
+                  {{ _('Aktifkan saat sedang ada perbaikan kode di server produksi. Selama aktif, semua pengguna lain (kasir, dapur, pelayan, dan siapa pun yang belum login) akan melihat halaman "Sedang Dalam Perbaikan", sementara akun Owner tetap bisa memakai aplikasi seperti biasa untuk menguji perubahan sebelum dinyalakan lagi ke semua orang.') }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-sm-6 d-flex flex-column">
+            <div class="settings-section-title">
+              <span class="settings-section-num">5</span> {{ _('Reset ke Mode Pabrik') }}
+            </div>
+            <div class="card flex-grow-1">
+              <div class="card-body system-card-body">
+                <div id="factoryResetPinRow" class="input-group mb-3 {{ 'd-none' if factory_reset_unlocked else '' }}">
+                  <input type="password" class="form-control" id="factoryResetPin" placeholder="{{ _('PIN Reset Pabrik') }}" autocomplete="off">
+                  <button type="button" class="btn btn-accent" id="factoryResetUnlockBtn">
+                    <i class="bi bi-unlock"></i> {{ _('Buka Kunci') }}
+                  </button>
+                </div>
+                <div id="factoryResetInvalidMsg" class="small mb-3 d-none" style="color: var(--color-danger);">
+                  <i class="bi bi-exclamation-triangle-fill"></i> {{ _('PIN salah.') }}
+                </div>
+                <button type="button" class="btn btn-outline-secondary w-100 mb-3 {{ '' if factory_reset_unlocked else 'd-none' }}" id="factoryResetLockBtn">
+                  <i class="bi bi-lock"></i> {{ _('Kunci Reset') }}
+                </button>
+
+                <div id="factoryResetLockedArea" class="{{ 'pin-locked-area' if not factory_reset_unlocked else '' }}">
+                  <p class="text-muted small mb-0">
+                    <i class="bi bi-exclamation-octagon-fill" style="color: var(--color-danger);"></i>
+                    {{ _('Kosongkan kategori, menu, bahan baku, meja, lantai, riwayat pesanan, dan kembalikan Pengaturan Toko ke kondisi kosong - KECUALI menu Pengguna, semua akun staf beserta role & izinnya tetap utuh. Tindakan ini permanen dan tidak bisa dibatalkan.') }}
+                  </p>
+
+                  <form method="post" action="{{ url_for('staff.factory_reset_execute') }}" class="mt-3"
+                        onsubmit="return confirm('{{ _('YAKIN reset ke mode pabrik? Semua data toko akan hilang permanen, kecuali daftar pengguna. Tindakan ini TIDAK BISA dibatalkan.') }}');">
+                    <button type="submit" class="btn btn-outline-danger w-100" {% if not factory_reset_unlocked %}disabled{% endif %}>
+                      <i class="bi bi-eraser-fill"></i> {{ _('Reset ke Mode Pabrik') }}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-accent mt-3"><i class="bi bi-check2"></i> {{ _('Simpan Pengaturan') }}</button>
-    </form>
+          </div>
+
+      <hr class="my-4" style="border-color: var(--color-border); opacity: 1;">
+      <div class="d-flex justify-content-end">
+        <button type="submit" form="settingsForm" class="btn btn-accent" id="settingsSubmitBtn">
+          <i class="bi bi-check2"></i> {{ _('Simpan Pengaturan') }}
+        </button>
+      </div>
+        </div>
+      </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/notify.js') }}"></script>
 <script>
+  // Buka kunci Mode Demo - kirim PIN ke server (BUKAN dicocokkan di
+  // browser, supaya PIN aslinya tidak pernah nyampe ke sisi klien sama
+  // sekali). Server yang jawab benar/salah, dan ITU JUGA yang jadi
+  // penjaga sungguhan (form Aktifkan/Matikan Mode Demo ditolak server
+  // kalau belum "unlocked" di session, terlepas dari tampilan blur ini).
+  (function () {
+    const pinInput = document.getElementById("demoModePin");
+    const pinRow = document.getElementById("demoModePinRow");
+    const unlockBtn = document.getElementById("demoModeUnlockBtn");
+    const lockBtn = document.getElementById("demoModeLockBtn");
+    const lockedArea = document.getElementById("demoModeLockedArea");
+    const invalidMsg = document.getElementById("demoModeInvalidMsg");
+    if (!pinInput || !unlockBtn || !lockBtn || !lockedArea) return;
+
+    function tryUnlock() {
+      const pin = pinInput.value;
+      if (!pin) return;
+
+      unlockBtn.disabled = true;
+      fetch("{{ url_for('staff.demo_mode_unlock') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "pin=" + encodeURIComponent(pin),
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          unlockBtn.disabled = false;
+          if (result.ok && result.data.ok) {
+            lockedArea.classList.remove("pin-locked-area");
+            lockedArea.querySelectorAll("button[disabled]").forEach(function (btn) {
+              btn.disabled = false;
+            });
+            invalidMsg.classList.add("d-none");
+            pinInput.value = "";
+            pinRow.classList.add("d-none");
+            lockBtn.classList.remove("d-none");
+          } else {
+            invalidMsg.classList.remove("d-none");
+          }
+        })
+        .catch(function () {
+          unlockBtn.disabled = false;
+        });
+    }
+
+    // Kunci lagi - TIDAK butuh PIN (cuma buat buka), dan sengaja tidak
+    // terikat ke session login (lihat staff.demo_mode_lock()) supaya bisa
+    // dikunci ulang kapan saja tanpa perlu logout.
+    function lockAgain() {
+      lockBtn.disabled = true;
+      fetch("{{ url_for('staff.demo_mode_lock') }}", { method: "POST" })
+        .then(function () {
+          lockBtn.disabled = false;
+          lockBtn.classList.add("d-none");
+          pinRow.classList.remove("d-none");
+          lockedArea.classList.add("pin-locked-area");
+          lockedArea.querySelectorAll("button").forEach(function (btn) {
+            btn.disabled = true;
+          });
+        })
+        .catch(function () {
+          lockBtn.disabled = false;
+        });
+    }
+
+    unlockBtn.addEventListener("click", tryUnlock);
+    lockBtn.addEventListener("click", lockAgain);
+    pinInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        tryUnlock();
+      }
+    });
+  })();
+
+  // Buka/kunci Reset ke Mode Pabrik - pola & alasan keamanannya SAMA
+  // PERSIS dengan blok Mode Demo di atas (PIN dicek di server, blur cuma
+  // tampilan, penjaga sungguhan ada di factory_reset_execute()), cuma
+  // beda elemen & endpoint karena status "terbuka"-nya sengaja dipisah
+  // per fitur (lihat komentar DEV_PIN_HASH di staff.py).
+  (function () {
+    const pinInput = document.getElementById("factoryResetPin");
+    const pinRow = document.getElementById("factoryResetPinRow");
+    const unlockBtn = document.getElementById("factoryResetUnlockBtn");
+    const lockBtn = document.getElementById("factoryResetLockBtn");
+    const lockedArea = document.getElementById("factoryResetLockedArea");
+    const invalidMsg = document.getElementById("factoryResetInvalidMsg");
+    if (!pinInput || !unlockBtn || !lockBtn || !lockedArea) return;
+
+    function tryUnlock() {
+      const pin = pinInput.value;
+      if (!pin) return;
+
+      unlockBtn.disabled = true;
+      fetch("{{ url_for('staff.factory_reset_unlock') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "pin=" + encodeURIComponent(pin),
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          unlockBtn.disabled = false;
+          if (result.ok && result.data.ok) {
+            lockedArea.classList.remove("pin-locked-area");
+            lockedArea.querySelectorAll("button[disabled]").forEach(function (btn) {
+              btn.disabled = false;
+            });
+            invalidMsg.classList.add("d-none");
+            pinInput.value = "";
+            pinRow.classList.add("d-none");
+            lockBtn.classList.remove("d-none");
+          } else {
+            invalidMsg.classList.remove("d-none");
+          }
+        })
+        .catch(function () {
+          unlockBtn.disabled = false;
+        });
+    }
+
+    function lockAgain() {
+      lockBtn.disabled = true;
+      fetch("{{ url_for('staff.factory_reset_lock') }}", { method: "POST" })
+        .then(function () {
+          lockBtn.disabled = false;
+          lockBtn.classList.add("d-none");
+          pinRow.classList.remove("d-none");
+          lockedArea.classList.add("pin-locked-area");
+          lockedArea.querySelectorAll("button").forEach(function (btn) {
+            btn.disabled = true;
+          });
+        })
+        .catch(function () {
+          lockBtn.disabled = false;
+        });
+    }
+
+    unlockBtn.addEventListener("click", tryUnlock);
+    lockBtn.addEventListener("click", lockAgain);
+    pinInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        tryUnlock();
+      }
+    });
+  })();
+
+  // Tombol "Simpan Pengaturan" cuma relevan buat tab Aplikasi/Logo/Struk
+  // & Pembayaran/Notifikasi (satu form bareng) - disembunyikan pas tab
+  // Sistem aktif karena aksi-aksinya di situ (Bersihkan Cache/Backup/Mode
+  // Demo) masing-masing sudah punya tombolnya sendiri, tidak terhubung
+  // ke form ini.
+  (function () {
+    const submitBtn = document.getElementById("settingsSubmitBtn");
+    const systemPane = document.getElementById("tab-system");
+    if (!submitBtn || !systemPane) return;
+
+    function syncSubmitVisibility() {
+      submitBtn.classList.toggle("d-none", systemPane.classList.contains("active"));
+    }
+
+    document.querySelectorAll('.settings-tabs [data-bs-toggle="tab"]').forEach(function (btn) {
+      btn.addEventListener("shown.bs.tab", syncSubmitVisibility);
+    });
+    syncSubmitVisibility();
+  })();
+
   (function () {
     const soundInput = document.getElementById("notificationSoundInput");
     const volumeRange = document.getElementById("volumeRange");
     const volumeLabel = document.getElementById("volumeValueLabel");
     const grid = document.getElementById("soundPicker");
+    const customBox = document.querySelector(".custom-sound-box");
+    const customPlayBtn = document.getElementById("customSoundPlayBtn");
+    const customSelectBtn = document.getElementById("customSoundSelectBtn");
+    const CUSTOM_SOUND_URL = {{ (url_for('static', filename='uploads/branding/' + settings.notification_sound_file) if settings.notification_sound_file else '')|tojson }};
 
     function currentVolume() {
       return parseInt(volumeRange.value, 10);
+    }
+
+    function refreshSelection() {
+      const key = soundInput.value;
+      grid.querySelectorAll(".sound-option").forEach(function (el) {
+        el.classList.toggle("selected", el.dataset.key === key);
+      });
+      if (customBox) customBox.classList.toggle("selected", key === "custom");
     }
 
     volumeRange.addEventListener("input", function () {
@@ -257,7 +902,7 @@
     });
 
     volumeRange.addEventListener("change", function () {
-      playOrderChime(soundInput.value, currentVolume());
+      playOrderChime(soundInput.value, currentVolume(), CUSTOM_SOUND_URL);
     });
 
     function renderGrid() {
@@ -290,12 +935,71 @@
       }
 
       soundInput.value = key;
-      grid.querySelectorAll(".sound-option").forEach(function (el) {
-        el.classList.toggle("selected", el.dataset.key === key);
-      });
+      refreshSelection();
     });
 
+    if (customPlayBtn) {
+      customPlayBtn.addEventListener("click", function () {
+        playOrderChime("custom", currentVolume(), CUSTOM_SOUND_URL);
+      });
+    }
+
+    if (customSelectBtn) {
+      customSelectBtn.addEventListener("click", function () {
+        soundInput.value = "custom";
+        refreshSelection();
+      });
+    }
+
     renderGrid();
+    refreshSelection();
+
+    // Nada per role (Dapur/Kasir/Pelayan) - opsi pertama "Ikuti Nada
+    // Owner" berarti kosong (fallback ke nada Owner di atas, lihat
+    // Settings.notification_sound_for_role() di server). Opsinya diisi
+    // dulu di sini, BARU di-enhance jadi tampilan elegant-select custom
+    // (bukan dropdown native browser/OS yang putih polos dan tidak
+    // mengikuti tema gelap aplikasi) - urutannya sengaja begini soalnya
+    // elegant-select.js sudah auto-jalan duluan saat halaman dimuat
+    // (lihat base.html), jadi kalau atribut data-elegant-select dipasang
+    // dari awal di HTML, dropdown-nya kepalang ke-enhance sebelum opsi
+    // nada ini sempat diisi - hasilnya cuma "Ikuti Nada Owner" doang
+    // yang muncul di listnya.
+    const ROLE_SOUND_CURRENT = {
+      roleSoundDapur: {{ (settings.notification_sound_dapur or "")|tojson }},
+      roleSoundKasir: {{ (settings.notification_sound_kasir or "")|tojson }},
+      roleSoundPelayan: {{ (settings.notification_sound_pelayan or "")|tojson }},
+    };
+
+    Object.keys(ROLE_SOUND_CURRENT).forEach(function (selectId) {
+      const sel = document.getElementById(selectId);
+      if (!sel) return;
+      const current = ROLE_SOUND_CURRENT[selectId];
+      Object.keys(NOTIFICATION_SOUNDS).forEach(function (key) {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = getSoundLabel(key);
+        if (key === current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.setAttribute("data-elegant-select", "");
+    });
+
+    if (window.enhanceElegantSelect) {
+      window.enhanceElegantSelect(document);
+    }
+
+    document.querySelectorAll(".role-sound-play").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const sel = document.getElementById(btn.dataset.roleSelect);
+        if (!sel) return;
+        // Kosong ("Ikuti Nada Owner") - preview nada Owner, soalnya itu
+        // yang beneran akan bunyi kalau dibiarkan kosong.
+        const key = sel.value || soundInput.value;
+        const url = key === "custom" ? CUSTOM_SOUND_URL : undefined;
+        playOrderChime(key, currentVolume(), url);
+      });
+    });
   })();
 </script>
 {% endblock %}

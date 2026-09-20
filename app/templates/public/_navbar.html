@@ -1,0 +1,48 @@
+<div class="app-navbar-backdrop" aria-hidden="true"></div>
+<nav class="navbar app-navbar">
+  <div class="scroll-progress-clip" aria-hidden="true">
+    <div class="scroll-progress-track">
+      <div class="scroll-progress-fill" id="scrollProgressFill"></div>
+    </div>
+  </div>
+  <div class="container-fluid d-flex align-items-center justify-content-between flex-nowrap">
+    <span class="navbar-brand text-truncate mb-0" style="min-width: 0;">
+      {% if site_settings.app_logo_filename %}
+        <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
+             alt="{{ cafe_name }}" style="height: 40px; max-width: 130px; object-fit: contain; border-radius: 8px;">
+      {% else %}
+        <i class="bi bi-cup-hot-fill"></i> {{ cafe_name }}
+      {% endif %}
+    </span>
+    <div class="d-flex align-items-center gap-2 flex-shrink-0" style="order: 2;">
+      <div class="dropdown">
+        <button type="button" class="lang-globe-btn" data-bs-toggle="dropdown" aria-expanded="false" title="{{ _('Bahasa') }}">
+          <i class="bi bi-globe2"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2 {{ 'active' if current_lang == 'id' else '' }}" href="{{ url_for('set_language', lang='id') }}">
+              <svg width="18" height="12" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0"><rect width="3" height="1" fill="#e70011"/><rect width="3" height="1" y="1" fill="#fff"/></svg>
+              Bahasa Indonesia
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2 {{ 'active' if current_lang == 'en' else '' }}" href="{{ url_for('set_language', lang='en') }}">
+              <svg width="18" height="12" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0">
+                <rect width="60" height="30" fill="#00247d"/>
+                <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+                <path d="M0,0 L60,30 M60,0 L0,30" stroke="#cf142b" stroke-width="2"/>
+                <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
+                <path d="M30,0 V30 M0,15 H60" stroke="#cf142b" stroke-width="6"/>
+              </svg>
+              English
+            </a>
+          </li>
+        </ul>
+      </div>
+      <span class="badge-soft text-nowrap" style="background: var(--color-accent-light); color: var(--color-accent);">
+        <i class="bi bi-geo-alt-fill"></i> {{ table.label }} &middot; {{ table.floor_label }}
+      </span>
+    </div>
+  </div>
+</nav>

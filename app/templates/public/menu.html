@@ -1,25 +1,28 @@
 {% extends "base.html" %}
 {% block title %}{{ _('Menu') }} - {{ table.label }}{% endblock %}
 
-{% block nav %}{% endblock %}
+{% block nav %}{% include "public/_navbar.html" %}{% endblock %}
 
 {% block content %}
-<div class="public-header">
-  {% if site_settings.app_logo_filename %}
-    <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
-         alt="{{ cafe_name }}" style="max-height: 44px; max-width: 220px; object-fit: contain; margin-bottom: 6px;">
-  {% else %}
-    <h4 class="mb-0 text-white">{{ cafe_name }}</h4>
-  {% endif %}
-  <div>
-    <span class="table-pill"><i class="bi bi-geo-alt-fill"></i> {{ table.label }} &middot; {{ _('Lantai %(floor)s', floor=table.floor) }}</span>
+{% if editing_order %}
+  <div class="alert alert-info small border-0 shadow-sm" style="background: var(--color-info-bg); color: var(--color-info);">
+    <i class="bi bi-pencil-square"></i>
+    {{ _('Menambah menu ke Pesanan #%(id)s yang sudah ada. Item yang Anda pilih di sini akan ditambahkan ke pesanan, bukan menggantinya.', id=editing_order.id) }}
   </div>
-</div>
+{% else %}
+  <div class="alert alert-info small border-0 shadow-sm" style="background: var(--color-info-bg); color: var(--color-info);">
+    <i class="bi bi-info-circle"></i>
+    {{ _('Pilih menu & jumlah, lalu kirim pesanan di bagian bawah. Kalau tidak nyaman pesan sendiri, cukup panggil pelayan dan sebutkan pesanan Anda.') }}
+  </div>
+{% endif %}
 
-<div class="alert alert-info small border-0 shadow-sm" style="background: var(--color-info-bg); color: var(--color-info);">
-  <i class="bi bi-info-circle"></i>
-  {{ _('Pilih menu & jumlah, lalu kirim pesanan di bagian bawah. Kalau tidak nyaman pesan sendiri, cukup panggil pelayan dan sebutkan pesanan Anda.') }}
-</div>
+{% if not has_orderable_menu %}
+  <div class="empty-state card">
+    <i class="bi bi-cup-hot"></i>
+    <div class="fw-semibold">{{ _('Menu belum tersedia') }}</div>
+    <div class="small">{{ _('Silakan panggil pelayan untuk memesan langsung.') }}</div>
+  </div>
+{% else %}
 
 <div class="category-nav">
   {% for category in categories %}
@@ -29,7 +32,7 @@
   {% endfor %}
 </div>
 
-<form method="post" action="{{ url_for('public.submit_order', code=table.code) }}" id="orderForm">
+<form method="post" action="{{ url_for('public.add_to_order', code=table.code, order_id=editing_order.id) if editing_order else url_for('public.submit_order', code=table.code) }}" id="orderForm">
   {% for category in categories %}
     {% set available_items = category.items | selectattr('is_orderable') | list %}
     {% if available_items %}
@@ -41,17 +44,21 @@
               <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#viewPhotoModal{{ item.id }}" title="{{ _('Perbesar foto') }}">
                 <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
                 <i class="bi bi-arrows-fullscreen thumb-hint-icon"></i>
+                <div class="menu-item-overlay">
+                  <div class="menu-item-name">{{ item.name }}</div>
+                  <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                </div>
               </button>
             {% else %}
               <div class="menu-item-thumb w-100">
                 <i class="bi bi-cup-hot"></i>
+                <div class="menu-item-plain-info">
+                  <div class="menu-item-plain-name">{{ item.name }}</div>
+                  <div class="menu-item-plain-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                </div>
               </div>
             {% endif %}
-            <div class="menu-item-body">
-              <div class="menu-item-name-row">
-                <div class="menu-item-name">{{ item.name }}</div>
-                <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
-              </div>
+            <div class="menu-item-footer">
               <div class="qty-stepper" data-price="{{ item.price }}">
                 <button type="button" class="qty-minus"><i class="bi bi-dash"></i></button>
                 <input type="number" class="qty-input" name="qty_{{ item.id }}" value="0" min="0" inputmode="numeric" readonly>
@@ -62,15 +69,15 @@
 
           {% if item.photo %}
             <div class="modal fade" id="viewPhotoModal{{ item.id }}" tabindex="-1">
-              <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-dialog modal-dialog-centered photo-zoom-dialog">
                 <div class="modal-content">
-                  <div class="modal-header border-0 pb-0">
-                    <h6 class="modal-title">{{ item.name }}</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                  </div>
-                  <div class="modal-body text-center pt-2">
-                    <div class="photo-preview-lg mx-auto">
+                  <div class="modal-body p-0">
+                    <div class="photo-preview-zoom">
                       <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                      <div class="menu-item-overlay">
+                        <div class="menu-item-name">{{ item.name }}</div>
+                        <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -89,10 +96,15 @@
       <div class="cart-count" id="cartCount">{{ _('Belum ada item dipilih') }}</div>
     </div>
     <button type="submit" class="btn btn-accent btn-lg" id="submitBtn" disabled>
-      <i class="bi bi-send"></i> {{ _('Kirim Pesanan') }}
+      {% if editing_order %}
+        <i class="bi bi-plus-circle"></i> {{ _('Tambah ke Pesanan') }}
+      {% else %}
+        <i class="bi bi-send"></i> {{ _('Kirim Pesanan') }}
+      {% endif %}
     </button>
   </div>
 </form>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -102,6 +114,9 @@
   }
 
   function updateCart() {
+    const cartTotalEl = document.getElementById("cartTotal");
+    if (!cartTotalEl) return;
+
     let total = 0;
     let count = 0;
 
@@ -112,10 +127,11 @@
       count += qty;
     });
 
-    document.getElementById("cartTotal").textContent = formatRupiah(total);
+    cartTotalEl.textContent = formatRupiah(total);
     document.getElementById("cartCount").textContent =
       count > 0 ? count + " {{ _('item dipilih') }}" : "{{ _('Belum ada item dipilih') }}";
     document.getElementById("submitBtn").disabled = count === 0;
+    if (window.adjustFooterClearance) window.adjustFooterClearance();
   }
 
   document.querySelectorAll(".qty-stepper").forEach((stepper) => {

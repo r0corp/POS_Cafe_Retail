@@ -2,19 +2,13 @@
 {% block title %}{{ _('Kasir') }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-1">
   <h4 class="mb-0"><i class="bi bi-cash-coin"></i> {{ _('Pembayaran') }}</h4>
   <button type="button" id="muteToggleCashier" class="sound-toggle-btn">
     <i id="muteIconCashier" class="bi bi-volume-up-fill"></i>
   </button>
 </div>
-
-{% if not orders %}
-  <div class="empty-state card">
-    <i class="bi bi-wallet2"></i>
-    <div class="fw-semibold">{{ _('Tidak ada pesanan yang menunggu pembayaran') }}</div>
-  </div>
-{% endif %}
+<p class="text-muted small mb-3">{{ _('Proses pembayaran pesanan yang menunggu dan cetak ulang struk transaksi lunas.') }}</p>
 
 {% if not site_settings.qris_image %}
   <p class="text-muted small mb-3">
@@ -28,92 +22,15 @@
   </p>
 {% endif %}
 
-<div class="row g-3">
-  {% for order in orders %}
-    <div class="col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <h6 class="mb-0">{{ order.table.label }} <span class="text-muted small">({{ _('Lt. %(floor)s', floor=order.table.floor) }})</span></h6>
-            <span class="badge-soft badge-status-{{ order.status }}">{{ order.status_label }}</span>
-          </div>
-
-          <ul class="list-unstyled small mb-2">
-            {% for item in order.items %}
-              <li class="d-flex justify-content-between">
-                <span>{{ item.quantity }}x {{ item.name_snapshot }}</span>
-                <span>Rp {{ "{:,}".format(item.subtotal).replace(",", ".") }}</span>
-              </li>
-            {% endfor %}
-          </ul>
-
-          <div class="d-flex justify-content-between align-items-center mb-3 pt-2" style="border-top: 1px dashed var(--color-border);">
-            <span class="text-muted small">{{ _('Total') }}</span>
-            <span class="fw-bold fs-6" style="color: var(--color-accent);">Rp {{ "{:,}".format(order.total).replace(",", ".") }}</span>
-          </div>
-
-          {% if site_settings.qris_image %}
-            <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#qrisModal{{ order.id }}">
-              <i class="bi bi-qr-code"></i> {{ _('Tampilkan QRIS') }}
-            </button>
-          {% endif %}
-
-          <form method="post" action="{{ url_for('staff.pay_order', order_id=order.id) }}" class="cash-pay-form" data-total="{{ order.total }}">
-            <div class="d-flex gap-2">
-              <select name="payment_method" class="form-select form-select-sm pay-method-select" required>
-                <option value="">{{ _('Metode') }}</option>
-                <option value="cash">Cash</option>
-                <option value="qris">QRIS</option>
-              </select>
-              <button type="submit" class="btn btn-sm btn-accent text-nowrap">
-                <i class="bi bi-check2"></i> {{ _('Bayar') }}
-              </button>
-            </div>
-            <div class="cash-fields d-none mt-2">
-              <input type="number" name="cash_received" class="form-control form-control-sm cash-received-input"
-                     placeholder="{{ _('Uang diterima') }}" min="0" inputmode="numeric">
-              <div class="small mt-1 change-label text-muted">Rp 0</div>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    {% if site_settings.qris_image %}
-      <div class="modal fade" id="qrisModal{{ order.id }}" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h6 class="modal-title">QRIS - {{ order.table.label }}</h6>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-              <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.qris_image) }}"
-                   class="img-fluid mb-3" style="max-width: 260px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px;"
-                   alt="QRIS">
-              <div class="text-muted small">{{ _('Total Bayar') }}</div>
-              <div class="fs-4 fw-bold" style="color: var(--color-accent); font-family: var(--font-heading);">
-                Rp {{ "{:,}".format(order.total).replace(",", ".") }}
-              </div>
-              <p class="text-muted small mt-2 mb-2">{{ _('Tunjukkan layar ini ke tamu untuk di-scan.') }}</p>
-              <div class="text-start small p-2" style="background: var(--color-warning-bg); color: var(--color-warning); border-radius: var(--radius-sm);">
-                <i class="bi bi-shield-exclamation"></i>
-                {{ _('Minta tamu cek') }} <strong>{{ _('nama penerima') }}</strong> {{ _('yang muncul di aplikasi e-wallet setelah scan harus') }}
-                <strong>"{{ site_settings.shop_name }}"</strong> {{ _('(atau nama rekening resmi toko) sebelum konfirmasi bayar - waspada QRIS tertukar/palsu.') }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    {% endif %}
-  {% endfor %}
+<div id="cashierOrdersContainer">
+  {% include "staff/_cashier_orders.html" %}
 </div>
 
 <hr class="my-4" style="border-color: var(--color-border);">
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h5 class="mb-0"><i class="bi bi-clock-history"></i> {{ _('Riwayat Hari Ini') }}</h5>
-  <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-primary-dark);">
+  <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">
     {{ _('%(count)s transaksi', count=paid_today|length) }}
   </span>
 </div>
@@ -137,7 +54,7 @@
               <span class="text-muted small fw-normal">&middot; #{{ order.id }} &middot; {{ order.paid_at.strftime('%H:%M') }}</span>
             </div>
             <div class="text-muted small">
-              Rp {{ "{:,}".format(order.total).replace(",", ".") }}
+              Rp {{ "{:,}".format(order.grand_total).replace(",", ".") }}
               &middot; {{ 'Cash' if order.payment_method == 'cash' else 'QRIS' }}
               {% if order.payment_method == 'cash' and order.change_amount is not none %}
                 &middot; {{ _('kembalian') }} Rp {{ "{:,}".format(order.change_amount).replace(",", ".") }}
@@ -156,67 +73,92 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/notify.js') }}"></script>
 <script>
+  const INSUFFICIENT_CASH_MSG = {{ _('Uang diterima kurang dari total tagihan.')|tojson }};
   const CHANGE_LABEL = {{ _('Kembalian')|tojson }};
   const SHORTFALL_LABEL = {{ _('Kurang')|tojson }};
-  const INSUFFICIENT_CASH_MSG = {{ _('Uang diterima kurang dari total tagihan.')|tojson }};
+
+  function digitsOnly(str) {
+    return (str || "").replace(/\D/g, "");
+  }
 
   function formatRupiah(n) {
     return "Rp " + n.toLocaleString("id-ID");
   }
 
-  document.querySelectorAll(".cash-pay-form").forEach(function (form) {
-    const total = parseInt(form.dataset.total, 10);
-    const methodSelect = form.querySelector(".pay-method-select");
-    const cashFields = form.querySelector(".cash-fields");
-    const cashInput = form.querySelector(".cash-received-input");
-    const changeLabel = form.querySelector(".change-label");
+  function wireCashierForms(root) {
+    (root || document).querySelectorAll(".cash-pay-form").forEach(function (form) {
+      const total = parseInt(form.dataset.total, 10);
+      const methodSelect = form.querySelector(".pay-method-select");
+      const cashFields = form.querySelector(".cash-fields");
+      const cashInput = form.querySelector(".cash-received-input");
+      const changeLabel = form.querySelector(".change-label");
+      const changeAmount = form.querySelector(".change-amount");
 
-    function updateChange() {
-      const received = parseInt(cashInput.value, 10) || 0;
-      const diff = received - total;
-      changeLabel.textContent = (diff >= 0 ? CHANGE_LABEL : SHORTFALL_LABEL) + " " + formatRupiah(Math.abs(diff));
-      changeLabel.classList.toggle("text-danger", diff < 0);
-      changeLabel.classList.toggle("text-muted", diff >= 0);
-      changeLabel.classList.toggle("fw-semibold", diff >= 0);
-    }
-
-    methodSelect.addEventListener("change", function () {
-      if (methodSelect.value === "cash") {
-        cashFields.classList.remove("d-none");
-        cashInput.setAttribute("required", "required");
-        updateChange();
-      } else {
-        cashFields.classList.add("d-none");
-        cashInput.removeAttribute("required");
+      function updateChange() {
+        const received = parseInt(digitsOnly(cashInput.value), 10) || 0;
+        const diff = received - total;
+        const isShort = diff < 0;
+        changeLabel.textContent = isShort ? SHORTFALL_LABEL : CHANGE_LABEL;
+        changeAmount.textContent = formatRupiah(Math.abs(diff));
+        changeLabel.classList.toggle("text-danger", isShort);
+        changeLabel.classList.toggle("text-muted", !isShort);
+        changeAmount.classList.toggle("text-danger", isShort);
       }
-    });
 
-    cashInput.addEventListener("input", updateChange);
-
-    form.addEventListener("submit", function (e) {
-      if (methodSelect.value === "cash") {
-        const received = parseInt(cashInput.value, 10) || 0;
-        if (received < total) {
-          e.preventDefault();
-          alert(INSUFFICIENT_CASH_MSG);
+      methodSelect.addEventListener("change", function () {
+        if (methodSelect.value === "cash") {
+          cashFields.classList.remove("d-none");
+          cashInput.setAttribute("required", "required");
+          updateChange();
+        } else {
+          cashFields.classList.add("d-none");
+          cashInput.removeAttribute("required");
         }
-      }
-    });
-  });
+      });
 
-  const cashierPoller = startOrderPoller({
-    statusUrl: "{{ url_for('staff.cashier_status') }}",
-    muteKey: "cafepos_mute_cashier",
-    intervalMs: 8000,
-    soundKey: "{{ site_settings.notification_sound }}",
-    volume: {{ site_settings.notification_volume }},
-    enabled: {{ 'true' if site_settings.notification_enabled else 'false' }},
-    onNewOrder: function () {
-      setTimeout(function () { window.location.reload(); }, 1200);
-    },
-  });
-  wireMuteToggle("muteToggleCashier", "muteIconCashier", cashierPoller);
+      cashInput.addEventListener("input", function () {
+        const digits = digitsOnly(cashInput.value);
+        cashInput.value = digits ? parseInt(digits, 10).toLocaleString("id-ID") : "";
+        updateChange();
+      });
+
+      form.addEventListener("submit", function (e) {
+        if (methodSelect.value === "cash") {
+          const received = parseInt(digitsOnly(cashInput.value), 10) || 0;
+          if (received < total) {
+            e.preventDefault();
+            alert(INSUFFICIENT_CASH_MSG);
+            return;
+          }
+          cashInput.value = String(received);
+        }
+      });
+    });
+  }
+
+  wireCashierForms(document);
+
+  // Poller-nya sudah global di base.html (window.globalCashierPoller) -
+  // supaya tetap bunyi walau staf sedang di halaman lain. Di sini cukup
+  // daftarkan fungsi refresh daftar (dipanggil poller lewat
+  // window.refreshCashierList kalau halaman ini yang sedang dibuka) dan
+  // pasang tombol mute ke poller global tsb.
+  function refreshCashierList() {
+    fetch("{{ url_for('staff.cashier_list') }}")
+      .then(function (res) { return res.text(); })
+      .then(function (html) {
+        const container = document.getElementById("cashierOrdersContainer");
+        container.innerHTML = html;
+        wireCashierForms(container);
+        if (window.enhanceElegantSelect) window.enhanceElegantSelect(container);
+      })
+      .catch(function () {});
+  }
+  window.refreshCashierList = refreshCashierList;
+
+  if (window.globalCashierPoller) {
+    wireMuteToggle("muteToggleCashier", "muteIconCashier", window.globalCashierPoller);
+  }
 </script>
 {% endblock %}

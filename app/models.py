@@ -1,3 +1,4 @@
+import random
 from datetime import datetime, timedelta
 
 from flask_login import UserMixin
@@ -100,17 +101,32 @@ class Settings(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     shop_name = db.Column(db.String(100), nullable=False, default="Kafe Saya")
-    footer_text = db.Column(db.String(255))
 
     # Dinaikkan tiap kali Owner klik "Bersihkan Cache" - ditempel sebagai
     # query string (?v=) ke semua file static, supaya browser ambil
     # ulang file terbaru (logo/foto/QR) bukan versi lama yang ke-cache.
     cache_version = db.Column(db.Integer, nullable=False, default=1)
 
-    # Notifikasi suara pesanan baru (halaman Dapur & Kasir).
+    # Notifikasi suara - aktif/nonaktif & volume masih 1 pengaturan
+    # bersama buat semua role, tapi NADA-nya sengaja dipisah per role
+    # (lihat 3 kolom notification_sound_* di bawah) supaya tiap jenis
+    # staf bisa dikenali dari bunyi device-nya sendiri kalau beberapa
+    # device nyala bareng di toko. notification_sound ini jadi nada
+    # untuk role Owner SEKALIGUS fallback kalau role lain belum
+    # ditentukan nadanya secara eksplisit oleh Owner.
     notification_enabled = db.Column(db.Boolean, nullable=False, default=True)
     notification_sound = db.Column(db.String(30), nullable=False, default="bell_double")
     notification_volume = db.Column(db.Integer, nullable=False, default=70)
+
+    notification_sound_dapur = db.Column(db.String(30), nullable=True)
+    notification_sound_kasir = db.Column(db.String(30), nullable=True)
+    notification_sound_pelayan = db.Column(db.String(30), nullable=True)
+
+    # Nada dering sendiri (upload .mp3/.wav/.ogg/.m4a) - dipilih dengan
+    # notification_sound="custom". Kalau kosong/belum upload, "custom"
+    # otomatis fallback ke nada default (lihat notify.js). Dipakai
+    # bersama oleh role manapun yang nadanya diset "custom".
+    notification_sound_file = db.Column(db.String(255))
 
     # Logo kotak/persegi - dipakai di navbar & halaman login.
     logo_square = db.Column(db.String(255))
@@ -122,11 +138,24 @@ class Settings(db.Model):
     # supaya toko yang cuma punya 1 jenis logo tetap bisa pakai itu di
     # mana saja, tanpa wajib upload dua-duanya.
     app_logo_choice = db.Column(db.String(10), nullable=False, default="square")
+    login_logo_choice = db.Column(db.String(10), nullable=False, default="square")
     receipt_logo_choice = db.Column(db.String(10), nullable=False, default="wide")
+
+    # Tampilan navbar setelah login: "logo" (cuma logo), "name" (cuma
+    # nama toko), atau "both" (logo + nama).
+    navbar_display = db.Column(db.String(10), nullable=False, default="both")
 
     # Lebar kertas printer thermal ("58" atau "80" mm) - menentukan
     # ukuran halaman cetak struk.
     receipt_paper_width = db.Column(db.String(5), nullable=False, default="80")
+
+    # Sistem PPN (Pajak Pertambahan Nilai) - kalau aktif, dihitung dari
+    # persentase ini dan ditambahkan otomatis ke total tagihan saat bayar
+    # sampai ke struk. Tiap Order menyimpan snapshot persen & nominalnya
+    # sendiri saat dibayar, supaya riwayat/laporan lama tidak berubah
+    # kalau persentase PPN diedit belakangan.
+    ppn_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    ppn_percentage = db.Column(db.Float, nullable=False, default=11.0)
 
     # Gambar QRIS statis/offline milik toko - ditunjukkan ke tamu saat
     # bayar QRIS langsung di meja (tanpa perlu ke kasir).
@@ -141,6 +170,20 @@ class Settings(db.Model):
     whatsapp = db.Column(db.String(30))
     other_social = db.Column(db.String(255))
 
+    # Snapshot JSON identitas toko asli (nama, alamat, kontak, nama file
+    # logo) - dibuat OTOMATIS sesaat sebelum Mode Demo menimpa field-field
+    # itu dengan konten contoh (lihat staff._seed_demo_data()), dan dipakai
+    # buat kembalikan persis seperti semula saat Mode Demo dimatikan (lihat
+    # staff._clear_demo_data()). Kosong berarti tidak sedang ada demo aktif.
+    demo_settings_backup = db.Column(db.Text, nullable=True)
+
+    # Kill switch buat perbaikan kode di server produksi - saat True,
+    # semua role SELAIN Owner (termasuk pengunjung yang belum login) akan
+    # melihat halaman "Sedang Dalam Perbaikan" (lihat app/__init__.py:
+    # check_maintenance_mode()), sementara Owner tetap bisa pakai aplikasi
+    # seperti biasa buat menguji perubahan sebelum dinyalakan ke semua orang.
+    maintenance_mode = db.Column(db.Boolean, nullable=False, default=False)
+
     def _pick_logo(self, choice):
         if choice == "square":
             return self.logo_square or self.logo_wide
@@ -148,13 +191,32 @@ class Settings(db.Model):
 
     @property
     def app_logo_filename(self):
-        """Logo dipakai di navbar, halaman login, dan menu tamu."""
+        """Logo dipakai di navbar (setelah login) & menu tamu."""
         return self._pick_logo(self.app_logo_choice)
+
+    @property
+    def login_logo_filename(self):
+        """Logo dipakai khusus di halaman login."""
+        return self._pick_logo(self.login_logo_choice)
 
     @property
     def receipt_logo_filename(self):
         """Logo dipakai di struk penjualan."""
         return self._pick_logo(self.receipt_logo_choice)
+
+    def notification_sound_for_role(self, role):
+        """Nada notifikasi yang dipakai role tertentu - Owner atur semuanya
+        dari Pengaturan, staf tidak bisa ganti sendiri. Role yang belum
+        pernah ditentukan nadanya (masih kosong) otomatis ikut nada Owner
+        (notification_sound) sebagai fallback."""
+
+        role_field = {
+            ROLE_DAPUR: self.notification_sound_dapur,
+            ROLE_KASIR: self.notification_sound_kasir,
+            ROLE_PELAYAN: self.notification_sound_pelayan,
+        }.get(role)
+
+        return role_field or self.notification_sound
 
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
@@ -165,6 +227,12 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     order = db.Column(db.Integer, default=0)
+
+    # True kalau baris ini bagian dari "Mode Demo" (lihat blueprints/staff.py
+    # demo_mode_toggle) - dibedakan dari data asli toko supaya bisa
+    # dihapus lagi secara aman tanpa menyentuh data yang beneran diisi
+    # owner.
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)
 
     items = db.relationship(
         "MenuItem",
@@ -187,6 +255,7 @@ class MenuItem(db.Model):
     price = db.Column(db.Integer, nullable=False)  # dalam Rupiah, tanpa desimal
     is_available = db.Column(db.Boolean, default=True)
     photo = db.Column(db.String(255), nullable=True)
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)
 
     order_items = db.relationship("OrderItem", backref="menu_item")
     recipe = db.relationship(
@@ -210,6 +279,33 @@ class MenuItem(db.Model):
         return f"<MenuItem {self.name}>"
 
 
+class Floor(db.Model):
+    """Nama custom per lantai bangunan, diatur Owner lewat Pengaturan
+    Toko - "number" cuma penanda biasa (BUKAN foreign key ke Table.floor)
+    supaya data meja lama tetap jalan apa adanya tanpa migrasi, tinggal
+    dicocokkan lewat floor_display_name() di bawah."""
+
+    __tablename__ = "floors"
+
+    id = db.Column(db.Integer, primary_key=True)
+    number = db.Column(db.Integer, nullable=False, unique=True)
+    name = db.Column(db.String(50), nullable=False)
+
+    def __repr__(self):
+        return f"<Floor {self.number}: {self.name}>"
+
+
+def floor_display_name(number):
+    """Nama lantai yang ditampilkan - pakai nama custom dari Pengaturan
+    kalau sudah diatur Owner, atau fallback "Lantai N" polos kalau
+    nomor lantai itu belum pernah dikasih nama custom."""
+
+    floor = Floor.query.filter_by(number=number).first()
+    if floor and floor.name:
+        return floor.name
+    return _l("Lantai %(number)s", number=number)
+
+
 class Table(db.Model):
     __tablename__ = "tables"
 
@@ -218,14 +314,43 @@ class Table(db.Model):
     label = db.Column(db.String(50), nullable=False)
     floor = db.Column(db.Integer, nullable=False, default=1)
 
+    # Ditandai True kalau meja ini dibuat oleh Mode Demo (lihat
+    # staff._seed_demo_data()) - supaya bisa dihapus bersih lagi saat
+    # demo dimatikan, tanpa menyentuh meja asli toko (is_demo=False).
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)
+
     orders = db.relationship("Order", backref="table")
+
+    @property
+    def floor_label(self):
+        return floor_display_name(self.floor)
 
     def __repr__(self):
         return f"<Table {self.label}>"
 
 
+def generate_order_pin():
+    """PIN 4 digit acak buat 1 pesanan baru - lihat kolom Order.pin."""
+
+    return f"{random.randint(0, 9999):04d}"
+
+
 class Order(db.Model):
     __tablename__ = "orders"
+
+    # Kunci di level database: 1 meja cuma boleh punya 1 pesanan yang
+    # belum lunas dalam satu waktu. Jaring pengaman terakhir kalau ada
+    # 2 pesanan nyaris bersamaan lolos dari pengecekan di kode (staff.py
+    # new_order() & public.py submit_order()) - percobaan insert kedua
+    # akan gagal dengan IntegrityError, ditangkap & ditangani di sana.
+    __table_args__ = (
+        db.Index(
+            "ux_one_unpaid_order_per_table",
+            "table_id",
+            unique=True,
+            sqlite_where=db.text("is_paid = 0"),
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     table_id = db.Column(db.Integer, db.ForeignKey("tables.id"), nullable=False)
@@ -240,10 +365,23 @@ class Order(db.Model):
     paid_at = db.Column(db.DateTime)
     served_by = db.Column(db.String(50))  # username kasir yang memproses bayar
 
+    # PIN 4 digit acak - device yang bikin pesanan ini (atau berhasil input
+    # PIN yang benar) baru boleh ikut nambah menu ke pesanan yang sama.
+    # Lihat _is_unlocked()/generate_order_pin() di blueprints/public.py.
+    pin = db.Column(db.String(4))
+
     # Cuma diisi untuk pembayaran cash - dipakai buat hitung & tampilkan
     # kembalian di struk/riwayat, tidak relevan untuk QRIS.
     cash_received = db.Column(db.Integer)
     change_amount = db.Column(db.Integer)
+
+    # Snapshot ketentuan PPN saat pembayaran dikonfirmasi (bukan saat
+    # order dibuat) - dipakai bareng cash_received/change_amount, supaya
+    # struk & laporan lama tetap akurat walau persentase PPN di
+    # Pengaturan diubah belakangan. Tetap None untuk order yang belum
+    # dibayar atau dibayar sebelum fitur PPN ada.
+    ppn_percentage = db.Column(db.Float)
+    ppn_amount = db.Column(db.Integer)
 
     created_at = db.Column(db.DateTime, default=datetime.now)
 
@@ -254,6 +392,22 @@ class Order(db.Model):
     @property
     def total(self):
         return sum(item.subtotal for item in self.items)
+
+    @property
+    def grand_total(self):
+        """Total akhir yang harus dibayar tamu, termasuk PPN kalau
+        aktif. Order yang sudah lunas pakai snapshot PPN saat dibayar;
+        order yang belum lunas dihitung "live" pakai ketentuan PPN yang
+        berlaku sekarang, supaya preview totalnya selalu up-to-date."""
+
+        if self.is_paid:
+            return self.total + (self.ppn_amount or 0)
+
+        settings = Settings.query.order_by(Settings.id.asc()).first()
+        if settings and settings.ppn_enabled and settings.ppn_percentage:
+            return self.total + round(self.total * settings.ppn_percentage / 100)
+
+        return self.total
 
     @property
     def status_label(self):
@@ -295,6 +449,7 @@ class Ingredient(db.Model):
     stock_quantity = db.Column(db.Float, nullable=False, default=0)
     low_stock_threshold = db.Column(db.Float, nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.now)
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)
 
     @property
     def is_low_stock(self):

@@ -2,7 +2,8 @@
 {% block title %}{{ _('Laporan') }}{% endblock %}
 
 {% block content %}
-<h4 class="mb-4"><i class="bi bi-bar-chart"></i> {{ _('Laporan Penjualan') }}</h4>
+<h4 class="mb-1"><i class="bi bi-bar-chart"></i> {{ _('Laporan Penjualan') }}</h4>
+<p class="text-muted small mb-4">{{ _('Rekap penjualan harian, mingguan, bulanan, dan tahunan toko.') }}</p>
 
 <ul class="nav nav-tabs settings-tabs mb-0" role="tablist">
   {% for key, period in periods.items() %}
@@ -70,6 +71,17 @@
                 </div>
               </div>
             </div>
+            {% if period.data.ppn_collected %}
+              <div class="col-6 col-md-3">
+                <div class="card card-hover h-100">
+                  <div class="card-body">
+                    <i class="bi bi-percent" style="color: var(--color-accent);"></i>
+                    <div class="text-muted small mt-1">{{ _('PPN Terkumpul') }}</div>
+                    <div class="fs-5 fw-bold" style="font-family: var(--font-heading);">Rp {{ "{:,}".format(period.data.ppn_collected).replace(",", ".") }}</div>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
           </div>
 
           <h6 class="mb-3">{{ _('Item Terlaris') }}</h6>
@@ -78,7 +90,7 @@
               {% for name, qty in period.data.top_items %}
                 <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                   <span>{{ loop.index }}. {{ name }}</span>
-                  <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-primary-dark);">{{ _('%(qty)s terjual', qty=qty) }}</span>
+                  <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">{{ _('%(qty)s terjual', qty=qty) }}</span>
                 </div>
               {% endfor %}
             </div>

@@ -7,86 +7,105 @@
 
 <form method="post" id="orderForm">
   <div class="row g-3 mb-4">
-    <div class="col-md-8">
+    <div class="col-sm-4">
       <div class="card h-100">
         <div class="card-body">
-          <label class="form-label fw-semibold small">{{ _('Kategori') }}</label>
-          <div class="category-nav mb-0">
+          <label class="form-label fw-semibold small">{{ _('Meja') }}</label>
+          <select name="table_id" class="form-select" data-elegant-select required {% if not tables %}disabled{% endif %}>
+            <option value="">{{ _('-- Pilih Meja --') }}</option>
+            {% for table in tables %}
+              <option value="{{ table.id }}" {% if preselected_table_id == table.id %}selected{% endif %}>{{ table.label }} ({{ table.floor_label }})</option>
+            {% endfor %}
+          </select>
+          {% if not tables %}
+            <div class="small mt-2" style="color: var(--color-danger);">
+              <i class="bi bi-exclamation-triangle-fill"></i> {{ _('Semua meja sedang terisi - tunggu salah satu kosong dulu.') }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-8">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="mb-3">{{ _('Filter Kategori') }}</h6>
+          <div class="menu-filter-pills">
+            <button type="button" class="menu-filter-pill active" data-filter-category="all">{{ _('Semua') }}</button>
             {% for category in categories %}
               {% if category.items | selectattr('is_orderable') | list %}
-                <a href="#cat-{{ category.id }}">{{ category.name }}</a>
+                <button type="button" class="menu-filter-pill" data-filter-category="{{ category.id }}">{{ category.name }}</button>
               {% endif %}
             {% endfor %}
           </div>
         </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <label class="form-label fw-semibold small">{{ _('Meja') }}</label>
-          <select name="table_id" class="form-select" required>
-            <option value="">{{ _('-- Pilih Meja --') }}</option>
-            {% for table in tables %}
-              <option value="{{ table.id }}" {% if preselected_table_id == table.id %}selected{% endif %}>{{ table.label }} ({{ _('Lantai %(floor)s', floor=table.floor) }})</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-    </div>
   </div>
 
-  {% for category in categories %}
-    {% set available_items = category.items | selectattr('is_orderable') | list %}
-    {% if available_items %}
-      <h6 id="cat-{{ category.id }}" class="mt-4 mb-2">{{ category.name }}</h6>
-      <div class="menu-grid mb-3">
-        {% for item in available_items %}
-          <div class="menu-item-card">
-            {% if item.photo %}
-              <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#viewPhotoModal{{ item.id }}" title="{{ _('Perbesar foto') }}">
-                <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
-                <i class="bi bi-arrows-fullscreen thumb-hint-icon"></i>
-              </button>
-            {% else %}
-              <div class="menu-item-thumb w-100">
-                <i class="bi bi-cup-hot"></i>
-              </div>
-            {% endif %}
-            <div class="menu-item-body">
-              <div class="menu-item-name-row">
-                <div class="menu-item-name">{{ item.name }}</div>
-                <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
-              </div>
-              <div class="qty-stepper" data-price="{{ item.price }}">
-                <button type="button" class="qty-minus"><i class="bi bi-dash"></i></button>
-                <input type="number" class="qty-input" name="qty_{{ item.id }}" value="0" min="0" readonly>
-                <button type="button" class="qty-plus"><i class="bi bi-plus"></i></button>
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      {% for category in categories %}
+        {% set available_items = category.items | selectattr('is_orderable') | list %}
+        {% if available_items %}
+          <div class="card mb-3 menu-category-section" data-category-id="{{ category.id }}">
+            <div class="card-body">
+              <h6 class="mb-3">{{ category.name }}</h6>
+              <div class="menu-grid">
+                {% for item in available_items %}
+                  <div class="menu-item-card">
+                    {% if item.photo %}
+                      <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#viewPhotoModal{{ item.id }}" title="{{ _('Perbesar foto') }}">
+                        <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                        <i class="bi bi-arrows-fullscreen thumb-hint-icon"></i>
+                        <div class="menu-item-overlay">
+                          <div class="menu-item-name">{{ item.name }}</div>
+                          <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                        </div>
+                      </button>
+                    {% else %}
+                      <div class="menu-item-thumb w-100">
+                        <i class="bi bi-cup-hot"></i>
+                        <div class="menu-item-overlay">
+                          <div class="menu-item-name">{{ item.name }}</div>
+                          <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                        </div>
+                      </div>
+                    {% endif %}
+                    <div class="menu-item-footer">
+                      <div class="qty-stepper" data-price="{{ item.price }}">
+                        <button type="button" class="qty-minus"><i class="bi bi-dash"></i></button>
+                        <input type="number" class="qty-input" name="qty_{{ item.id }}" value="0" min="0" readonly>
+                        <button type="button" class="qty-plus"><i class="bi bi-plus"></i></button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {% if item.photo %}
+                    <div class="modal fade" id="viewPhotoModal{{ item.id }}" tabindex="-1">
+                      <div class="modal-dialog modal-dialog-centered photo-zoom-dialog">
+                        <div class="modal-content">
+                          <div class="modal-body p-0">
+                            <div class="photo-preview-zoom">
+                              <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                              <div class="menu-item-overlay">
+                                <div class="menu-item-name">{{ item.name }}</div>
+                                <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% endif %}
+                {% endfor %}
               </div>
             </div>
           </div>
-
-          {% if item.photo %}
-            <div class="modal fade" id="viewPhotoModal{{ item.id }}" tabindex="-1">
-              <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                  <div class="modal-header border-0 pb-0">
-                    <h6 class="modal-title">{{ item.name }}</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                  </div>
-                  <div class="modal-body text-center pt-2">
-                    <div class="photo-preview-lg mx-auto">
-                      <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endfor %}
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
 
   <div class="cart-bar-spacer"></div>
   <div class="cart-bar">
@@ -119,6 +138,7 @@
     document.getElementById("cartTotal").textContent = formatRupiah(total);
     document.getElementById("cartCount").textContent = count > 0 ? (count + " " + CART_ITEMS_SELECTED_LABEL) : CART_EMPTY_LABEL;
     document.getElementById("submitBtn").disabled = count === 0;
+    if (window.adjustFooterClearance) window.adjustFooterClearance();
   }
 
   function refreshRowState(stepper) {
@@ -143,5 +163,18 @@
   });
 
   updateCart();
+
+  document.querySelectorAll(".menu-filter-pill").forEach(function (pill) {
+    pill.addEventListener("click", function () {
+      document.querySelectorAll(".menu-filter-pill").forEach(function (p) { p.classList.remove("active"); });
+      pill.classList.add("active");
+
+      var filter = pill.dataset.filterCategory;
+      document.querySelectorAll(".menu-category-section").forEach(function (section) {
+        var match = filter === "all" || section.dataset.categoryId === filter;
+        section.classList.toggle("d-none", !match);
+      });
+    });
+  });
 </script>
 {% endblock %}

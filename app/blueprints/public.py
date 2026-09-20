@@ -1,38 +1,64 @@
+from types import SimpleNamespace
+
 from flask import Blueprint, abort, flash, render_template, request, redirect, url_for
+from flask_babel import gettext as _
+from sqlalchemy import and_, or_
+from sqlalchemy.exc import IntegrityError
 
 from .. import db
 from ..inventory import check_and_deduct_stock
-from ..models import Category, MenuItem, Table, Order, OrderItem
+from ..models import Category, MenuItem, Table, Order, OrderItem, generate_order_pin
 
 public_bp = Blueprint("public", __name__)
 
+PIN_COOKIE_MAX_AGE = 12 * 60 * 60  # 12 jam - cukup buat satu sesi makan.
 
-@public_bp.route("/t/<code>")
-def menu(code):
-    """Halaman menu untuk tamu - dibuka lewat scan QR code di meja."""
 
-    table = Table.query.filter_by(code=code).first_or_404()
+def _pin_cookie_name(order_id):
+    return f"cafepos_pin_ok_{order_id}"
 
-    categories = (
-        Category.query.order_by(Category.order, Category.name).all()
+
+def _is_unlocked(order):
+    """True kalau device ini sudah "kenal" PIN pesanan ini - baik karena
+    dia yang bikin pesanan ini sendiri, atau sudah pernah input PIN yang
+    benar sebelumnya (lihat unlock_order() di bawah). Pesanan lama
+    (dibuat sebelum fitur PIN ada) tidak punya pin sama sekali -
+    dianggap selalu terbuka supaya tidak mendadak mengunci pesanan yang
+    sedang berjalan."""
+
+    if not order.pin:
+        return True
+    return request.cookies.get(_pin_cookie_name(order.id)) == order.pin
+
+
+def _active_order_for_table(table_id):
+    """Pesanan yang belum lunas di meja ini (kalau ada) - dipakai untuk
+    nentuin meja itu masih "terisi" atau sudah kosong buat tamu baru."""
+
+    return (
+        Order.query.filter_by(table_id=table_id, is_paid=False)
+        .order_by(Order.created_at.desc())
+        .first()
     )
 
-    return render_template("public/menu.html", table=table, categories=categories)
+
+def _has_orderable_menu(categories):
+    """True kalau minimal ada 1 item yang bisa dipesan di seluruh kategori -
+    dipakai buat nampilin pesan "menu belum tersedia" daripada halaman
+    kosong kalau toko belum sempat isi menu sama sekali."""
+
+    return any(item.is_orderable for category in categories for item in category.items)
 
 
-@public_bp.route("/t/<code>/order", methods=["POST"])
-def submit_order(code):
-    """Tamu submit pesanan sendiri langsung dari halaman menu (opsional -
-    tamu yang tidak nyaman pakai HP tetap bisa dilayani manual oleh
-    pelayan lewat halaman staff, lihat blueprints/staff.py)."""
+def _collect_ordered_items(form):
+    """Baca semua field qty_<id> dari form pesanan tamu, balikin
+    (list OrderItem baru, list nama menu yang di-skip karena kebetulan
+    baru saja dinonaktifkan pemilik pas tamu masih milih-milih)."""
 
-    table = Table.query.filter_by(code=code).first_or_404()
+    items = []
+    skipped_names = []
 
-    order = Order(table_id=table.id, source="qr", status="pending")
-
-    added_any = False
-
-    for key, value in request.form.items():
+    for key, value in form.items():
         if not key.startswith("qty_"):
             continue
 
@@ -44,13 +70,16 @@ def submit_order(code):
         if quantity <= 0:
             continue
 
-        menu_item_id = int(key.replace("qty_", ""))
-        menu_item = MenuItem.query.get(menu_item_id)
+        menu_item = MenuItem.query.get(int(key.replace("qty_", "")))
 
-        if not menu_item or not menu_item.is_orderable:
+        if not menu_item:
             continue
 
-        order.items.append(
+        if not menu_item.is_orderable:
+            skipped_names.append(menu_item.name)
+            continue
+
+        items.append(
             OrderItem(
                 menu_item_id=menu_item.id,
                 name_snapshot=menu_item.name,
@@ -58,20 +87,178 @@ def submit_order(code):
                 quantity=quantity,
             )
         )
-        added_any = True
 
-    if not added_any:
+    return items, skipped_names
+
+
+def _flash_skipped_items(skipped_names):
+    if skipped_names:
+        flash(
+            _(
+                "Menu berikut baru saja tidak tersedia lagi dan tidak jadi ditambahkan: %(names)s.",
+                names=", ".join(skipped_names),
+            ),
+            "warning",
+        )
+
+
+@public_bp.route("/t/<code>")
+def menu(code):
+    """Halaman menu untuk tamu - dibuka lewat scan QR code di meja. Kalau
+    meja masih ada pesanan yang belum lunas, tamu diarahkan ke halaman
+    "meja terisi" dulu (bisa lanjut lihat status pesanan itu) - supaya
+    tidak numpuk pesanan baru padahal meja masih dipakai tamu lain."""
+
+    table = Table.query.filter_by(code=code).first_or_404()
+
+    active_order = _active_order_for_table(table.id)
+    if active_order:
+        return render_template("public/occupied.html", table=table, order=active_order)
+
+    categories = (
+        Category.query.order_by(Category.order, Category.name).all()
+    )
+
+    return render_template(
+        "public/menu.html",
+        table=table,
+        categories=categories,
+        has_orderable_menu=_has_orderable_menu(categories),
+    )
+
+
+@public_bp.route("/t/<code>/order", methods=["POST"])
+def submit_order(code):
+    """Tamu submit pesanan sendiri langsung dari halaman menu (opsional -
+    tamu yang tidak nyaman pakai HP tetap bisa dilayani manual oleh
+    pelayan lewat halaman staff, lihat blueprints/staff.py)."""
+
+    table = Table.query.filter_by(code=code).first_or_404()
+
+    # Jaga-jaga kalau meja keburu terisi pesanan lain sebelum form ini
+    # sempat dikirim (misal dua tamu buka QR yang sama bersamaan).
+    active_order = _active_order_for_table(table.id)
+    if active_order:
         return redirect(url_for("public.menu", code=code))
 
-    stock_error = check_and_deduct_stock(order)
+    new_items, skipped_names = _collect_ordered_items(request.form)
+    _flash_skipped_items(skipped_names)
+
+    if not new_items:
+        return redirect(url_for("public.menu", code=code))
+
+    stock_error = check_and_deduct_stock(SimpleNamespace(items=new_items))
     if stock_error:
         flash(stock_error, "danger")
         return redirect(url_for("public.menu", code=code))
 
-    db.session.add(order)
-    db.session.commit()
+    order = Order(table_id=table.id, source="qr", status="pending", pin=generate_order_pin())
+    order.items.extend(new_items)
 
-    return redirect(url_for("public.order_status", code=code, order_id=order.id))
+    db.session.add(order)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Jaring pengaman terakhir (dijamin database) - meja ini keburu
+        # dapat pesanan lain persis di detik yang sama, lolos dari
+        # pengecekan active_order di atas.
+        db.session.rollback()
+        flash(_("Meja ini baru saja terisi pesanan lain. Silakan panggil pelayan."), "danger")
+        return redirect(url_for("public.menu", code=code))
+
+    resp = redirect(url_for("public.order_status", code=code, order_id=order.id))
+    # Device yang bikin pesanan ini otomatis "kenal" PIN-nya sendiri -
+    # tidak perlu input ulang buat nambah menu ke pesanan yang baru saja
+    # dia buat sendiri.
+    resp.set_cookie(_pin_cookie_name(order.id), order.pin, max_age=PIN_COOKIE_MAX_AGE, httponly=True, samesite="Lax")
+    return resp
+
+
+@public_bp.route("/t/<code>/order/<int:order_id>/add", methods=["GET", "POST"])
+def add_to_order(code, order_id):
+    """Tamu yang pesanannya sudah dibuat (lihat status.html) bisa balik ke
+    menu dari sini untuk nambah item ke pesanan YANG SAMA, bukan bikin
+    pesanan baru - dipakai juga sebagai jalan keluar dari halaman "meja
+    terisi" kalau memang itu pesanan tamu itu sendiri."""
+
+    table = Table.query.filter_by(code=code).first_or_404()
+    order = Order.query.get_or_404(order_id)
+
+    if order.table_id != table.id:
+        abort(404)
+
+    if order.is_paid:
+        flash(_("Pesanan ini sudah dibayar, tidak bisa ditambah lagi."), "warning")
+        return redirect(url_for("public.order_status", code=code, order_id=order.id))
+
+    # Device ini belum tentu tamu yang sama dengan yang bikin pesanan ini
+    # (lihat _is_unlocked) - minta PIN dulu sebelum boleh lihat/isi form
+    # tambah menu, supaya orang luar meja yang cuma modal link/kode QR
+    # tidak bisa asal nambah ke tagihan orang lain.
+    if not _is_unlocked(order):
+        if request.method == "POST":
+            flash(_("Sesi belum terverifikasi. Masukkan PIN dulu."), "danger")
+        return render_template("public/enter_pin.html", table=table, order=order)
+
+    if request.method == "POST":
+        new_items, skipped_names = _collect_ordered_items(request.form)
+        _flash_skipped_items(skipped_names)
+
+        if not new_items:
+            return redirect(url_for("public.add_to_order", code=code, order_id=order.id))
+
+        stock_error = check_and_deduct_stock(SimpleNamespace(items=new_items))
+        if stock_error:
+            flash(stock_error, "danger")
+            return redirect(url_for("public.add_to_order", code=code, order_id=order.id))
+
+        order.items.extend(new_items)
+
+        # Kalau dapur/pelayan sudah mulai/selesai kerjain pesanan ini
+        # (status sudah lewat "pending"), item baru ini tidak akan
+        # kelihatan kalau statusnya tidak di-reset - dapur bisa saja
+        # sudah nganggep pesanan ini "Siap"/"Diantar" dan tidak pernah
+        # notice ada tambahan. Balikin ke "pending" supaya muncul lagi
+        # sebagai perlu diproses, dan endpoint status poll di bawah
+        # bakal bunyikan notifikasi baru buat dapur/kasir.
+        order.status = "pending"
+
+        db.session.commit()
+
+        return redirect(url_for("public.order_status", code=code, order_id=order.id))
+
+    categories = Category.query.order_by(Category.order, Category.name).all()
+
+    return render_template(
+        "public/menu.html",
+        table=table,
+        categories=categories,
+        editing_order=order,
+        has_orderable_menu=_has_orderable_menu(categories),
+    )
+
+
+@public_bp.route("/t/<code>/order/<int:order_id>/unlock", methods=["POST"])
+def unlock_order(code, order_id):
+    """Verifikasi PIN yang diketik tamu di enter_pin.html - kalau cocok,
+    device ini ditandai "kenal" pesanan ini lewat cookie (lihat
+    _is_unlocked) supaya boleh ikut nambah menu."""
+
+    table = Table.query.filter_by(code=code).first_or_404()
+    order = Order.query.get_or_404(order_id)
+
+    if order.table_id != table.id:
+        abort(404)
+
+    pin_input = request.form.get("pin", "").strip()
+
+    if order.pin and pin_input == order.pin:
+        resp = redirect(url_for("public.add_to_order", code=code, order_id=order.id))
+        resp.set_cookie(_pin_cookie_name(order.id), order.pin, max_age=PIN_COOKIE_MAX_AGE, httponly=True, samesite="Lax")
+        return resp
+
+    flash(_("PIN salah. Tanya teman semeja Anda yang tadi pesan pertama kali."), "danger")
+    return redirect(url_for("public.add_to_order", code=code, order_id=order.id))
 
 
 @public_bp.route("/t/<code>/status/<int:order_id>")
@@ -85,4 +272,29 @@ def order_status(code, order_id):
     if order.table_id != table.id:
         abort(404)
 
-    return render_template("public/status.html", table=table, order=order)
+    # Selama masih "Diterima" (belum mulai dikerjakan dapur), tamu lebih
+    # butuh tahu posisi antriannya dulu daripada stepper diterima/diproses/
+    # siap/diantar yang belum banyak berubah - dihitung dari semua pesanan
+    # lain (meja manapun) yang statusnya masih sama-sama pending dan masuk
+    # lebih dulu, sama persis urutan yang dipakai di Antrian Dapur staf.
+    queue_position = None
+    if order.status == "pending":
+        # Tie-break pakai id (urutan insert) kalau kebetulan created_at-nya
+        # sama persis, supaya urutan antrian tetap deterministik/tidak ambigu.
+        earlier_count = Order.query.filter(
+            Order.status == "pending",
+            Order.is_paid.is_(False),
+            or_(
+                Order.created_at < order.created_at,
+                and_(Order.created_at == order.created_at, Order.id < order.id),
+            ),
+        ).count()
+        queue_position = earlier_count + 1
+
+    return render_template(
+        "public/status.html",
+        table=table,
+        order=order,
+        queue_position=queue_position,
+        is_unlocked=_is_unlocked(order),
+    )

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Halaman Tidak Ditemukan') }}{% endblock %}
+{% block nav %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="maintenance-page-wrap">
+  <div class="maintenance-card">
+    <div class="maintenance-logo-wrap">
+      {% if site_settings.login_logo_filename %}
+        <img class="maintenance-logo-float" src="{{ url_for('static', filename='uploads/branding/' + site_settings.login_logo_filename) }}" alt="{{ cafe_name }}">
+      {% else %}
+        <div class="maintenance-logo-float maintenance-logo-fallback"><i class="bi bi-cup-hot-fill"></i></div>
+      {% endif %}
+    </div>
+
+    <div class="maintenance-signal-bars">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <h3 class="maintenance-title">{{ _('Halaman Tidak Ditemukan') }}</h3>
+    <p class="maintenance-message">
+      {{ _('Link atau kode QR yang Anda buka mungkin sudah tidak berlaku. Coba scan ulang QR code di meja, atau panggil pelayan kalau butuh bantuan.') }}
+    </p>
+    <div class="maintenance-error-code">404</div>
+  </div>
+</div>
+{% endblock %}

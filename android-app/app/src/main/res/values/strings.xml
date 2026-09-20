@@ -1,8 +1,9 @@
 <resources>
-    <string name="app_name">Cafe POS</string>
+    <string name="app_name">Oru POS</string>
     <!-- WAJIB diganti sebelum build - isi dengan alamat IP server toko
          yang sebenarnya (lihat BASE_URL di .env server ini). -->
-    <string name="server_url">http://192.168.1.10:8000</string>
+    <string name="server_url">http://10.20.30.10:8000</string>
     <string name="offline_message">Tidak bisa terhubung ke server toko. Pastikan HP/tablet terhubung ke WiFi toko, lalu coba lagi.</string>
     <string name="retry">Coba Lagi</string>
+    <string name="file_chooser_error">Tidak bisa membuka pemilih file. Coba lagi.</string>
 </resources>

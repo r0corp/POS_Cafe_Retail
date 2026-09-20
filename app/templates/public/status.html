@@ -1,61 +1,122 @@
 {% extends "base.html" %}
 {% block title %}{{ _('Status Pesanan') }}{% endblock %}
-{% block nav %}{% endblock %}
+{% block nav %}{% include "public/_navbar.html" %}{% endblock %}
 
 {% block content %}
-{% set steps = [('pending', _('Diterima')), ('processing', _('Diproses')), ('ready', _('Siap')), ('served', _('Diantar'))] %}
-{% set status_order = ['pending', 'processing', 'ready', 'served'] %}
-{% set current_index = status_order.index(order.status) %}
+{% if order.is_paid %}
 
-<div class="public-header">
-  {% if site_settings.app_logo_filename %}
-    <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
-         alt="{{ cafe_name }}" style="max-height: 44px; max-width: 220px; object-fit: contain; margin-bottom: 6px;">
-  {% else %}
-    <h4 class="mb-0 text-white">{{ cafe_name }}</h4>
+  <div class="maintenance-page-wrap" style="min-height: 60vh;">
+    <div class="maintenance-card">
+      <div class="maintenance-logo-wrap">
+        {% if site_settings.login_logo_filename %}
+          <img class="maintenance-logo-float" src="{{ url_for('static', filename='uploads/branding/' + site_settings.login_logo_filename) }}" alt="{{ cafe_name }}">
+        {% else %}
+          <div class="maintenance-logo-float maintenance-logo-fallback"><i class="bi bi-cup-hot-fill"></i></div>
+        {% endif %}
+      </div>
+
+      <div class="thankyou-check-wrap">
+        <i class="bi bi-check-lg"></i>
+      </div>
+
+      <h3 class="maintenance-title">{{ _('Terima Kasih!') }}</h3>
+      <p class="maintenance-subtitle">{{ _('Pembayaran Pesanan #%(id)s Berhasil', id=order.id) }}</p>
+      <p class="maintenance-message mb-3">
+        {{ _('Terima kasih sudah mampir ke %(name)s. Semoga hari Anda menyenangkan - sampai jumpa lagi!', name=cafe_name) }}
+      </p>
+
+      <ul class="list-group list-group-flush text-start mb-3">
+        {% for item in order.items %}
+          <li class="list-group-item d-flex justify-content-between" style="background: transparent;">
+            <span>{{ item.quantity }}x {{ item.name_snapshot }}</span>
+            <span>Rp {{ "{:,}".format(item.subtotal).replace(",", ".") }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="text-muted">{{ _('Total Dibayar') }}</span>
+        <span class="fw-bold fs-5" style="color: var(--color-accent);">Rp {{ "{:,}".format(order.grand_total).replace(",", ".") }}</span>
+      </div>
+    </div>
+  </div>
+
+{% else %}
+
+  {% set steps = [('pending', _('Diterima')), ('processing', _('Diproses')), ('ready', _('Siap')), ('served', _('Diantar'))] %}
+  {% set status_order = ['pending', 'processing', 'ready', 'served'] %}
+  {% set current_index = status_order.index(order.status) %}
+
+  {% if queue_position %}
+    <div class="queue-status-card mb-3">
+      <i class="bi bi-hourglass-split queue-status-icon"></i>
+      <div>
+        {% if queue_position == 1 %}
+          <div class="queue-status-title">{{ _('Pesanan Anda Berikutnya Diproses') }}</div>
+          <div class="queue-status-sub">{{ _('Dapur akan segera mulai menyiapkan pesanan Anda.') }}</div>
+        {% else %}
+          <div class="queue-status-title">{{ _('Antrian Anda: ke-%(pos)s', pos=queue_position) }}</div>
+          <div class="queue-status-sub">{{ _('%(count)s pesanan lain masih menunggu di depan Anda.', count=queue_position - 1) }}</div>
+        {% endif %}
+      </div>
+    </div>
   {% endif %}
-  <div>
-    <span class="table-pill"><i class="bi bi-geo-alt-fill"></i> {{ table.label }} &middot; {{ _('Lantai %(floor)s', floor=table.floor) }}</span>
-  </div>
-</div>
 
-<div class="card card-hover">
-  <div class="card-body text-center p-4">
-    <p class="text-muted mb-1 small">{{ _('Pesanan #%(id)s', id=order.id) }}</p>
-    <h3 class="mb-0">{{ order.status_label }}</h3>
+  <div class="card card-hover">
+    <div class="card-body text-center p-4">
+      <p class="text-muted mb-1 small">{{ _('Pesanan #%(id)s', id=order.id) }}</p>
+      <h3 class="mb-0">{{ order.status_label }}</h3>
 
-    <div class="status-stepper">
-      {% for key, label in steps %}
-        {% set idx = loop.index0 %}
-        <div class="step {% if idx < current_index %}done{% elif idx == current_index %}current{% endif %}">
-          {{ label }}
+      <div class="status-stepper">
+        {% for key, label in steps %}
+          {% set idx = loop.index0 %}
+          <div class="step {% if idx < current_index %}done{% elif idx == current_index %}current{% endif %}">
+            {{ label }}
+          </div>
+        {% endfor %}
+      </div>
+
+      <ul class="list-group list-group-flush text-start mb-3">
+        {% for item in order.items %}
+          <li class="list-group-item d-flex justify-content-between">
+            <span>{{ item.quantity }}x {{ item.name_snapshot }}</span>
+            <span>Rp {{ "{:,}".format(item.subtotal).replace(",", ".") }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="text-muted">{{ _('Total') }}</span>
+        <span class="fw-bold fs-5" style="color: var(--color-accent);">Rp {{ "{:,}".format(order.grand_total).replace(",", ".") }}</span>
+      </div>
+
+      <a href="{{ url_for('public.add_to_order', code=table.code, order_id=order.id) }}" class="btn btn-outline-secondary w-100 mt-3">
+        <i class="bi bi-pencil-square"></i> {{ _('Tambah / Edit Menu') }}
+      </a>
+
+      {% if is_unlocked and order.pin %}
+        <div class="pin-share-box mt-3">
+          <i class="bi bi-shield-lock"></i>
+          {{ _('PIN meja ini:') }} <span class="pin-share-code">{{ order.pin }}</span>
+          <div class="text-muted" style="font-size: 0.78rem;">
+            {{ _('Kasih tau PIN ini ke teman semeja kalau mereka mau ikut pesan dari HP masing-masing.') }}
+          </div>
         </div>
-      {% endfor %}
-    </div>
-
-    <ul class="list-group list-group-flush text-start mb-3">
-      {% for item in order.items %}
-        <li class="list-group-item d-flex justify-content-between">
-          <span>{{ item.quantity }}x {{ item.name_snapshot }}</span>
-          <span>Rp {{ "{:,}".format(item.subtotal).replace(",", ".") }}</span>
-        </li>
-      {% endfor %}
-    </ul>
-
-    <div class="d-flex justify-content-between align-items-center">
-      <span class="text-muted">{{ _('Total') }}</span>
-      <span class="fw-bold fs-5" style="color: var(--color-accent);">Rp {{ "{:,}".format(order.total).replace(",", ".") }}</span>
+      {% endif %}
     </div>
   </div>
-</div>
 
-<p class="text-muted small text-center mt-3">
-  <i class="bi bi-arrow-repeat"></i> {{ _('Halaman ini otomatis diperbarui.') }}
-</p>
+  <p class="text-muted small text-center mt-3">
+    <i class="bi bi-arrow-repeat"></i> {{ _('Halaman ini otomatis diperbarui.') }}
+  </p>
+
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
-<script>
-  setTimeout(() => window.location.reload(), 5000);
-</script>
+{% if not order.is_paid %}
+  <script>
+    setTimeout(() => window.location.reload(), 5000);
+  </script>
+{% endif %}
 {% endblock %}

@@ -5,18 +5,19 @@
 <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
   <h4 class="mb-0"><i class="bi bi-grid-3x3-gap-fill"></i> {{ _('Meja') }}</h4>
   <div class="d-flex align-items-center gap-2">
-    <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-primary-dark);">
+    <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">
       {{ _('%(available)s / %(total)s kosong', available=available_count, total=total_count) }}
     </span>
     {% if is_owner %}
-      <button class="btn btn-sm btn-accent" type="button" data-bs-toggle="collapse" data-bs-target="#addTableForm">
+      <button class="btn btn-sm btn-accent text-nowrap" type="button" data-bs-toggle="collapse" data-bs-target="#addTableForm">
         <i class="bi bi-plus-circle"></i> {{ _('Tambah Meja') }}
       </button>
     {% endif %}
   </div>
 </div>
+<p class="text-muted small mb-1">{{ _('Pantau status tiap meja dan buka meja baru untuk mulai pesanan atau bayar.') }}</p>
 <p class="text-muted small mb-3">
-  <span class="legend-dot" style="background: var(--color-success);"></span>{{ _('Kosong') }} &middot;
+  <span class="legend-dot" style="background: var(--color-primary);"></span>{{ _('Kosong') }} &middot;
   <span class="legend-dot" style="background: var(--color-warning);"></span>{{ _('Terisi') }}
   {% if is_owner %}&middot; <i class="bi bi-qr-code"></i> {{ _('lihat QR / hapus meja') }}{% endif %}
 </p>
@@ -27,23 +28,27 @@
       <div class="card-body">
         <h6 class="mb-3">{{ _('Tambah Meja Baru') }}</h6>
         <form method="post" class="row g-2 align-items-end">
-          <div class="col-sm-4">
+          <div class="col-sm-3">
             <label class="form-label small">{{ _('Label Meja') }}</label>
             <input type="text" name="label" class="form-control" placeholder="{{ _('Contoh: Meja 4') }}" required>
           </div>
           <div class="col-sm-3">
             <label class="form-label small">{{ _('Lantai') }}</label>
-            <select name="floor" class="form-select" required>
-              <option value="1">{{ _('Lantai 1') }}</option>
-              <option value="2">{{ _('Lantai 2') }}</option>
+            <select name="floor" class="form-select" data-elegant-select required {% if not available_floors %}disabled{% endif %}>
+              {% for floor in available_floors %}
+                <option value="{{ floor.number }}">{{ floor_display_name(floor.number) }}</option>
+              {% endfor %}
             </select>
           </div>
           <div class="col-sm-3">
             <label class="form-label small">{{ _('Kode Unik') }}</label>
-            <input type="text" name="code" class="form-control" placeholder="l1-04" required>
+            <div class="input-group">
+              <span class="input-group-text postab-prefix">postab-</span>
+              <input type="text" name="code" class="form-control" placeholder="001" required>
+            </div>
           </div>
-          <div class="col-sm-2">
-            <button class="btn btn-accent w-100" type="submit"><i class="bi bi-qr-code"></i> {{ _('Tambah') }}</button>
+          <div class="col-sm-3">
+            <button class="btn btn-accent w-100 text-nowrap" type="submit">{{ _('Tambah') }}</button>
           </div>
         </form>
       </div>
@@ -62,25 +67,45 @@
 {% for floor_number, items in floors %}
   <div class="card mb-4">
     <div class="card-body">
-      <h6 class="mb-3">{{ _('Lantai %(floor)s', floor=floor_number) }}</h6>
+      <h6 class="mb-3">{{ floor_display_name(floor_number) }}</h6>
       <div class="seat-grid">
         {% for entry in items %}
           {% set table = entry.table %}
           {% set order = entry.order %}
           <div class="seat {{ 'seat-occupied' if order else 'seat-available' }}">
-            {% if is_owner %}
-              <button type="button" class="seat-qr-btn" data-bs-toggle="modal" data-bs-target="#qrModal{{ table.id }}" title="{{ _('Detail meja') }}">
-                <i class="bi bi-qr-code"></i>
-              </button>
+            <div class="seat-top-row">
+              <div class="seat-status-row">
+                <span class="seat-status-dot" aria-hidden="true"></span>
+                <span class="seat-status-text">{{ _('Terisi') if order else _('Kosong') }}</span>
+              </div>
+              {% if is_owner %}
+                <button type="button" class="seat-qr-btn" data-bs-toggle="modal" data-bs-target="#qrModal{{ table.id }}" title="{{ _('Detail meja') }}">
+                  <i class="bi bi-qr-code"></i>
+                </button>
+              {% endif %}
+            </div>
+
+            {% if not order %}
+              <div class="seat-empty-icon" aria-hidden="true">
+                <svg width="46" height="34" viewBox="0 0 60 44">
+                  <rect x="4" y="2" width="8" height="8" rx="2"></rect>
+                  <rect x="48" y="2" width="8" height="8" rx="2"></rect>
+                  <rect x="4" y="34" width="8" height="8" rx="2"></rect>
+                  <rect x="48" y="34" width="8" height="8" rx="2"></rect>
+                  <rect x="14" y="12" width="32" height="20" rx="4"></rect>
+                </svg>
+              </div>
             {% endif %}
 
-            <i class="bi {{ 'bi-cup-hot-fill' if order else 'bi-cup' }} seat-icon"></i>
-            <div class="seat-label">{{ table.label }}</div>
+            <div class="seat-table-row">
+              <span class="seat-label">{{ table.label }}</span>
+            </div>
             {% if order %}
-              <div class="seat-sub">{{ _('Terisi') }} &middot; #{{ order.id }}</div>
-              <div class="seat-sub">Rp {{ "{:,}".format(order.total).replace(",", ".") }}</div>
-            {% else %}
-              <div class="seat-sub">{{ _('Kosong') }}</div>
+              <div class="seat-sub">
+                {{ _('Pesanan #%(id)s', id=order.id) }}
+                {% if order.pin %}&middot; PIN {{ order.pin }}{% endif %}
+              </div>
+              <div class="seat-price">Rp {{ "{:,}".format(order.grand_total).replace(",", ".") }}</div>
             {% endif %}
 
             {% if order and can_use_cashier %}

@@ -1,4 +1,5 @@
 <resources>
-    <color name="brand_primary_dark">#4E2F1B</color>
     <color name="white">#FFFFFF</color>
+    <color name="offline_bg">#0B1220</color>
+    <color name="offline_accent">#F07828</color>
 </resources>

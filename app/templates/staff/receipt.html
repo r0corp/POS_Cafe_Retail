@@ -18,7 +18,7 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: linear-gradient(180deg, #6B4226 0%, #FBF6EF 260px);
+      background: linear-gradient(180deg, #0E4C75 0%, #F6F9FC 260px);
       font-family: "Courier New", Courier, monospace;
       color: #111;
       padding-bottom: 40px;
@@ -66,12 +66,12 @@
     .btn:active { transform: translateY(1px); }
 
     .btn-print {
-      background: #D98324;
+      background: #F07828;
       color: #fff;
-      box-shadow: 0 4px 14px rgba(217, 131, 36, 0.4);
+      box-shadow: 0 4px 14px rgba(240, 120, 40, 0.4);
     }
 
-    .btn-print:hover { background: #C06F1A; }
+    .btn-print:hover { background: #D9601A; }
 
     .btn-back {
       background: rgba(255, 255, 255, 0.16);
@@ -159,7 +159,7 @@
     <div class="divider"></div>
 
     <div class="row"><span>{{ _('No. Struk') }}</span><span>#{{ order.id }}</span></div>
-    <div class="row"><span>{{ _('Meja') }}</span><span>{{ order.table.label }} ({{ _('Lt.%(floor)s', floor=order.table.floor) }})</span></div>
+    <div class="row"><span>{{ _('Meja') }}</span><span>{{ order.table.label }} ({{ order.table.floor_label }})</span></div>
     <div class="row"><span>{{ _('Tanggal') }}</span><span>{{ (order.paid_at or order.created_at).strftime('%d/%m/%Y %H:%M') }}</span></div>
     {% if order.served_by %}
       <div class="row"><span>{{ _('Kasir') }}</span><span>{{ order.served_by }}</span></div>
@@ -177,10 +177,22 @@
       </div>
     {% endfor %}
 
+    {% if order.ppn_amount %}
+      <div class="divider"></div>
+      <div class="row">
+        <span>{{ _('Subtotal') }}</span>
+        <span>Rp {{ "{:,}".format(order.total).replace(",", ".") }}</span>
+      </div>
+      <div class="row">
+        <span>{{ _('PPN %(pct)s%%', pct=order.ppn_percentage|round(1)) }}</span>
+        <span>Rp {{ "{:,}".format(order.ppn_amount).replace(",", ".") }}</span>
+      </div>
+    {% endif %}
+
     <div class="total-box">
       <div class="row bold">
         <span>{{ _('TOTAL') }}</span>
-        <span>Rp {{ "{:,}".format(order.total).replace(",", ".") }}</span>
+        <span>Rp {{ "{:,}".format(order.grand_total).replace(",", ".") }}</span>
       </div>
     </div>
     <div class="row muted">
@@ -198,10 +210,9 @@
       </div>
     {% endif %}
 
-    {% if settings.footer_text or settings.instagram or settings.tiktok or settings.whatsapp or settings.other_social %}
+    {% if settings.instagram or settings.tiktok or settings.whatsapp or settings.other_social %}
       <div class="divider"></div>
       <div class="center">
-        {% if settings.footer_text %}<div>{{ settings.footer_text }}</div>{% endif %}
         {% if settings.instagram %}<div>{{ _('IG: %(handle)s', handle=settings.instagram) }}</div>{% endif %}
         {% if settings.tiktok %}<div>{{ _('TikTok: %(handle)s', handle=settings.tiktok) }}</div>{% endif %}
         {% if settings.whatsapp %}<div>{{ _('WA: %(handle)s', handle=settings.whatsapp) }}</div>{% endif %}
@@ -209,10 +220,30 @@
       </div>
     {% endif %}
 
+    <!-- Kredit pembuat aplikasi - SENGAJA di-hardcode (bukan dari
+         Settings/database) supaya tidak bisa diubah/dihapus lewat menu
+         Pengaturan oleh toko mana pun yang memakai aplikasi ini. -->
+    <div class="center muted" style="font-size: 0.85em; margin-top: 4px;">Orulabs &copy; 2026</div>
+
     <div class="divider-solid"></div>
     <div class="center bold">{{ _('Terima kasih!') }}</div>
   </div>
 </div>
 
+{% if just_paid and site_settings.notification_enabled %}
+  <script src="{{ url_for('static', filename='js/notify.js') }}"></script>
+  <script>
+    // Konfirmasi bunyi instan buat kasir yang BARU SAJA proses pembayaran
+    // ini - tidak nunggu siklus poll (yang baseline-nya kadung menganggap
+    // pesanan ini "sudah lama ada" begitu halaman struk ini pertama kali
+    // termuat). Kasir LAIN & Owner tetap dapat notifikasi lewat poll
+    // global di base.html (halaman ini sengaja berdiri sendiri, tidak
+    // extends base.html, supaya tetap bisa dicetak tanpa akses internet).
+    playOrderChime(
+      {{ site_settings.notification_sound_for_role('kasir')|tojson }},
+      {{ site_settings.notification_volume }}
+    );
+  </script>
+{% endif %}
 </body>
 </html>

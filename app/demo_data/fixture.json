@@ -1,0 +1,1120 @@
+{
+  "categories": [
+    {
+      "name": "Kopi",
+      "order": 0
+    },
+    {
+      "name": "Non-Kopi",
+      "order": 1
+    },
+    {
+      "name": "Makanan Berat",
+      "order": 2
+    },
+    {
+      "name": "Snack",
+      "order": 3
+    },
+    {
+      "name": "Roti & Sandwich",
+      "order": 4
+    },
+    {
+      "name": "Dessert",
+      "order": 5
+    },
+    {
+      "name": "Pasta",
+      "order": 6
+    }
+  ],
+  "ingredients": [
+    {
+      "name": "Kopi Bubuk",
+      "unit": "gram",
+      "stock_quantity": 3000.0,
+      "low_stock_threshold": 300.0
+    },
+    {
+      "name": "Susu Cair",
+      "unit": "ml",
+      "stock_quantity": 6000.0,
+      "low_stock_threshold": 500.0
+    },
+    {
+      "name": "Gula",
+      "unit": "gram",
+      "stock_quantity": 4000.0,
+      "low_stock_threshold": 300.0
+    },
+    {
+      "name": "Gula Aren Cair",
+      "unit": "ml",
+      "stock_quantity": 1500.0,
+      "low_stock_threshold": 150.0
+    },
+    {
+      "name": "Es Batu",
+      "unit": "gram",
+      "stock_quantity": 10000.0,
+      "low_stock_threshold": 1000.0
+    },
+    {
+      "name": "Teh Celup",
+      "unit": "pcs",
+      "stock_quantity": 200.0,
+      "low_stock_threshold": 20.0
+    },
+    {
+      "name": "Sirup Coklat",
+      "unit": "ml",
+      "stock_quantity": 1500.0,
+      "low_stock_threshold": 150.0
+    },
+    {
+      "name": "Bubuk Matcha",
+      "unit": "gram",
+      "stock_quantity": 500.0,
+      "low_stock_threshold": 50.0
+    },
+    {
+      "name": "Bubuk Taro",
+      "unit": "gram",
+      "stock_quantity": 500.0,
+      "low_stock_threshold": 50.0
+    },
+    {
+      "name": "Sirup Thai Tea",
+      "unit": "ml",
+      "stock_quantity": 1000.0,
+      "low_stock_threshold": 100.0
+    },
+    {
+      "name": "Es Krim Vanilla",
+      "unit": "scoop",
+      "stock_quantity": 100.0,
+      "low_stock_threshold": 10.0
+    },
+    {
+      "name": "Tepung Terigu",
+      "unit": "gram",
+      "stock_quantity": 5000.0,
+      "low_stock_threshold": 500.0
+    },
+    {
+      "name": "Telur",
+      "unit": "pcs",
+      "stock_quantity": 150.0,
+      "low_stock_threshold": 20.0
+    },
+    {
+      "name": "Minyak Goreng",
+      "unit": "ml",
+      "stock_quantity": 8000.0,
+      "low_stock_threshold": 500.0
+    },
+    {
+      "name": "Beras",
+      "unit": "gram",
+      "stock_quantity": 15000.0,
+      "low_stock_threshold": 1500.0
+    },
+    {
+      "name": "Dada Ayam",
+      "unit": "gram",
+      "stock_quantity": 6000.0,
+      "low_stock_threshold": 500.0
+    },
+    {
+      "name": "Daging Sapi Giling",
+      "unit": "gram",
+      "stock_quantity": 3000.0,
+      "low_stock_threshold": 300.0
+    },
+    {
+      "name": "Udang",
+      "unit": "gram",
+      "stock_quantity": 2000.0,
+      "low_stock_threshold": 200.0
+    },
+    {
+      "name": "Keju Cheddar",
+      "unit": "gram",
+      "stock_quantity": 2000.0,
+      "low_stock_threshold": 200.0
+    },
+    {
+      "name": "Roti Tawar",
+      "unit": "lembar",
+      "stock_quantity": 200.0,
+      "low_stock_threshold": 20.0
+    },
+    {
+      "name": "Kentang",
+      "unit": "gram",
+      "stock_quantity": 6000.0,
+      "low_stock_threshold": 500.0
+    },
+    {
+      "name": "Pisang",
+      "unit": "pcs",
+      "stock_quantity": 100.0,
+      "low_stock_threshold": 10.0
+    },
+    {
+      "name": "Tahu",
+      "unit": "pcs",
+      "stock_quantity": 100.0,
+      "low_stock_threshold": 10.0
+    },
+    {
+      "name": "Tempe",
+      "unit": "pcs",
+      "stock_quantity": 100.0,
+      "low_stock_threshold": 10.0
+    },
+    {
+      "name": "Mayones",
+      "unit": "ml",
+      "stock_quantity": 1500.0,
+      "low_stock_threshold": 150.0
+    },
+    {
+      "name": "Spaghetti Kering",
+      "unit": "gram",
+      "stock_quantity": 4000.0,
+      "low_stock_threshold": 400.0
+    },
+    {
+      "name": "Bumbu Rendang",
+      "unit": "gram",
+      "stock_quantity": 1500.0,
+      "low_stock_threshold": 150.0
+    },
+    {
+      "name": "Mie Kuning",
+      "unit": "gram",
+      "stock_quantity": 4000.0,
+      "low_stock_threshold": 400.0
+    },
+    {
+      "name": "Coklat Batang",
+      "unit": "gram",
+      "stock_quantity": 2000.0,
+      "low_stock_threshold": 200.0
+    },
+    {
+      "name": "Cream Cheese",
+      "unit": "gram",
+      "stock_quantity": 1500.0,
+      "low_stock_threshold": 150.0
+    }
+  ],
+  "menu_items": [
+    {
+      "name": "Kopi Hitam",
+      "price": 12000,
+      "category": "Kopi",
+      "photo": "menu-1.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kopi Bubuk",
+          "qty": 18.0
+        },
+        {
+          "ingredient": "Gula",
+          "qty": 8.0
+        }
+      ]
+    },
+    {
+      "name": "Kopi Susu",
+      "price": 18000,
+      "category": "Kopi",
+      "photo": "menu-2.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kopi Bubuk",
+          "qty": 18.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 100.0
+        },
+        {
+          "ingredient": "Gula",
+          "qty": 10.0
+        }
+      ]
+    },
+    {
+      "name": "Kopi Susu Gula Aren",
+      "price": 20000,
+      "category": "Kopi",
+      "photo": "menu-3.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kopi Bubuk",
+          "qty": 18.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 100.0
+        },
+        {
+          "ingredient": "Gula Aren Cair",
+          "qty": 25.0
+        }
+      ]
+    },
+    {
+      "name": "Cappuccino",
+      "price": 22000,
+      "category": "Kopi",
+      "photo": "menu-4.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kopi Bubuk",
+          "qty": 18.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 120.0
+        }
+      ]
+    },
+    {
+      "name": "Cafe Latte",
+      "price": 22000,
+      "category": "Kopi",
+      "photo": "menu-5.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kopi Bubuk",
+          "qty": 18.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 150.0
+        }
+      ]
+    },
+    {
+      "name": "Americano",
+      "price": 18000,
+      "category": "Kopi",
+      "photo": "menu-6.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kopi Bubuk",
+          "qty": 18.0
+        }
+      ]
+    },
+    {
+      "name": "Espresso",
+      "price": 15000,
+      "category": "Kopi",
+      "photo": "menu-7.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kopi Bubuk",
+          "qty": 18.0
+        }
+      ]
+    },
+    {
+      "name": "Caramel Macchiato",
+      "price": 23000,
+      "category": "Kopi",
+      "photo": "menu-8.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kopi Bubuk",
+          "qty": 18.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 80.0
+        },
+        {
+          "ingredient": "Gula Aren Cair",
+          "qty": 15.0
+        }
+      ]
+    },
+    {
+      "name": "Cafe Mocha",
+      "price": 23000,
+      "category": "Kopi",
+      "photo": "menu-9.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kopi Bubuk",
+          "qty": 18.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 100.0
+        },
+        {
+          "ingredient": "Sirup Coklat",
+          "qty": 20.0
+        }
+      ]
+    },
+    {
+      "name": "Affogato",
+      "price": 25000,
+      "category": "Kopi",
+      "photo": "menu-10.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kopi Bubuk",
+          "qty": 18.0
+        },
+        {
+          "ingredient": "Es Krim Vanilla",
+          "qty": 1.0
+        }
+      ]
+    },
+    {
+      "name": "Es Teh Manis",
+      "price": 8000,
+      "category": "Non-Kopi",
+      "photo": "menu-11.jpg",
+      "recipe": [
+        {
+          "ingredient": "Teh Celup",
+          "qty": 1.0
+        },
+        {
+          "ingredient": "Gula",
+          "qty": 15.0
+        },
+        {
+          "ingredient": "Es Batu",
+          "qty": 150.0
+        }
+      ]
+    },
+    {
+      "name": "Es Jeruk",
+      "price": 10000,
+      "category": "Non-Kopi",
+      "photo": "menu-12.jpg",
+      "recipe": [
+        {
+          "ingredient": "Gula",
+          "qty": 10.0
+        },
+        {
+          "ingredient": "Es Batu",
+          "qty": 150.0
+        }
+      ]
+    },
+    {
+      "name": "Es Lemon Tea",
+      "price": 12000,
+      "category": "Non-Kopi",
+      "photo": "menu-13.jpg",
+      "recipe": [
+        {
+          "ingredient": "Teh Celup",
+          "qty": 1.0
+        },
+        {
+          "ingredient": "Gula",
+          "qty": 12.0
+        },
+        {
+          "ingredient": "Es Batu",
+          "qty": 150.0
+        }
+      ]
+    },
+    {
+      "name": "Chocolate Milkshake",
+      "price": 20000,
+      "category": "Non-Kopi",
+      "photo": "menu-14.jpg",
+      "recipe": [
+        {
+          "ingredient": "Sirup Coklat",
+          "qty": 40.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 150.0
+        },
+        {
+          "ingredient": "Es Krim Vanilla",
+          "qty": 1.0
+        }
+      ]
+    },
+    {
+      "name": "Matcha Latte",
+      "price": 22000,
+      "category": "Non-Kopi",
+      "photo": "menu-15.jpg",
+      "recipe": [
+        {
+          "ingredient": "Bubuk Matcha",
+          "qty": 12.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 150.0
+        },
+        {
+          "ingredient": "Gula",
+          "qty": 10.0
+        }
+      ]
+    },
+    {
+      "name": "Es Coklat",
+      "price": 16000,
+      "category": "Non-Kopi",
+      "photo": "menu-16.jpg",
+      "recipe": [
+        {
+          "ingredient": "Sirup Coklat",
+          "qty": 35.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 100.0
+        },
+        {
+          "ingredient": "Es Batu",
+          "qty": 150.0
+        }
+      ]
+    },
+    {
+      "name": "Thai Tea",
+      "price": 15000,
+      "category": "Non-Kopi",
+      "photo": "menu-17.jpg",
+      "recipe": [
+        {
+          "ingredient": "Sirup Thai Tea",
+          "qty": 40.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 60.0
+        },
+        {
+          "ingredient": "Es Batu",
+          "qty": 150.0
+        }
+      ]
+    },
+    {
+      "name": "Taro Milkshake",
+      "price": 20000,
+      "category": "Non-Kopi",
+      "photo": "menu-18.jpg",
+      "recipe": [
+        {
+          "ingredient": "Bubuk Taro",
+          "qty": 20.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 150.0
+        },
+        {
+          "ingredient": "Es Krim Vanilla",
+          "qty": 1.0
+        }
+      ]
+    },
+    {
+      "name": "Nasi Goreng",
+      "price": 25000,
+      "category": "Makanan Berat",
+      "photo": "menu-19.jpg",
+      "recipe": [
+        {
+          "ingredient": "Beras",
+          "qty": 200.0
+        },
+        {
+          "ingredient": "Telur",
+          "qty": 1.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 20.0
+        }
+      ]
+    },
+    {
+      "name": "Nasi Goreng Seafood",
+      "price": 30000,
+      "category": "Makanan Berat",
+      "photo": "menu-20.jpg",
+      "recipe": [
+        {
+          "ingredient": "Beras",
+          "qty": 200.0
+        },
+        {
+          "ingredient": "Udang",
+          "qty": 60.0
+        },
+        {
+          "ingredient": "Telur",
+          "qty": 1.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 20.0
+        }
+      ]
+    },
+    {
+      "name": "Ayam Geprek",
+      "price": 22000,
+      "category": "Makanan Berat",
+      "photo": "menu-21.jpg",
+      "recipe": [
+        {
+          "ingredient": "Dada Ayam",
+          "qty": 150.0
+        },
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 50.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 40.0
+        }
+      ]
+    },
+    {
+      "name": "Nasi Ayam Bakar",
+      "price": 25000,
+      "category": "Makanan Berat",
+      "photo": "menu-22.jpg",
+      "recipe": [
+        {
+          "ingredient": "Beras",
+          "qty": 200.0
+        },
+        {
+          "ingredient": "Dada Ayam",
+          "qty": 150.0
+        }
+      ]
+    },
+    {
+      "name": "Mie Goreng",
+      "price": 20000,
+      "category": "Makanan Berat",
+      "photo": "menu-23.jpg",
+      "recipe": [
+        {
+          "ingredient": "Mie Kuning",
+          "qty": 150.0
+        },
+        {
+          "ingredient": "Telur",
+          "qty": 1.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 20.0
+        }
+      ]
+    },
+    {
+      "name": "Mie Ayam",
+      "price": 18000,
+      "category": "Makanan Berat",
+      "photo": "menu-24.jpg",
+      "recipe": [
+        {
+          "ingredient": "Mie Kuning",
+          "qty": 150.0
+        },
+        {
+          "ingredient": "Dada Ayam",
+          "qty": 60.0
+        }
+      ]
+    },
+    {
+      "name": "Soto Ayam",
+      "price": 20000,
+      "category": "Makanan Berat",
+      "photo": "menu-25.jpg",
+      "recipe": [
+        {
+          "ingredient": "Dada Ayam",
+          "qty": 100.0
+        },
+        {
+          "ingredient": "Beras",
+          "qty": 80.0
+        }
+      ]
+    },
+    {
+      "name": "Nasi Rendang",
+      "price": 28000,
+      "category": "Makanan Berat",
+      "photo": "menu-26.jpg",
+      "recipe": [
+        {
+          "ingredient": "Beras",
+          "qty": 200.0
+        },
+        {
+          "ingredient": "Daging Sapi Giling",
+          "qty": 150.0
+        },
+        {
+          "ingredient": "Bumbu Rendang",
+          "qty": 40.0
+        }
+      ]
+    },
+    {
+      "name": "Kentang Goreng",
+      "price": 15000,
+      "category": "Snack",
+      "photo": "menu-27.jpg",
+      "recipe": [
+        {
+          "ingredient": "Kentang",
+          "qty": 180.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 30.0
+        }
+      ]
+    },
+    {
+      "name": "Pisang Goreng",
+      "price": 12000,
+      "category": "Snack",
+      "photo": "menu-28.jpg",
+      "recipe": [
+        {
+          "ingredient": "Pisang",
+          "qty": 2.0
+        },
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 40.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 30.0
+        }
+      ]
+    },
+    {
+      "name": "Tahu Crispy",
+      "price": 12000,
+      "category": "Snack",
+      "photo": "menu-29.jpg",
+      "recipe": [
+        {
+          "ingredient": "Tahu",
+          "qty": 4.0
+        },
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 30.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 25.0
+        }
+      ]
+    },
+    {
+      "name": "Risoles Mayo",
+      "price": 15000,
+      "category": "Snack",
+      "photo": "menu-30.jpg",
+      "recipe": [
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 50.0
+        },
+        {
+          "ingredient": "Dada Ayam",
+          "qty": 40.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 25.0
+        }
+      ]
+    },
+    {
+      "name": "Onion Rings",
+      "price": 15000,
+      "category": "Snack",
+      "photo": "menu-31.jpg",
+      "recipe": [
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 40.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 30.0
+        }
+      ]
+    },
+    {
+      "name": "Cireng Bumbu Rujak",
+      "price": 10000,
+      "category": "Snack",
+      "photo": "menu-32.jpg",
+      "recipe": [
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 60.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 25.0
+        }
+      ]
+    },
+    {
+      "name": "Tempe Mendoan",
+      "price": 10000,
+      "category": "Snack",
+      "photo": "menu-33.jpg",
+      "recipe": [
+        {
+          "ingredient": "Tempe",
+          "qty": 3.0
+        },
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 30.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 25.0
+        }
+      ]
+    },
+    {
+      "name": "Sosis Bakar",
+      "price": 15000,
+      "category": "Snack",
+      "photo": "menu-34.jpg",
+      "recipe": [
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 10.0
+        }
+      ]
+    },
+    {
+      "name": "Roti Bakar Coklat",
+      "price": 15000,
+      "category": "Roti & Sandwich",
+      "photo": "menu-35.jpg",
+      "recipe": [
+        {
+          "ingredient": "Roti Tawar",
+          "qty": 2.0
+        },
+        {
+          "ingredient": "Sirup Coklat",
+          "qty": 25.0
+        }
+      ]
+    },
+    {
+      "name": "Roti Bakar Keju",
+      "price": 16000,
+      "category": "Roti & Sandwich",
+      "photo": "menu-36.jpg",
+      "recipe": [
+        {
+          "ingredient": "Roti Tawar",
+          "qty": 2.0
+        },
+        {
+          "ingredient": "Keju Cheddar",
+          "qty": 30.0
+        }
+      ]
+    },
+    {
+      "name": "Sandwich Ayam",
+      "price": 20000,
+      "category": "Roti & Sandwich",
+      "photo": "menu-37.jpg",
+      "recipe": [
+        {
+          "ingredient": "Roti Tawar",
+          "qty": 3.0
+        },
+        {
+          "ingredient": "Dada Ayam",
+          "qty": 80.0
+        },
+        {
+          "ingredient": "Mayones",
+          "qty": 15.0
+        }
+      ]
+    },
+    {
+      "name": "Club Sandwich",
+      "price": 25000,
+      "category": "Roti & Sandwich",
+      "photo": "menu-38.jpg",
+      "recipe": [
+        {
+          "ingredient": "Roti Tawar",
+          "qty": 3.0
+        },
+        {
+          "ingredient": "Dada Ayam",
+          "qty": 100.0
+        },
+        {
+          "ingredient": "Telur",
+          "qty": 1.0
+        },
+        {
+          "ingredient": "Mayones",
+          "qty": 15.0
+        }
+      ]
+    },
+    {
+      "name": "Croissant",
+      "price": 18000,
+      "category": "Roti & Sandwich",
+      "photo": "menu-39.jpg",
+      "recipe": [
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 80.0
+        }
+      ]
+    },
+    {
+      "name": "Panini Smoked Beef",
+      "price": 24000,
+      "category": "Roti & Sandwich",
+      "photo": "menu-40.jpg",
+      "recipe": [
+        {
+          "ingredient": "Roti Tawar",
+          "qty": 2.0
+        },
+        {
+          "ingredient": "Daging Sapi Giling",
+          "qty": 80.0
+        },
+        {
+          "ingredient": "Keju Cheddar",
+          "qty": 20.0
+        }
+      ]
+    },
+    {
+      "name": "Pancake Madu",
+      "price": 20000,
+      "category": "Dessert",
+      "photo": "menu-41.jpg",
+      "recipe": [
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 100.0
+        },
+        {
+          "ingredient": "Telur",
+          "qty": 1.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 80.0
+        }
+      ]
+    },
+    {
+      "name": "Waffle Ice Cream",
+      "price": 25000,
+      "category": "Dessert",
+      "photo": "menu-42.jpg",
+      "recipe": [
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 100.0
+        },
+        {
+          "ingredient": "Telur",
+          "qty": 1.0
+        },
+        {
+          "ingredient": "Es Krim Vanilla",
+          "qty": 1.0
+        }
+      ]
+    },
+    {
+      "name": "Brownies Lumer",
+      "price": 18000,
+      "category": "Dessert",
+      "photo": "menu-43.jpg",
+      "recipe": [
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 80.0
+        },
+        {
+          "ingredient": "Coklat Batang",
+          "qty": 60.0
+        },
+        {
+          "ingredient": "Telur",
+          "qty": 2.0
+        }
+      ]
+    },
+    {
+      "name": "Cheesecake",
+      "price": 25000,
+      "category": "Dessert",
+      "photo": "menu-44.jpg",
+      "recipe": [
+        {
+          "ingredient": "Cream Cheese",
+          "qty": 120.0
+        },
+        {
+          "ingredient": "Tepung Terigu",
+          "qty": 40.0
+        }
+      ]
+    },
+    {
+      "name": "Puding Coklat",
+      "price": 12000,
+      "category": "Dessert",
+      "photo": "menu-45.jpg",
+      "recipe": [
+        {
+          "ingredient": "Sirup Coklat",
+          "qty": 30.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 100.0
+        }
+      ]
+    },
+    {
+      "name": "Es Krim 2 Scoop",
+      "price": 15000,
+      "category": "Dessert",
+      "photo": "menu-46.jpg",
+      "recipe": [
+        {
+          "ingredient": "Es Krim Vanilla",
+          "qty": 2.0
+        }
+      ]
+    },
+    {
+      "name": "Spaghetti Aglio Olio",
+      "price": 25000,
+      "category": "Pasta",
+      "photo": "menu-47.jpg",
+      "recipe": [
+        {
+          "ingredient": "Spaghetti Kering",
+          "qty": 150.0
+        },
+        {
+          "ingredient": "Minyak Goreng",
+          "qty": 20.0
+        }
+      ]
+    },
+    {
+      "name": "Spaghetti Bolognese",
+      "price": 28000,
+      "category": "Pasta",
+      "photo": "menu-48.jpg",
+      "recipe": [
+        {
+          "ingredient": "Spaghetti Kering",
+          "qty": 150.0
+        },
+        {
+          "ingredient": "Daging Sapi Giling",
+          "qty": 100.0
+        }
+      ]
+    },
+    {
+      "name": "Fettuccine Carbonara",
+      "price": 28000,
+      "category": "Pasta",
+      "photo": "menu-49.jpg",
+      "recipe": [
+        {
+          "ingredient": "Spaghetti Kering",
+          "qty": 150.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 80.0
+        },
+        {
+          "ingredient": "Keju Cheddar",
+          "qty": 30.0
+        },
+        {
+          "ingredient": "Telur",
+          "qty": 1.0
+        }
+      ]
+    },
+    {
+      "name": "Mac and Cheese",
+      "price": 22000,
+      "category": "Pasta",
+      "photo": "menu-50.jpg",
+      "recipe": [
+        {
+          "ingredient": "Spaghetti Kering",
+          "qty": 120.0
+        },
+        {
+          "ingredient": "Keju Cheddar",
+          "qty": 60.0
+        },
+        {
+          "ingredient": "Susu Cair",
+          "qty": 60.0
+        }
+      ]
+    }
+  ]
+}

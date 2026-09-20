@@ -15,32 +15,32 @@
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <LinearLayout
+    <FrameLayout
         android:id="@+id/offlineLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/white"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="32dp"
+        android:background="@color/offline_bg"
         android:visibility="gone">
 
-        <TextView
-            android:id="@+id/offlineMessage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="@string/offline_message"
-            android:textColor="@color/brand_primary_dark"
-            android:textSize="16sp" />
+        <WebView
+            android:id="@+id/offlineWebView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/offline_bg" />
 
         <Button
             android:id="@+id/retryButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/retry" />
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="48dp"
+            android:background="@drawable/btn_retry_background"
+            android:elevation="4dp"
+            android:stateListAnimator="@null"
+            android:text="@string/retry"
+            android:textAllCaps="false"
+            android:textColor="@color/white" />
 
-    </LinearLayout>
+    </FrameLayout>
 
 </FrameLayout>

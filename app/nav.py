@@ -64,10 +64,4 @@ NAV_ITEMS = [
         "label": _l("Pengaturan"),
         "roles": [ROLE_OWNER],
     },
-    {
-        "endpoint": "staff.admin_system",
-        "icon": "bi-hdd-stack",
-        "label": _l("Sistem"),
-        "roles": [ROLE_OWNER],
-    },
 ]

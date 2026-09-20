@@ -1,0 +1,108 @@
+{% if not orders %}
+  <div class="empty-state card">
+    <i class="bi bi-wallet2"></i>
+    <div class="fw-semibold">{{ _('Tidak ada pesanan yang menunggu pembayaran') }}</div>
+  </div>
+{% else %}
+<div class="row g-3">
+  {% for order in orders %}
+    <div class="col-sm-6 col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="mb-0">
+              {{ order.table.label }} <span class="text-muted small">({{ order.table.floor_label }})</span>
+              {% if order.pin %}<span class="text-muted small">&middot; PIN {{ order.pin }}</span>{% endif %}
+            </h6>
+            <span class="badge-soft badge-status-{{ order.status }}">{{ order.status_label }}</span>
+          </div>
+
+          <ul class="list-unstyled small mb-2">
+            {% for item in order.items %}
+              <li class="d-flex justify-content-between">
+                <span>{{ item.quantity }}x {{ item.name_snapshot }}</span>
+                <span>Rp {{ "{:,}".format(item.subtotal).replace(",", ".") }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+
+          <div class="pt-2" style="border-top: 1px dashed var(--color-border);">
+            {% if site_settings.ppn_enabled %}
+              <div class="d-flex justify-content-between small text-muted mb-1">
+                <span>{{ _('Subtotal') }}</span>
+                <span>Rp {{ "{:,}".format(order.total).replace(",", ".") }}</span>
+              </div>
+              <div class="d-flex justify-content-between small text-muted mb-1">
+                <span>{{ _('PPN %(pct)s%%', pct=site_settings.ppn_percentage|round(1)) }}</span>
+                <span>Rp {{ "{:,}".format(order.grand_total - order.total).replace(",", ".") }}</span>
+              </div>
+            {% endif %}
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="text-muted small">{{ _('Total') }}</span>
+              <span class="fw-bold fs-6" style="color: var(--color-accent);">Rp {{ "{:,}".format(order.grand_total).replace(",", ".") }}</span>
+            </div>
+          </div>
+
+          {% if site_settings.qris_image %}
+            <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#qrisModal{{ order.id }}">
+              <i class="bi bi-qr-code"></i> {{ _('Tampilkan QRIS') }}
+            </button>
+          {% endif %}
+
+          <form method="post" action="{{ url_for('staff.pay_order', order_id=order.id) }}" class="cash-pay-form" data-total="{{ order.grand_total }}">
+            <div class="d-flex gap-2 pay-method-row">
+              <select name="payment_method" class="form-select form-select-sm pay-method-select" data-elegant-select required>
+                <option value="">{{ _('Metode') }}</option>
+                <option value="cash">Cash</option>
+                <option value="qris">QRIS</option>
+              </select>
+              <button type="submit" class="btn btn-sm btn-accent text-nowrap pay-submit-btn">
+                <i class="bi bi-check2"></i> {{ _('Bayar') }}
+              </button>
+            </div>
+            <div class="cash-fields d-none mt-2">
+              <div class="cash-fields-divider"></div>
+              <div class="d-flex gap-2 cash-fields-row">
+                <div class="small change-label text-muted">{{ _('Kembalian') }}</div>
+              </div>
+              <div class="d-flex gap-2 cash-fields-row mt-1">
+                <input type="text" name="cash_received" class="form-control form-control-sm cash-received-input"
+                       placeholder="{{ _('Uang diterima') }}" inputmode="numeric">
+                <div class="small change-amount fw-bold">Rp 0</div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {% if site_settings.qris_image %}
+      <div class="modal fade" id="qrisModal{{ order.id }}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h6 class="modal-title">QRIS - {{ order.table.label }}</h6>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+              <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.qris_image) }}"
+                   class="img-fluid mb-3" style="max-width: 260px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px;"
+                   alt="QRIS">
+              <div class="text-muted small">{{ _('Total Bayar') }}</div>
+              <div class="fs-4 fw-bold" style="color: var(--color-accent); font-family: var(--font-heading);">
+                Rp {{ "{:,}".format(order.grand_total).replace(",", ".") }}
+              </div>
+              <p class="text-muted small mt-2 mb-2">{{ _('Tunjukkan layar ini ke tamu untuk di-scan.') }}</p>
+              <div class="text-start small p-2" style="background: var(--color-warning-bg); color: var(--color-warning); border-radius: var(--radius-sm);">
+                <i class="bi bi-shield-exclamation"></i>
+                {{ _('Minta tamu cek') }} <strong>{{ _('nama penerima') }}</strong> {{ _('yang muncul di aplikasi e-wallet setelah scan harus') }}
+                <strong>"{{ site_settings.shop_name }}"</strong> {{ _('(atau nama rekening resmi toko) sebelum konfirmasi bayar - waspada QRIS tertukar/palsu.') }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}

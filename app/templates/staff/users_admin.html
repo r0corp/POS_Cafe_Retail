@@ -2,10 +2,11 @@
 {% block title %}{{ _('Kelola User') }}{% endblock %}
 
 {% block content %}
-<h4 class="mb-4"><i class="bi bi-people"></i> {{ _('Kelola User & Hak Akses') }}</h4>
+<h4 class="mb-1"><i class="bi bi-people"></i> {{ _('Kelola User & Hak Akses') }}</h4>
+<p class="text-muted small mb-4">{{ _('Tambah akun staf, atur peran/hak akses, dan pantau aktivitas login tiap orang.') }}</p>
 
 <div class="row g-4">
-  <div class="col-md-4">
+  <div class="col-sm-4">
     <div class="card">
       <div class="card-body">
         <h6 class="mb-3">{{ _('Tambah User') }}</h6>
@@ -20,7 +21,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label small">{{ _('Role') }}</label>
-            <select name="role" class="form-select" required>
+            <select name="role" class="form-select" data-elegant-select required>
               {% for role in roles %}
                 <option value="{{ role }}">{{ role_labels[role] }}</option>
               {% endfor %}
@@ -31,7 +32,7 @@
       </div>
     </div>
 
-    <div class="alert alert-secondary small mt-3 border-0" style="background: var(--color-accent-light); color: var(--color-primary-dark);">
+    <div class="alert alert-secondary small mt-3 border-0" style="background: var(--color-accent-light); color: var(--color-accent);">
       <i class="bi bi-info-circle"></i>
       <strong>{{ _('Owner') }}</strong>: {{ _('akses penuh') }} &middot;
       <strong>{{ _('Kasir') }}</strong>: {{ _('order baru & pembayaran') }} &middot;
@@ -40,7 +41,7 @@
     </div>
   </div>
 
-  <div class="col-md-8">
+  <div class="col-sm-8">
     <div class="card mb-4">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -64,7 +65,7 @@
                     {{ user.username }}
                     {% if user.id == current_user.id %}<span class="text-muted small">({{ _('Anda') }})</span>{% endif %}
                   </div>
-                  <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-primary-dark);">
+                  <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">
                     {{ user.role_label }}
                   </span>
                   {% if not user.is_active_user %}
@@ -115,7 +116,7 @@
                       {% endif %}
                     </div>
                     <form method="post" action="{{ url_for('staff.update_user_photo', user_id=user.id) }}" enctype="multipart/form-data">
-                      <input type="file" name="photo" class="form-control form-control-sm mb-3" accept=".png,.jpg,.jpeg,.webp,.svg">
+                      <input type="file" name="photo" class="form-control form-control-sm mb-3" accept="image/png,image/jpeg,image/webp,image/svg+xml">
                       <button type="submit" class="btn btn-accent btn-sm w-100 mb-2"><i class="bi bi-upload"></i> {{ _('Upload Foto') }}</button>
                     </form>
                     {% if user.photo %}

@@ -2,10 +2,22 @@
 <html lang="{{ current_lang or 'id' }}">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // Terapkan mode gelap/terang sebelum CSS lain dimuat, biar tidak
+    // ada "kedipan" putih sesaat sebelum tema tersimpan aktif.
+    (function () {
+      var theme = "dark";
+      try {
+        theme = localStorage.getItem("theme") || "dark";
+      } catch (e) {}
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.setAttribute("data-bs-theme", theme);
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
   <title>{% block title %}{{ cafe_name }}{% endblock %}</title>
   <link rel="manifest" href="{{ url_for('web_manifest') }}">
-  <meta name="theme-color" content="#4E2F1B">
+  <meta name="theme-color" content="#F07828">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,98 +31,141 @@
 <body>
 
 {% block nav %}
-<nav class="navbar app-navbar mb-4">
+<div class="app-navbar-backdrop" aria-hidden="true"></div>
+<nav class="navbar app-navbar">
+  <div class="scroll-progress-clip" aria-hidden="true">
+    <div class="scroll-progress-track">
+      <div class="scroll-progress-fill" id="scrollProgressFill"></div>
+    </div>
+  </div>
   <div class="container-fluid position-relative d-flex align-items-center justify-content-between flex-nowrap">
+    {% set navbar_display = site_settings.navbar_display or 'both' %}
     <a class="navbar-brand text-truncate mb-0" href="{{ url_for('staff.dashboard') }}" style="min-width: 0;">
-      {% if site_settings.app_logo_filename %}
-        <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
-             alt="{{ cafe_name }}" style="height: 28px; max-width: 100px; object-fit: contain; border-radius: 6px; vertical-align: -6px;">
-      {% else %}
-        <i class="bi bi-cup-hot-fill"></i>
+      {% if navbar_display != 'name' %}
+        {% if site_settings.app_logo_filename %}
+          <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
+               alt="{{ cafe_name }}" style="height: 40px; max-width: 130px; object-fit: contain; border-radius: 8px;">
+        {% else %}
+          <i class="bi bi-cup-hot-fill"></i>
+        {% endif %}
       {% endif %}
-      {{ cafe_name }}
+      {% if navbar_display != 'logo' %}
+        {{ cafe_name }}
+      {% endif %}
     </a>
 
     {% if current_user.is_authenticated %}
-      <div class="navbar-clock d-none d-md-block">
+      <div class="navbar-clock" id="navbarClockBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
         <div class="navbar-clock-date" id="liveClockDate"></div>
         <div class="navbar-clock-time" id="liveClockTime"></div>
       </div>
 
+      <div class="calendar-popover" id="calendarPopover">
+        <div class="calendar-popover-header">
+          <button type="button" class="calendar-nav-btn" id="calendarPrevBtn" aria-label="{{ _('Bulan sebelumnya') }}"><i class="bi bi-chevron-left"></i></button>
+          <span class="calendar-month-label" id="calendarMonthLabel"></span>
+          <button type="button" class="calendar-nav-btn" id="calendarNextBtn" aria-label="{{ _('Bulan berikutnya') }}"><i class="bi bi-chevron-right"></i></button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>{{ _('Min') }}</span><span>{{ _('Sen') }}</span><span>{{ _('Sel') }}</span><span>{{ _('Rab') }}</span><span>{{ _('Kam') }}</span><span>{{ _('Jum') }}</span><span>{{ _('Sab') }}</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="calendar-legend">
+          <span><i class="calendar-dot calendar-dot-libur"></i> {{ _('Libur Nasional') }}</span>
+          <span><i class="calendar-dot calendar-dot-cuti"></i> {{ _('Cuti Bersama') }}</span>
+        </div>
+        <div class="calendar-holiday-list" id="calendarHolidayList"></div>
+      </div>
+
       <div class="dropdown flex-shrink-0">
-        <a class="nav-link d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-          <span class="profile-avatar">
-            {% if current_user.photo %}
-              <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.photo) }}" alt="{{ current_user.username }}">
-            {% else %}
-              <i class="bi bi-person-fill"></i>
-            {% endif %}
-          </span>
-          <span class="d-none d-sm-inline">{{ current_user.username }}</span>
-        </a>
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width: 220px;">
-          <li><span class="dropdown-item-text small text-muted">{{ current_user.role_label }}</span></li>
-
-          <li>
-            <div class="dropdown-item-text d-flex align-items-center justify-content-between">
-              <span class="small text-muted">{{ _('Bahasa') }}</span>
-              <span class="d-flex align-items-center gap-2">
-                <a href="{{ url_for('set_language', lang='id') }}"
-                   class="lang-flag-btn {{ 'active' if current_lang == 'id' else '' }}"
-                   title="Bahasa Indonesia">
-                  <svg viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="1" fill="#e70011"/><rect width="3" height="1" y="1" fill="#fff"/></svg>
-                </a>
-                <a href="{{ url_for('set_language', lang='en') }}"
-                   class="lang-flag-btn {{ 'active' if current_lang == 'en' else '' }}"
-                   title="English">
-                  <svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="60" height="30" fill="#00247d"/>
-                    <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
-                    <path d="M0,0 L60,30 M60,0 L0,30" stroke="#cf142b" stroke-width="2"/>
-                    <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
-                    <path d="M30,0 V30 M0,15 H60" stroke="#cf142b" stroke-width="6"/>
-                  </svg>
-                </a>
-              </span>
-            </div>
-          </li>
-
-          {% if current_user.role == 'owner' %}
-            <li><hr class="dropdown-divider"></li>
+          <a class="nav-link d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="d-none d-sm-inline">{{ current_user.username }}</span>
+            <span class="profile-avatar">
+              {% if current_user.photo %}
+                <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.photo) }}" alt="{{ current_user.username }}">
+              {% else %}
+                <i class="bi bi-person-fill"></i>
+              {% endif %}
+            </span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm profile-dropdown-menu" style="min-width: 260px;">
             <li>
-              <span class="dropdown-item-text small fw-semibold" style="color: var(--color-primary-dark);">
-                <i class="bi bi-people"></i> {{ _('Staf Online') }} ({{ online_staff|length }})
-              </span>
+              <div class="profile-dropdown-header">
+                <span class="profile-avatar profile-dropdown-avatar">
+                  {% if current_user.photo %}
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.photo) }}" alt="{{ current_user.username }}">
+                  {% else %}
+                    <i class="bi bi-person-fill"></i>
+                  {% endif %}
+                </span>
+                <div class="profile-dropdown-header-text">
+                  <div class="profile-dropdown-name">{{ current_user.username }}</div>
+                  <div class="profile-dropdown-role">{{ current_user.role_label }}</div>
+                </div>
+              </div>
             </li>
-            {% if online_staff %}
-              {% for staff in online_staff %}
-                <li>
-                  <span class="dropdown-item-text small d-flex align-items-center gap-2">
-                    <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--color-success); display: inline-block; flex-shrink: 0;"></span>
-                    {{ staff.username }}
-                    <span class="text-muted">({{ staff.role_label }})</span>
-                  </span>
-                </li>
-              {% endfor %}
-            {% else %}
-              <li><span class="dropdown-item-text small text-muted">{{ _('Tidak ada staf yang online') }}</span></li>
-            {% endif %}
+
+            <li><hr class="dropdown-divider"></li>
+
             <li>
-              <a class="dropdown-item small" href="{{ url_for('staff.admin_users') }}">
-                <i class="bi bi-arrow-right"></i> {{ _('Lihat semua user') }}
+              <div class="profile-dropdown-row">
+                <span class="profile-dropdown-row-icon"><i class="bi bi-translate"></i></span>
+                <span class="profile-dropdown-row-label">{{ _('Bahasa') }}</span>
+                <span class="profile-dropdown-row-end d-flex align-items-center gap-2">
+                  <a href="{{ url_for('set_language', lang='id') }}"
+                     class="lang-flag-btn {{ 'active' if current_lang == 'id' else '' }}"
+                     title="Bahasa Indonesia">
+                    <svg viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="1" fill="#e70011"/><rect width="3" height="1" y="1" fill="#fff"/></svg>
+                  </a>
+                  <a href="{{ url_for('set_language', lang='en') }}"
+                     class="lang-flag-btn {{ 'active' if current_lang == 'en' else '' }}"
+                     title="English">
+                    <svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="60" height="30" fill="#00247d"/>
+                      <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+                      <path d="M0,0 L60,30 M60,0 L0,30" stroke="#cf142b" stroke-width="2"/>
+                      <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
+                      <path d="M30,0 V30 M0,15 H60" stroke="#cf142b" stroke-width="6"/>
+                    </svg>
+                  </a>
+                </span>
+              </div>
+            </li>
+
+            <li>
+              <label class="profile-dropdown-row" for="darkModeSwitch" style="cursor: pointer;">
+                <span class="profile-dropdown-row-icon"><i class="bi bi-moon-stars-fill"></i></span>
+                <span class="profile-dropdown-row-label">{{ _('Mode Gelap') }}</span>
+                <span class="profile-dropdown-row-end">
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="darkModeSwitch">
+                  </div>
+                </span>
+              </label>
+            </li>
+
+            {% if current_user.role == 'owner' %}
+              <li>
+                <a class="profile-dropdown-row profile-dropdown-row-link" href="{{ url_for('staff.admin_users') }}">
+                  <span class="profile-dropdown-row-icon"><i class="bi bi-people"></i></span>
+                  <span class="profile-dropdown-row-label">{{ _('Kelola Pengguna') }}</span>
+                  <span class="profile-dropdown-row-end small text-muted">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--color-success); display: inline-block;"></span>
+                    {{ online_staff|length }} {{ _('online') }}
+                  </span>
+                </a>
+              </li>
+            {% endif %}
+
+            <li><hr class="dropdown-divider"></li>
+            <li class="px-3 pb-2 pt-1">
+              <a href="{{ url_for('auth.logout') }}" class="btn btn-accent w-100 rounded-pill">
+                <i class="bi bi-box-arrow-right"></i> {{ _('Keluar') }}
               </a>
             </li>
-          {% endif %}
-
-          <li><hr class="dropdown-divider"></li>
-          <li>
-            <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
-              <i class="bi bi-box-arrow-right"></i> {{ _('Keluar') }}
-            </a>
-          </li>
-        </ul>
-      </div>
-    {% endif %}
+          </ul>
+        </div>
+      {% endif %}
   </div>
 </nav>
 
@@ -129,11 +184,148 @@
   }
   updateLiveClock();
   setInterval(updateLiveClock, 1000);
+
+  (function () {
+    var clockBtn = document.getElementById("navbarClockBtn");
+    var popover = document.getElementById("calendarPopover");
+    var monthLabel = document.getElementById("calendarMonthLabel");
+    var grid = document.getElementById("calendarGrid");
+    var holidayList = document.getElementById("calendarHolidayList");
+    var prevBtn = document.getElementById("calendarPrevBtn");
+    var nextBtn = document.getElementById("calendarNextBtn");
+    if (!clockBtn || !popover) return;
+
+    var HOLIDAYS = {{ holidays_id|tojson }};
+    // Nama bulan/hari dirender dari Jinja (_()) - BUKAN di-hardcode di JS -
+    // supaya ikut berubah bahasa (dulu di-hardcode Indonesia jadi tidak
+    // pernah ikut ganti ke Inggris walau UI sudah pindah bahasa).
+    var MONTH_NAMES = [
+      {{ _('Januari')|tojson }}, {{ _('Februari')|tojson }}, {{ _('Maret')|tojson }}, {{ _('April')|tojson }},
+      {{ _('Mei')|tojson }}, {{ _('Juni')|tojson }}, {{ _('Juli')|tojson }}, {{ _('Agustus')|tojson }},
+      {{ _('September')|tojson }}, {{ _('Oktober')|tojson }}, {{ _('November')|tojson }}, {{ _('Desember')|tojson }}
+    ];
+    var WEEKDAY_NAMES = [
+      {{ _('Minggu')|tojson }}, {{ _('Senin')|tojson }}, {{ _('Selasa')|tojson }}, {{ _('Rabu')|tojson }},
+      {{ _('Kamis')|tojson }}, {{ _('Jumat')|tojson }}, {{ _('Sabtu')|tojson }}
+    ];
+
+    var today = new Date();
+    var viewYear = today.getFullYear();
+    var viewMonth = today.getMonth();
+
+    function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+
+    function renderCalendar() {
+      monthLabel.textContent = MONTH_NAMES[viewMonth] + " " + viewYear;
+      grid.innerHTML = "";
+
+      var firstDow = new Date(viewYear, viewMonth, 1).getDay();
+      var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      var monthPrefix = viewYear + "-" + pad2(viewMonth + 1);
+
+      for (var i = 0; i < firstDow; i++) {
+        var blank = document.createElement("div");
+        blank.className = "calendar-day calendar-day-empty";
+        grid.appendChild(blank);
+      }
+
+      for (var day = 1; day <= daysInMonth; day++) {
+        var dateKey = monthPrefix + "-" + pad2(day);
+        var holiday = HOLIDAYS[dateKey];
+        var cell = document.createElement("div");
+        cell.className = "calendar-day";
+
+        var isToday = viewYear === today.getFullYear() && viewMonth === today.getMonth() && day === today.getDate();
+        if (isToday) cell.classList.add("is-today");
+        if (holiday) {
+          cell.classList.add("has-holiday", "holiday-" + holiday.type);
+          cell.title = holiday.name + " (" + WEEKDAY_NAMES[new Date(viewYear, viewMonth, day).getDay()] + ", " + day + " " + MONTH_NAMES[viewMonth] + " " + viewYear + ")";
+        }
+
+        var num = document.createElement("span");
+        num.textContent = day;
+        cell.appendChild(num);
+        if (holiday) {
+          var dot = document.createElement("span");
+          dot.className = "calendar-dot calendar-dot-" + holiday.type;
+          cell.appendChild(dot);
+        }
+
+        grid.appendChild(cell);
+      }
+
+      var entries = Object.keys(HOLIDAYS)
+        .filter(function (key) { return key.indexOf(monthPrefix) === 0; })
+        .sort();
+
+      holidayList.innerHTML = "";
+      if (entries.length === 0) {
+        var empty = document.createElement("div");
+        empty.className = "calendar-holiday-empty";
+        empty.textContent = "{{ _('Tidak ada hari libur bulan ini.') }}";
+        holidayList.appendChild(empty);
+      } else {
+        entries.forEach(function (key) {
+          var info = HOLIDAYS[key];
+          var dayNum = parseInt(key.split("-")[2], 10);
+          var row = document.createElement("div");
+          row.className = "calendar-holiday-row";
+          row.innerHTML = '<span class="calendar-dot calendar-dot-' + info.type + '"></span>' +
+            '<span class="calendar-holiday-date">' + dayNum + " " + MONTH_NAMES[viewMonth] + '</span>' +
+            '<span class="calendar-holiday-name">' + info.name + '</span>';
+          holidayList.appendChild(row);
+        });
+      }
+    }
+
+    function openPopover() {
+      popover.classList.add("show");
+      clockBtn.setAttribute("aria-expanded", "true");
+      viewYear = today.getFullYear();
+      viewMonth = today.getMonth();
+      renderCalendar();
+    }
+
+    function closePopover() {
+      popover.classList.remove("show");
+      clockBtn.setAttribute("aria-expanded", "false");
+    }
+
+    function togglePopover() {
+      if (popover.classList.contains("show")) closePopover();
+      else openPopover();
+    }
+
+    clockBtn.addEventListener("click", togglePopover);
+    clockBtn.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); togglePopover(); }
+    });
+
+    prevBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      viewMonth -= 1;
+      if (viewMonth < 0) { viewMonth = 11; viewYear -= 1; }
+      renderCalendar();
+    });
+    nextBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      viewMonth += 1;
+      if (viewMonth > 11) { viewMonth = 0; viewYear += 1; }
+      renderCalendar();
+    });
+
+    document.addEventListener("click", function (e) {
+      if (!popover.contains(e.target) && !clockBtn.contains(e.target)) closePopover();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closePopover();
+    });
+  })();
 </script>
 {% endif %}
 {% endblock %}
 
-<div class="container pb-5">
+<div class="container-fluid pb-5 has-fixed-footer">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
@@ -149,14 +341,228 @@
 </div>
 
 {% block footer %}
-  {% if site_settings.footer_text %}
-    <footer class="text-center text-muted small py-4" style="border-top: 1px solid var(--color-border);">
-      {{ site_settings.footer_text }}
-    </footer>
-  {% endif %}
+  <!-- Kredit pembuat aplikasi - SENGAJA di-hardcode di sini (bukan dari
+       Settings/database) supaya tidak bisa diubah/dihapus lewat menu
+       Pengaturan oleh toko mana pun yang memakai aplikasi ini. -->
+  <footer class="app-footer text-center text-muted small">
+    Orulabs &copy; 2026. All rights reserved.
+  </footer>
+  <div class="app-footer-backdrop" aria-hidden="true"></div>
 {% endblock %}
 
 <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/elegant-select.js') }}"></script>
+<script>
+  // Toggle mode gelap/terang - selalu jalan di semua halaman (termasuk
+  // sebelum login), bukan cuma saat sudah masuk aplikasi.
+  (function () {
+    var lightBtn = document.getElementById("themeLightBtn");
+    var darkBtn = document.getElementById("themeDarkBtn");
+    if (!lightBtn || !darkBtn) return;
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.setAttribute("data-bs-theme", theme);
+      try { localStorage.setItem("theme", theme); } catch (e) {}
+      lightBtn.classList.toggle("active", theme === "light");
+      darkBtn.classList.toggle("active", theme === "dark");
+    }
+
+    var current = document.documentElement.getAttribute("data-theme") || "dark";
+    applyTheme(current);
+
+    lightBtn.addEventListener("click", function () { applyTheme("light"); });
+    darkBtn.addEventListener("click", function () { applyTheme("dark"); });
+  })();
+
+  // Toggle mode gelap/terang versi switch di dropdown profil navbar -
+  // terpisah dari tombol matahari/bulan di halaman login (beda elemen,
+  // beda halaman) tapi keduanya baca/tulis localStorage "theme" yang sama.
+  (function () {
+    var sw = document.getElementById("darkModeSwitch");
+    if (!sw) return;
+
+    sw.checked = (document.documentElement.getAttribute("data-theme") || "dark") === "dark";
+
+    sw.addEventListener("change", function () {
+      var theme = sw.checked ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.setAttribute("data-bs-theme", theme);
+      try { localStorage.setItem("theme", theme); } catch (e) {}
+    });
+  })();
+
+  // Ingat tab yang terakhir aktif di halaman manapun yang punya menu tab
+  // (Bootstrap nav-tabs) - localStorage per halaman + per grup tab, jadi
+  // Pengaturan dan Laporan (atau halaman tab lain nanti) tidak saling
+  // tabrakan. Tanpa ini, form submit di halaman ber-tab (misal "Simpan
+  // Pengaturan") selalu balik ke tab pertama walau yang tadi diedit ada
+  // di tab lain - reload halaman reset state tab-nya Bootstrap.
+  (function () {
+    document.querySelectorAll('.nav-tabs[role="tablist"]').forEach(function (tabList, idx) {
+      var storageKey = "cafepos_active_tab:" + window.location.pathname + ":" + idx;
+      var buttons = tabList.querySelectorAll('[data-bs-toggle="tab"]');
+
+      buttons.forEach(function (btn) {
+        btn.addEventListener("shown.bs.tab", function () {
+          try { localStorage.setItem(storageKey, btn.dataset.bsTarget); } catch (e) {}
+        });
+      });
+
+      var savedTarget = null;
+      try { savedTarget = localStorage.getItem(storageKey); } catch (e) {}
+      if (!savedTarget) return;
+
+      var savedBtn = tabList.querySelector('[data-bs-target="' + savedTarget + '"]');
+      if (savedBtn && window.bootstrap) {
+        new bootstrap.Tab(savedBtn).show();
+      }
+    });
+  })();
+
+  // Progress bar tipis di bawah navbar - terisi dari KANAN ke KIRI
+  // (transform-origin: right) seiring halaman di-scroll ke bawah.
+  (function () {
+    var fill = document.getElementById("scrollProgressFill");
+    if (!fill) return;
+
+    var ticking = false;
+
+    function update() {
+      var doc = document.documentElement;
+      var scrollable = doc.scrollHeight - doc.clientHeight;
+      var pct = scrollable > 0 ? Math.min(1, Math.max(0, doc.scrollTop / scrollable)) : 0;
+      fill.style.transform = "scaleX(" + pct + ")";
+      ticking = false;
+    }
+
+    function onScroll() {
+      if (!ticking) {
+        window.requestAnimationFrame(update);
+        ticking = true;
+      }
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    update();
+  })();
+
+  // Jarak konten ke footer (fixed di bawah) dihitung dari tinggi footer
+  // yang BENERAN ter-render, bukan angka tebakan - soalnya panjang teks
+  // footer & ukuran font beda-beda di tiap HP/tablet, jadi kalau di-hardcode
+  // bisa kependekan dan bikin konten ketutup footer di sebagian device.
+  (function () {
+    var footer = document.querySelector(".app-footer");
+    var container = document.querySelector(".container-fluid.has-fixed-footer");
+    var cartBar = document.querySelector(".cart-bar");
+    if (!footer || !container) return;
+
+    function adjustFooterClearance() {
+      var footerTop = footer.getBoundingClientRect().top;
+      var clearance = Math.max(0, window.innerHeight - footerTop) + 16;
+      document.documentElement.style.setProperty("--footer-clearance", clearance + "px");
+
+      // Cart-bar (halaman pesan menu) ngambang di ATAS footer, bukan
+      // gantiin posisinya - tinggi cart-bar juga diukur beneran (bukan
+      // ditebak) soalnya teksnya bisa jadi 2 baris di layar sempit.
+      if (cartBar) {
+        document.documentElement.style.setProperty("--cartbar-height", cartBar.offsetHeight + "px");
+      }
+    }
+
+    adjustFooterClearance();
+    window.addEventListener("resize", adjustFooterClearance);
+    window.addEventListener("orientationchange", adjustFooterClearance);
+    // Footer & cart-bar isinya bisa berubah (teks Owner / update keranjang) -
+    // kasih sedikit delay buat jaga-jaga kalau font custom/lambat load masih
+    // menggeser tingginya.
+    setTimeout(adjustFooterClearance, 300);
+
+    // Dipanggil ulang oleh halaman menu tamu/pesan manual tiap keranjang
+    // berubah, soalnya teks "N item dipilih" bisa jadi 2 baris di layar
+    // sempit dan mengubah tinggi cart-bar.
+    window.adjustFooterClearance = adjustFooterClearance;
+  })();
+</script>
+{% if current_user.is_authenticated and current_user.role in ('owner', 'dapur', 'kasir', 'pelayan') %}
+<script src="{{ url_for('static', filename='js/notify.js') }}"></script>
+<script>
+  // Notifikasi suara dipasang GLOBAL di sini (bukan cuma di halaman
+  // Dapur/Kasir) supaya tetap bunyi meski staf sedang buka halaman lain
+  // (Dashboard, Kelola Menu, dll). Halaman Dapur/Kasir sendiri cuma
+  // daftarkan fungsi refresh daftarnya (window.refreshKitchenList /
+  // window.refreshCashierList) yang dipanggil poller ini kalau memang
+  // sedang dibuka - kalau tidak ada, poller tetap bunyi tapi tidak
+  // refresh apa-apa (tidak ada elemen buat di-refresh).
+  //
+  // Nadanya per ROLE, diatur Owner dari Pengaturan (bukan pilihan
+  // masing-masing staf) - lihat Settings.notification_sound_for_role().
+  // Ini yang bikin device Dapur/Kasir/Pelayan bisa punya bunyi beda-beda
+  // sesuai arahan Owner, jadi kalau beberapa device bunyi bareng, dari
+  // suaranya saja sudah ketahuan device siapa yang perlu ditanggapi.
+  const MY_ROLE_SOUND = {{ site_settings.notification_sound_for_role(current_user.role)|tojson }};
+  const CUSTOM_SOUND_URL = "{{ url_for('static', filename='uploads/branding/' + site_settings.notification_sound_file) if site_settings.notification_sound_file else '' }}";
+  const NOTIF_ENABLED = {{ 'true' if site_settings.notification_enabled else 'false' }};
+  const NOTIF_VOLUME = {{ site_settings.notification_volume }};
+
+  {% if current_user.role in ('owner', 'dapur') %}
+    window.globalKitchenPoller = startOrderPoller({
+      statusUrl: "{{ url_for('staff.kitchen_status') }}",
+      muteKey: "cafepos_mute_kitchen",
+      intervalMs: 3000,
+      soundKey: MY_ROLE_SOUND,
+      customSoundUrl: CUSTOM_SOUND_URL,
+      volume: NOTIF_VOLUME,
+      enabled: NOTIF_ENABLED,
+      onNewOrder: function () {
+        if (window.refreshKitchenList) window.refreshKitchenList();
+      },
+    });
+  {% endif %}
+  {% if current_user.role in ('owner', 'kasir') %}
+    window.globalCashierPoller = startOrderPoller({
+      statusUrl: "{{ url_for('staff.cashier_status') }}",
+      muteKey: "cafepos_mute_cashier",
+      intervalMs: 3000,
+      soundKey: MY_ROLE_SOUND,
+      customSoundUrl: CUSTOM_SOUND_URL,
+      volume: NOTIF_VOLUME,
+      enabled: NOTIF_ENABLED,
+      onNewOrder: function () {
+        if (window.refreshCashierList) window.refreshCashierList();
+      },
+    });
+
+    // "Pembayaran selesai" - Owner dengar dari halaman manapun (pantau
+    // penjualan), Kasir dengar kalau kasir LAIN yang proses (device
+    // sendiri sudah dapat konfirmasi instan di halaman struk).
+    window.globalPaidPoller = startOrderPoller({
+      statusUrl: "{{ url_for('staff.paid_order_status') }}",
+      muteKey: "cafepos_mute_paid",
+      intervalMs: 3000,
+      soundKey: MY_ROLE_SOUND,
+      customSoundUrl: CUSTOM_SOUND_URL,
+      volume: NOTIF_VOLUME,
+      enabled: NOTIF_ENABLED,
+    });
+  {% endif %}
+  {% if current_user.role == 'pelayan' %}
+    // Pesanan "Siap Diantar" dari Dapur - tanda pelayan harus ambil
+    // pesanan itu ke meja tamu. Tidak ada halaman daftar tersendiri,
+    // bunyi ini saja sudah cukup jadi penanda.
+    window.globalPelayanPoller = startOrderPoller({
+      statusUrl: "{{ url_for('staff.pelayan_ready_status') }}",
+      muteKey: "cafepos_mute_pelayan",
+      intervalMs: 3000,
+      soundKey: MY_ROLE_SOUND,
+      customSoundUrl: CUSTOM_SOUND_URL,
+      volume: NOTIF_VOLUME,
+      enabled: NOTIF_ENABLED,
+    });
+  {% endif %}
+</script>
+{% endif %}
 {% block scripts %}{% endblock %}
 </body>
 </html>

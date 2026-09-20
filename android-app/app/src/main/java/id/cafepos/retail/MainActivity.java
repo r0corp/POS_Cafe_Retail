@@ -9,11 +9,13 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
-import android.widget.LinearLayout;
+import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -30,8 +32,9 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
+    private WebView offlineWebView;
     private SwipeRefreshLayout swipeRefresh;
-    private LinearLayout offlineLayout;
+    private FrameLayout offlineLayout;
     private ValueCallback<Uri[]> filePathCallback;
     private ActivityResultLauncher<String> fileChooserLauncher;
 
@@ -43,9 +46,19 @@ public class MainActivity extends AppCompatActivity {
         String serverUrl = getString(R.string.server_url);
 
         webView = findViewById(R.id.webView);
+        offlineWebView = findViewById(R.id.offlineWebView);
         swipeRefresh = findViewById(R.id.swipeRefresh);
         offlineLayout = findViewById(R.id.offlineLayout);
         Button retryButton = findViewById(R.id.retryButton);
+
+        // Animasi "Logo Melayang + Sinyal" dimuat sekali dari file lokal
+        // (bukan dari server) supaya tetap tampil walau benar-benar offline.
+        // JS dinyalakan supaya showOffline() bisa kirim kode error (404,
+        // 500, dst) ke halaman ini lewat evaluateJavascript() tanpa perlu
+        // reload ulang tiap kali errornya beda.
+        offlineWebView.getSettings().setAllowFileAccess(true);
+        offlineWebView.getSettings().setJavaScriptEnabled(true);
+        offlineWebView.loadUrl("file:///android_asset/offline.html");
 
         fileChooserLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
@@ -110,14 +123,26 @@ public class MainActivity extends AppCompatActivity {
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 super.onReceivedError(view, request, error);
                 if (request.isForMainFrame()) {
-                    showOffline();
+                    // Gagal koneksi (tidak ada internet, DNS gagal, timeout, dst) -
+                    // tidak ada kode HTTP karena server sama sekali tidak terjangkau.
+                    showOffline(null);
+                }
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
+                super.onReceivedHttpError(view, request, errorResponse);
+                if (request.isForMainFrame()) {
+                    // Server TERJANGKAU tapi balas status error (404, 500, dst) -
+                    // kode statusnya ditampilkan gede di halaman animasi yang sama.
+                    showOffline(errorResponse.getStatusCode());
                 }
             }
 
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
                 handler.cancel();
-                showOffline();
+                showOffline(null);
             }
         });
 
@@ -127,19 +152,42 @@ public class MainActivity extends AppCompatActivity {
                                               FileChooserParams params) {
                 // Dipakai untuk semua fitur upload foto di aplikasi (foto menu,
                 // avatar, logo, QRIS) supaya bisa pilih file dari galeri/kamera.
+                //
+                // PENTING: acceptTypes[0] TIDAK SELALU berupa MIME type yang
+                // valid ("image/png") - beberapa <input accept="..."> di web
+                // ini masih pakai daftar ekstensi (".png,.jpg,...") yang lolos
+                // baik-baik saja di browser biasa, tapi kalau string mentah
+                // semacam ".png" itu langsung dipakai sebagai Intent.setType()
+                // di Android, sistem tidak akan nemu activity manapun yang
+                // cocok -> ActivityNotFoundException -> APLIKASI FORCE CLOSE.
+                // Makanya di-validasi dulu wujudnya "tipe/subtipe" (ada "/"),
+                // dan seluruh launch()-nya dibungkus try/catch supaya walau
+                // ada accept value aneh lainnya di masa depan, aplikasi cuma
+                // gagal buka pemilih file (dengan pesan Toast), bukan crash.
                 filePathCallback = callback;
                 String[] acceptTypes = params.getAcceptTypes();
-                String mimeType = (acceptTypes != null && acceptTypes.length > 0 && !acceptTypes[0].isEmpty())
-                        ? acceptTypes[0] : "image/*";
-                fileChooserLauncher.launch(mimeType);
+                String rawType = (acceptTypes != null && acceptTypes.length > 0) ? acceptTypes[0] : "";
+                String mimeType = (!rawType.isEmpty() && rawType.contains("/")) ? rawType : "image/*";
+
+                try {
+                    fileChooserLauncher.launch(mimeType);
+                } catch (Exception e) {
+                    filePathCallback = null;
+                    Toast.makeText(MainActivity.this,
+                            getString(R.string.file_chooser_error), Toast.LENGTH_SHORT).show();
+                }
                 return true;
             }
         });
     }
 
-    private void showOffline() {
+    private void showOffline(Integer httpErrorCode) {
         swipeRefresh.setRefreshing(false);
         offlineLayout.setVisibility(View.VISIBLE);
         webView.setVisibility(View.GONE);
+        offlineWebView.evaluateJavascript(
+                "setErrorCode(" + (httpErrorCode != null ? httpErrorCode : "null") + ");",
+                null
+        );
     }
 }

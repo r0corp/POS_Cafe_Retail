@@ -31,7 +31,10 @@ def login():
                 ip_address=request.remote_addr,
             ))
             db.session.commit()
-            return redirect(request.args.get("next") or url_for("staff.dashboard"))
+            next_url = request.args.get("next")
+            if next_url:
+                return redirect(next_url)
+            return redirect(url_for("staff.dashboard", show_login_loader=1))
 
         flash(_("Username atau password salah."), "danger")
 

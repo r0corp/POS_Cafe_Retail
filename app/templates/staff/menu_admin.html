@@ -2,30 +2,48 @@
 {% block title %}{{ _('Kelola Menu') }}{% endblock %}
 
 {% block content %}
-<h4 class="mb-4"><i class="bi bi-list-ul"></i> {{ _('Kelola Menu') }}</h4>
+<h4 class="mb-1"><i class="bi bi-list-ul"></i> {{ _('Kelola Menu') }}</h4>
+<p class="text-muted small mb-4">{{ _('Atur kategori, harga, foto, dan ketersediaan menu yang tampil ke pelanggan.') }}</p>
 
-<div class="row g-4">
-  <div class="col-md-3">
-    <div class="card mb-3">
+<div class="row g-3 mb-3">
+  <div class="col-sm-6">
+    <div class="card h-100">
       <div class="card-body">
         <h6 class="mb-3">{{ _('Tambah Kategori') }}</h6>
         <form method="post">
           <input type="hidden" name="form_type" value="category">
-          <div class="input-group">
+          <div class="input-group mb-3">
             <input type="text" name="name" class="form-control" placeholder="{{ _('Nama kategori') }}" required>
-            <button class="btn btn-primary" type="submit"><i class="bi bi-plus"></i></button>
+            <button class="btn btn-accent" type="submit"><i class="bi bi-plus"></i></button>
           </div>
         </form>
+
+        {% if categories %}
+          <div class="list-group list-group-flush" style="max-height: 220px; overflow-y: auto;">
+            {% for category in categories %}
+              <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span>{{ category.name }}</span>
+                <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">
+                  {{ _('%(count)s menu', count=category.items|length) }}
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0">{{ _('Belum ada kategori. Tambahkan lewat form di atas.') }}</p>
+        {% endif %}
       </div>
     </div>
+  </div>
 
-    <div class="card">
+  <div class="col-sm-6">
+    <div class="card h-100">
       <div class="card-body">
         <h6 class="mb-3">{{ _('Tambah Menu') }}</h6>
         <form method="post">
           <input type="hidden" name="form_type" value="menu_item">
           <div class="mb-2">
-            <select name="category_id" class="form-select" required>
+            <select name="category_id" class="form-select" data-elegant-select required>
               <option value="">{{ _('-- Kategori --') }}</option>
               {% for category in categories %}
                 <option value="{{ category.id }}">{{ category.name }}</option>
@@ -44,9 +62,25 @@
     </div>
   </div>
 
-  <div class="col-md-9">
+  <div class="col-12">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="mb-3">{{ _('Filter Kategori') }}</h6>
+        <div class="menu-filter-pills">
+          <button type="button" class="menu-filter-pill active" data-filter-category="all">{{ _('Semua') }}</button>
+          {% for category in categories %}
+            <button type="button" class="menu-filter-pill" data-filter-category="{{ category.id }}">{{ category.name }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12">
     {% for category in categories %}
-      <div class="card mb-3">
+      <div class="card mb-3 menu-category-section" data-category-id="{{ category.id }}">
         <div class="card-body">
           <h6 class="mb-3">{{ category.name }}</h6>
           {% if category.items %}
@@ -57,14 +91,19 @@
                     {% if item.photo %}
                       <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
                       <i class="bi bi-camera-fill thumb-hint-icon"></i>
+                      <div class="menu-item-overlay">
+                        <div class="menu-item-name">{{ item.name }}</div>
+                        <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                      </div>
                     {% else %}
                       <i class="bi bi-image"></i>
+                      <i class="bi bi-camera-fill thumb-hint-icon"></i>
+                      <div class="menu-item-plain-info">
+                        <div class="menu-item-plain-name">{{ item.name }}</div>
+                        <div class="menu-item-plain-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                      </div>
                     {% endif %}
                   </button>
-                  <div class="menu-item-body text-center">
-                    <div class="menu-item-name">{{ item.name }}</div>
-                    <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
-                  </div>
                 </div>
 
               <div class="modal fade" id="menuPhotoModal{{ item.id }}" tabindex="-1">
@@ -98,7 +137,7 @@
                       <form method="post" action="{{ url_for('staff.update_menu_item_photo', item_id=item.id) }}"
                             enctype="multipart/form-data" id="menuUploadPhotoForm{{ item.id }}">
                         <input type="file" name="photo" id="menuPhotoFile{{ item.id }}" class="d-none"
-                               accept=".png,.jpg,.jpeg,.webp,.svg"
+                               accept="image/png,image/jpeg,image/webp,image/svg+xml"
                                onchange="document.getElementById('menuUploadPhotoForm{{ item.id }}').submit()">
                       </form>
                       {% if item.photo %}
@@ -129,7 +168,7 @@
                                   {% endif %}
                                 </span>
                                 <form method="post" action="{{ url_for('staff.remove_recipe_item', item_id=item.id, ingredient_id=row.ingredient.id) }}">
-                                  <button type="submit" class="icon-btn-danger" style="width: 26px; height: 26px; font-size: 0.7rem;" title="{{ _('Hapus dari resep') }}">
+                                  <button type="submit" class="icon-btn-danger" title="{{ _('Hapus dari resep') }}">
                                     <i class="bi bi-x"></i>
                                   </button>
                                 </form>
@@ -140,7 +179,7 @@
                           <p class="text-muted small mb-2">{{ _('Belum ada resep - item ini dianggap selalu tersedia (tidak dibatasi stok).') }}</p>
                         {% endif %}
                         <form method="post" action="{{ url_for('staff.add_recipe_item', item_id=item.id) }}" class="d-flex gap-2">
-                          <select name="ingredient_id" class="form-select form-select-sm" required>
+                          <select name="ingredient_id" class="form-select form-select-sm" data-elegant-select required>
                             <option value="">{{ _('-- Bahan --') }}</option>
                             {% for ingredient in ingredients %}
                               <option value="{{ ingredient.id }}">{{ ingredient.name }} ({{ ingredient.unit }})</option>
@@ -183,4 +222,21 @@
     {% endfor %}
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll(".menu-filter-pill").forEach(function (pill) {
+    pill.addEventListener("click", function () {
+      document.querySelectorAll(".menu-filter-pill").forEach(function (p) { p.classList.remove("active"); });
+      pill.classList.add("active");
+
+      var filter = pill.dataset.filterCategory;
+      document.querySelectorAll(".menu-category-section").forEach(function (section) {
+        var match = filter === "all" || section.dataset.categoryId === filter;
+        section.classList.toggle("d-none", !match);
+      });
+    });
+  });
+</script>
 {% endblock %}

@@ -4,38 +4,96 @@
 {% block footer %}{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
-  <div class="card card-hover" style="max-width: 380px; width: 100%;">
-    <div class="card-body p-4">
-      <div class="text-center mb-4">
-        {% if site_settings.app_logo_filename %}
-          <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
-               alt="{{ cafe_name }}" style="max-height: 56px; max-width: 180px; object-fit: contain;">
+<div class="login-page-wrap">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <span class="login-dot login-dot-1"></span>
+      <span class="login-dot login-dot-2"></span>
+      <span class="login-dot login-dot-3"></span>
+      <div class="login-logo-circle">
+        {% if site_settings.login_logo_filename %}
+          <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.login_logo_filename) }}" alt="{{ cafe_name }}">
         {% else %}
-          <i class="bi bi-cup-hot-fill" style="font-size: 2.2rem; color: var(--color-accent);"></i>
+          <i class="bi bi-cup-hot-fill"></i>
         {% endif %}
-        <h4 class="mt-2 mb-0">{{ cafe_name }}</h4>
-        <span class="text-muted small">{{ _('Masuk ke sistem POS') }}</span>
       </div>
+    </div>
 
-      <form method="post">
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">{{ _('Username') }}</label>
-          <input type="text" name="username" class="form-control" required autofocus>
+    <h3 class="login-title">{{ cafe_name }}</h3>
+    <p class="login-subtitle">{{ _('Masuk untuk melanjutkan ke sistem POS') }}</p>
+
+    <form method="post" class="login-form">
+      <div class="login-field">
+        <input type="text" id="loginUsername" name="username" class="login-input" required autofocus autocomplete="username" placeholder="{{ _('Username') }}">
+      </div>
+      <div class="login-field">
+        <div class="login-input-wrap">
+          <input type="password" id="loginPassword" name="password" class="login-input" required autocomplete="current-password" placeholder="{{ _('Password') }}">
+          <button type="button" id="togglePasswordBtn" class="login-eye-btn" aria-label="{{ _('Tampilkan password') }}">
+            <i class="bi bi-eye" id="toggleEyeIcon"></i>
+          </button>
         </div>
-        <div class="mb-4">
-          <label class="form-label small fw-semibold">{{ _('Password') }}</label>
-          <input type="password" name="password" class="form-control" required>
-        </div>
-        <button type="submit" class="btn btn-accent w-100 btn-lg">
-          <i class="bi bi-box-arrow-in-right"></i> {{ _('Login') }}
+      </div>
+      <button type="submit" class="login-submit-btn">
+        <i class="bi bi-box-arrow-in-right"></i> {{ _('Login') }}
+      </button>
+    </form>
+
+    <div class="login-divider"><span>{{ _('Preferensi Tampilan') }}</span></div>
+
+    <div class="login-prefs">
+      <div class="login-prefs-group">
+        <a href="{{ url_for('set_language', lang='id') }}"
+           class="lang-flag-btn {{ 'active' if current_lang == 'id' else '' }}"
+           title="Bahasa Indonesia">
+          <svg viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="1" fill="#e70011"/><rect width="3" height="1" y="1" fill="#fff"/></svg>
+        </a>
+        <a href="{{ url_for('set_language', lang='en') }}"
+           class="lang-flag-btn {{ 'active' if current_lang == 'en' else '' }}"
+           title="English">
+          <svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg">
+            <rect width="60" height="30" fill="#00247d"/>
+            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#cf142b" stroke-width="2"/>
+            <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
+            <path d="M30,0 V30 M0,15 H60" stroke="#cf142b" stroke-width="6"/>
+          </svg>
+        </a>
+      </div>
+      <span class="login-prefs-sep"></span>
+      <div class="login-prefs-group">
+        <button type="button" id="themeLightBtn" class="theme-mode-btn active" title="{{ _('Mode Terang') }}">
+          <i class="bi bi-sun-fill"></i>
         </button>
-      </form>
+        <button type="button" id="themeDarkBtn" class="theme-mode-btn" title="{{ _('Mode Gelap') }}">
+          <i class="bi bi-moon-stars-fill"></i>
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
-<p class="text-center text-muted small mt-3">
-  {{ _('© 2026. Semua hak dilindungi.') }}
-</p>
+  <!-- Kredit pembuat aplikasi - SENGAJA di-hardcode di sini (bukan dari
+       Settings/database) supaya tidak bisa diubah/dihapus lewat menu
+       Pengaturan oleh toko mana pun yang memakai aplikasi ini. -->
+  <p class="login-credit">
+    Orulabs &copy; 2026. All rights reserved.
+  </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var btn = document.getElementById("togglePasswordBtn");
+    var input = document.getElementById("loginPassword");
+    var icon = document.getElementById("toggleEyeIcon");
+    if (!btn || !input || !icon) return;
+
+    btn.addEventListener("click", function () {
+      var showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      icon.className = showing ? "bi bi-eye" : "bi bi-eye-slash";
+    });
+  })();
+</script>
 {% endblock %}

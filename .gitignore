@@ -16,6 +16,13 @@ app/static/qrcodes/
 .DS_Store
 *.log
 
+# Debug/run logs and packaged builds
+serve_stdout*.txt
+serve_stderr*.txt
+logs_stdout.txt
+logs_stderr.txt
+*.zip
+
 # Android app
 android-app/app/build/
 android-app/.gradle/

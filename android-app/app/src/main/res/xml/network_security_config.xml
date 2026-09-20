@@ -8,6 +8,6 @@
          WAJIB diganti sebelum build - samakan dengan IP di server_url
          (res/values/strings.xml) dan BASE_URL (.env server). -->
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">192.168.1.10</domain>
+        <domain includeSubdomains="false">10.20.30.10</domain>
     </domain-config>
 </network-security-config>

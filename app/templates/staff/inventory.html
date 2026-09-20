@@ -2,10 +2,36 @@
 {% block title %}{{ _('Inventory') }}{% endblock %}
 
 {% block content %}
-<h4 class="mb-4"><i class="bi bi-boxes"></i> {{ _('Inventory Bahan Baku') }}</h4>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+  <div>
+    <h4 class="mb-1"><i class="bi bi-boxes"></i> {{ _('Inventory Bahan Baku') }}</h4>
+    <p class="text-muted small mb-0">{{ _('Catat stok bahan baku dan pantau mana yang mulai menipis.') }}</p>
+  </div>
+
+  <div class="export-groups-row">
+    <div class="dropdown">
+      <button class="export-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-file-earmark-text"></i> {{ _('Semua Bahan') }} <i class="bi bi-chevron-down export-dropdown-caret"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+        <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_excel', scope='full') }}"><i class="bi bi-filetype-xlsx"></i> Excel</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_pdf', scope='full') }}"><i class="bi bi-filetype-pdf"></i> PDF</a></li>
+      </ul>
+    </div>
+    <div class="dropdown">
+      <button class="export-dropdown-btn export-dropdown-btn-danger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-exclamation-triangle"></i> {{ _('Stok Menipis') }} <i class="bi bi-chevron-down export-dropdown-caret"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+        <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_excel', scope='low-stock') }}"><i class="bi bi-filetype-xlsx"></i> Excel</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_pdf', scope='low-stock') }}"><i class="bi bi-filetype-pdf"></i> PDF</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
 
 <div class="row g-4">
-  <div class="col-md-3">
+  <div class="col-sm-4">
     <div class="card">
       <div class="card-body">
         <h6 class="mb-3">{{ _('Tambah Bahan Baku') }}</h6>
@@ -31,29 +57,32 @@
     </div>
   </div>
 
-  <div class="col-md-9">
+  <div class="col-sm-8">
     <div class="card">
       <div class="card-body">
         <h6 class="mb-3">{{ _('Daftar Bahan Baku') }}</h6>
         {% if ingredients %}
-          <div class="list-group list-group-flush">
+          <div class="ingredient-list">
             {% for ingredient in ingredients %}
-              <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2 px-0">
-                <div>
-                  <div class="fw-semibold">
+              <div class="ingredient-row {{ 'is-low-stock' if ingredient.is_low_stock }}">
+                <div class="ingredient-row-icon">
+                  <i class="bi {{ 'bi-exclamation-triangle-fill' if ingredient.is_low_stock else 'bi-box-seam' }}"></i>
+                </div>
+                <div class="ingredient-row-main">
+                  <div class="ingredient-row-name">
                     {{ ingredient.name }}
                     {% if ingredient.is_low_stock %}
-                      <span class="badge-soft badge-status-served">{{ _('Menipis') }}</span>
+                      <span class="badge-soft badge-low-stock">{{ _('Menipis') }}</span>
                     {% endif %}
                   </div>
-                  <div class="text-muted small">
-                    {{ _('Stok') }}: {{ "{:g}".format(ingredient.stock_quantity) }} {{ ingredient.unit }}
+                  <div class="ingredient-row-meta">
+                    {{ _('Stok') }}: <strong>{{ "{:g}".format(ingredient.stock_quantity) }} {{ ingredient.unit }}</strong>
                     &middot; {{ _('Batas menipis') }}: {{ "{:g}".format(ingredient.low_stock_threshold) }} {{ ingredient.unit }}
                   </div>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                   <form method="post" action="{{ url_for('staff.restock_ingredient', ingredient_id=ingredient.id) }}" class="d-flex gap-2">
-                    <input type="number" step="0.01" min="0" name="amount" class="form-control form-control-sm" style="width: 100px;" placeholder="{{ _('Tambah stok') }}" required>
+                    <input type="number" step="0.01" min="0" name="amount" class="form-control form-control-sm" style="width: 130px;" placeholder="{{ _('Tambah stok') }}" required>
                     <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plus-lg"></i></button>
                   </form>
                   <form method="post" action="{{ url_for('staff.delete_ingredient', ingredient_id=ingredient.id) }}"

@@ -53,6 +53,19 @@ def create_app():
     def forbidden(error):
         return render_template("403.html"), 403
 
+    @app.errorhandler(404)
+    def not_found(error):
+        return render_template("404.html"), 404
+
+    @app.errorhandler(500)
+    def server_error(error):
+        # Rollback dulu - kalau error 500 ini kejadian gara-gara transaksi
+        # DB yang setengah jalan, sesi yang masih "kotor" bisa bikin
+        # render_template("500.html") sendiri ikut gagal (butuh query
+        # Settings lewat context processor).
+        db.session.rollback()
+        return render_template("500.html"), 500
+
     @app.route("/set-language/<lang>")
     def set_language(lang):
         from flask import redirect, url_for
@@ -61,7 +74,13 @@ def create_app():
             session["lang"] = lang
             session.permanent = True
 
-        next_url = request.referrer or url_for("staff.dashboard")
+        # Kalau browser tidak kirim referrer (umum di beberapa browser/
+        # WebView mobile), fallback-nya harus disesuaikan status login -
+        # jangan langsung ke Dashboard (butuh login), supaya tidak
+        # muncul flash "Silakan login terlebih dahulu" yang membingungkan
+        # padahal user cuma ganti bahasa di halaman login.
+        default_url = url_for("staff.dashboard") if current_user.is_authenticated else url_for("auth.login")
+        next_url = request.referrer or default_url
         return redirect(next_url)
 
     @app.route("/manifest.webmanifest")
@@ -81,8 +100,8 @@ def create_app():
             "scope": "/",
             "display": "standalone",
             "orientation": "portrait",
-            "background_color": "#4E2F1B",
-            "theme_color": "#4E2F1B",
+            "background_color": "#0B1220",
+            "theme_color": "#F07828",
             "icons": [
                 {"src": "/pwa-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
                 {"src": "/pwa-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
@@ -102,7 +121,7 @@ def create_app():
             abort(404)
 
         settings = get_settings()
-        canvas = Image.new("RGB", (size, size), (78, 47, 27))  # var(--color-primary-dark)
+        canvas = Image.new("RGB", (size, size), (255, 255, 255))  # putih, senada logo
 
         logo_filename = settings.app_logo_filename
         if logo_filename:
@@ -136,6 +155,26 @@ def create_app():
             current_user.last_seen_at = now
             db.session.commit()
 
+    @app.before_request
+    def check_maintenance_mode():
+        # Kill switch Mode Perbaikan (Pengaturan > Sistem) - dicek di sini
+        # (bukan per-blueprint) supaya berlaku ke SEMUA request, termasuk
+        # yang belum login. Endpoint di bawah ini selalu boleh lewat, apa
+        # pun statusnya, supaya orang yang ke-logout saat maintenance masih
+        # bisa login lagi buat mematikannya.
+        from .models import ROLE_OWNER
+
+        if request.endpoint in (None, "static", "auth.login", "auth.logout", "set_language"):
+            return
+
+        if current_user.is_authenticated and current_user.role == ROLE_OWNER:
+            return
+
+        from .blueprints.staff import get_settings
+
+        if get_settings().maintenance_mode:
+            return render_template("maintenance.html"), 503
+
     @app.url_defaults
     def add_cache_buster(endpoint, values):
         # Nempelin ?v=<cache_version> ke semua URL static (logo, foto
@@ -159,7 +198,8 @@ def create_app():
     def inject_globals():
         from .nav import NAV_ITEMS
         from .blueprints.staff import get_settings
-        from .models import ROLE_OWNER
+        from .models import ROLE_OWNER, floor_display_name
+        from .holidays_id import HOLIDAYS_ID
 
         online_staff = []
 
@@ -190,6 +230,8 @@ def create_app():
             "nav_items": nav_items,
             "online_staff": online_staff,
             "current_lang": get_locale(),
+            "holidays_id": HOLIDAYS_ID,
+            "floor_display_name": floor_display_name,
         }
 
     return app

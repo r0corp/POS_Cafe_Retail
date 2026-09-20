@@ -2,83 +2,148 @@
 // file .mp3/.wav) supaya tidak butuh internet/CDN sama sekali - cocok
 // untuk jaringan lokal tanpa akses luar. Tiap preset cuma daftar nada
 // (frekuensi + waktu mulai + durasi) yang dimainkan berurutan/tumpang
-// tindih untuk bikin karakter bunyi yang beda-beda.
+// tindih untuk bikin karakter bunyi yang beda-beda. "type" nentuin
+// bentuk gelombang osilatornya - "sine" buat karakter lonceng yang
+// bersih, "square"/"sawtooth"/"triangle" buat karakter alarm/sirine
+// yang lebih keras & mendesak (kaya gelombang kotak/gergaji secara
+// alami punya lebih banyak harmonik, jadi kedengaran lebih "tajam").
 const NOTIFICATION_SOUNDS = {
-  bell_double: {
-    label_id: "Bel Ganda",
-    label_en: "Double Bell",
+  church_bell: {
+    label_id: "Lonceng Gereja",
+    label_en: "Church Bell",
+    type: "sine",
     notes: [
-      { freq: 880.0, offset: 0, duration: 0.35 },
-      { freq: 1046.5, offset: 0.18, duration: 0.35 },
+      { freq: 440.0, offset: 0, duration: 1.1 },
+      { freq: 659.25, offset: 0, duration: 1.1 },
     ],
   },
-  ding_dong: {
-    label_id: "Ding Dong",
-    label_en: "Ding Dong",
+  double_bell_loud: {
+    label_id: "Bel Ganda Keras",
+    label_en: "Loud Double Bell",
+    type: "sine",
     notes: [
       { freq: 1046.5, offset: 0, duration: 0.4 },
-      { freq: 783.99, offset: 0.28, duration: 0.55 },
+      { freq: 1318.5, offset: 0.2, duration: 0.5 },
     ],
   },
-  single_beep: {
-    label_id: "Bip Tunggal",
-    label_en: "Single Beep",
-    notes: [{ freq: 1000.0, offset: 0, duration: 0.28 }],
-  },
-  triple_beep: {
-    label_id: "Bip Cepat 3x",
-    label_en: "Triple Beep",
+  fire_alarm: {
+    label_id: "Alarm Kebakaran",
+    label_en: "Fire Alarm",
+    type: "square",
     notes: [
-      { freq: 1200.0, offset: 0, duration: 0.12 },
-      { freq: 1200.0, offset: 0.16, duration: 0.12 },
-      { freq: 1200.0, offset: 0.32, duration: 0.12 },
+      { freq: 1200, offset: 0, duration: 0.1 },
+      { freq: 900, offset: 0.12, duration: 0.1 },
+      { freq: 1200, offset: 0.24, duration: 0.1 },
+      { freq: 900, offset: 0.36, duration: 0.1 },
+      { freq: 1200, offset: 0.48, duration: 0.1 },
+      { freq: 900, offset: 0.6, duration: 0.1 },
     ],
   },
-  cashier_bell: {
-    label_id: "Lonceng Kasir",
-    label_en: "Cashier Bell",
-    notes: [{ freq: 1568.0, offset: 0, duration: 0.65 }],
-  },
-  soft_chime: {
-    label_id: "Notifikasi Lembut",
-    label_en: "Soft Chime",
-    notes: [{ freq: 523.25, offset: 0, duration: 0.75 }],
-  },
-  kitchen_alarm: {
-    label_id: "Alarm Dapur",
-    label_en: "Kitchen Alarm",
+  siren_alarm: {
+    label_id: "Sirine Alarm",
+    label_en: "Siren Alarm",
+    type: "triangle",
     notes: [
-      { freq: 660.0, offset: 0, duration: 0.14 },
-      { freq: 880.0, offset: 0.17, duration: 0.14 },
-      { freq: 660.0, offset: 0.34, duration: 0.14 },
-      { freq: 880.0, offset: 0.51, duration: 0.14 },
+      { freq: 700, offset: 0, duration: 0.1 },
+      { freq: 950, offset: 0.1, duration: 0.1 },
+      { freq: 1200, offset: 0.2, duration: 0.1 },
+      { freq: 950, offset: 0.3, duration: 0.1 },
+      { freq: 700, offset: 0.4, duration: 0.1 },
+      { freq: 950, offset: 0.5, duration: 0.1 },
+      { freq: 1200, offset: 0.6, duration: 0.1 },
     ],
   },
-  marimba: {
-    label_id: "Marimba",
-    label_en: "Marimba",
+  door_bell_loud: {
+    label_id: "Bel Pintu Keras",
+    label_en: "Loud Doorbell",
+    type: "sine",
     notes: [
-      { freq: 1046.5, offset: 0, duration: 0.3 },
-      { freq: 880.0, offset: 0.16, duration: 0.3 },
-      { freq: 698.46, offset: 0.32, duration: 0.42 },
+      { freq: 1318.5, offset: 0, duration: 0.4 },
+      { freq: 987.77, offset: 0.3, duration: 0.6 },
     ],
   },
-  electronic_ping: {
-    label_id: "Elektronik",
-    label_en: "Electronic Ping",
-    notes: [{ freq: 1500.0, offset: 0, duration: 0.16 }],
-  },
-  classic_restaurant: {
-    label_id: "Restoran Klasik",
-    label_en: "Classic Restaurant",
+  kitchen_alarm_urgent: {
+    label_id: "Alarm Dapur Mendesak",
+    label_en: "Urgent Kitchen Alarm",
+    type: "square",
     notes: [
-      { freq: 783.99, offset: 0, duration: 0.3 },
-      { freq: 783.99, offset: 0.34, duration: 0.48 },
+      { freq: 880, offset: 0, duration: 0.13 },
+      { freq: 660, offset: 0.16, duration: 0.13 },
+      { freq: 880, offset: 0.32, duration: 0.13 },
+      { freq: 660, offset: 0.48, duration: 0.13 },
+    ],
+  },
+  metal_gong: {
+    label_id: "Gong Logam",
+    label_en: "Metal Gong",
+    type: "sawtooth",
+    notes: [{ freq: 220, offset: 0, duration: 1.4 }],
+  },
+  alarm_clock: {
+    label_id: "Alarm Jam Weker",
+    label_en: "Alarm Clock",
+    type: "square",
+    notes: [
+      { freq: 1500, offset: 0, duration: 0.09 },
+      { freq: 1500, offset: 0.18, duration: 0.09 },
+      { freq: 1500, offset: 0.36, duration: 0.09 },
+      { freq: 1500, offset: 0.54, duration: 0.09 },
+    ],
+  },
+  emergency_beacon: {
+    label_id: "Alarm Darurat",
+    label_en: "Emergency Beacon",
+    type: "triangle",
+    notes: [
+      { freq: 1000, offset: 0, duration: 0.2 },
+      { freq: 1400, offset: 0.22, duration: 0.2 },
+      { freq: 1000, offset: 0.44, duration: 0.2 },
+      { freq: 1400, offset: 0.66, duration: 0.2 },
+    ],
+  },
+  warning_horn: {
+    label_id: "Klakson Peringatan",
+    label_en: "Warning Horn",
+    type: "sawtooth",
+    notes: [
+      { freq: 349.23, offset: 0, duration: 0.45 },
+      { freq: 349.23, offset: 0.55, duration: 0.45 },
     ],
   },
 };
 
-const DEFAULT_SOUND_KEY = "bell_double";
+const DEFAULT_SOUND_KEY = "church_bell";
+
+// Browser (terutama Chrome di Android/tablet) memblokir AudioContext
+// sampai ada interaksi user di halaman - sekali di-unlock lewat tap/klik
+// apa saja, context ini dipakai ulang terus (bukan bikin baru tiap bunyi)
+// supaya tetap aktif selama tab tidak di-reload/navigasi ulang. Halaman
+// Dapur & Kasir sengaja sudah diubah untuk refresh data lewat AJAX (lihat
+// refreshKitchenList/refreshCashierList), bukan window.location.reload(),
+// justru supaya context ini tidak ke-reset tiap ada pesanan baru.
+let _sharedAudioCtx = null;
+
+function getAudioCtx() {
+  if (!_sharedAudioCtx) {
+    try {
+      _sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      return null;
+    }
+  }
+  return _sharedAudioCtx;
+}
+
+function unlockAudioCtx() {
+  const ctx = getAudioCtx();
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume().catch(function () {});
+  }
+}
+
+["click", "touchstart", "keydown"].forEach(function (evt) {
+  document.addEventListener(evt, unlockAudioCtx, { passive: true });
+});
 
 // Label nada notifikasi mengikuti bahasa aktif (document.documentElement.lang,
 // diset base.html dari session Flask-Babel) - notify.js file statis, tidak
@@ -91,14 +156,27 @@ function getSoundLabel(soundKey) {
 
 // Mainkan satu preset nada pada level volume tertentu (0-100). Dipakai
 // baik oleh poller notifikasi maupun tombol "coba" di halaman Pengaturan.
-function playOrderChime(soundKey, volume) {
+// Kalau soundKey "custom" dan customUrl ada isinya, mainkan file yang
+// diupload Owner (bukan nada sintesis) - fallback otomatis ke nada
+// bawaan kalau belum ada file yang diupload.
+function playOrderChime(soundKey, volume, customUrl) {
   try {
-    const preset = NOTIFICATION_SOUNDS[soundKey] || NOTIFICATION_SOUNDS[DEFAULT_SOUND_KEY];
     const vol = Math.max(0, Math.min(100, typeof volume === "number" ? volume : 70)) / 100;
 
     if (vol <= 0) return;
 
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (soundKey === "custom" && customUrl) {
+      const audio = new Audio(customUrl);
+      audio.volume = vol;
+      audio.play().catch(function () {});
+      return;
+    }
+
+    const preset = NOTIFICATION_SOUNDS[soundKey] || NOTIFICATION_SOUNDS[DEFAULT_SOUND_KEY];
+
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume().catch(function () {});
     const now = ctx.currentTime;
 
     preset.notes.forEach(function (note) {
@@ -106,10 +184,10 @@ function playOrderChime(soundKey, volume) {
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.type = "sine";
+      osc.type = preset.type || "sine";
       osc.frequency.value = note.freq;
 
-      const peak = Math.max(0.0001, 0.5 * vol);
+      const peak = Math.max(0.0001, 0.75 * vol);
       gain.gain.setValueAtTime(0.0001, now + note.offset);
       gain.gain.exponentialRampToValueAtTime(peak, now + note.offset + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + note.offset + note.duration);
@@ -164,7 +242,7 @@ function startOrderPoller(options) {
 
         if (newOnes.length > 0) {
           if (options.enabled !== false && !isMuted()) {
-            playOrderChime(options.soundKey, options.volume);
+            playOrderChime(options.soundKey, options.volume, options.customSoundUrl);
           }
           if (options.onNewOrder) options.onNewOrder(newOnes);
         }
