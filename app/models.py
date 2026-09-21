@@ -335,6 +335,85 @@ def generate_order_pin():
     return f"{random.randint(0, 9999):04d}"
 
 
+ORDER_TYPE_DINE_IN = "dine_in"
+ORDER_TYPE_TAKEAWAY = "takeaway"
+ORDER_TYPE_OJOL = "ojol"
+
+ORDER_TYPES = [ORDER_TYPE_DINE_IN, ORDER_TYPE_TAKEAWAY, ORDER_TYPE_OJOL]
+
+ORDER_TYPE_LABELS = {
+    ORDER_TYPE_DINE_IN: _l("Makan di Tempat"),
+    ORDER_TYPE_TAKEAWAY: _l("Bawa Pulang"),
+    ORDER_TYPE_OJOL: _l("Ojek Online"),
+}
+
+CHANNEL_PRICING_PERCENT = "percent"
+CHANNEL_PRICING_MANUAL = "manual"
+
+
+class OrderChannel(db.Model):
+    """Platform pesan-antar pihak ketiga (GrabFood, ShopeeFood, dst) -
+    daftar bebas ditambah Owner lewat Pengaturan > Platform Delivery, BUKAN
+    daftar hardcode, supaya platform baru bisa ditambah tanpa ubah kode.
+    Setiap platform punya harga sendiri: markup persentase otomatis
+    dari harga menu biasa, atau harga manual per item (lihat
+    MenuItemChannelPrice & price_for() di bawah)."""
+
+    __tablename__ = "order_channels"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    logo = db.Column(db.String(255))
+    pricing_mode = db.Column(db.String(10), nullable=False, default=CHANNEL_PRICING_PERCENT)
+    markup_percent = db.Column(db.Float, default=0)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    sort_order = db.Column(db.Integer, default=0)
+
+    # True kalau baris ini dibuat oleh Mode Demo (lihat staff._seed_demo_data())
+    # - dibedakan dari platform asli yang ditambah Owner sendiri, supaya bisa
+    # dihapus lagi dengan bersih saat demo dimatikan tanpa menyentuh platform
+    # sungguhan yang sudah diatur toko.
+    is_demo = db.Column(db.Boolean, default=False, nullable=False)
+
+    custom_prices = db.relationship(
+        "MenuItemChannelPrice", backref="channel", cascade="all, delete-orphan"
+    )
+
+    def price_for(self, menu_item):
+        """Harga menu_item kalau dipesan lewat platform ini - manual
+        (dari MenuItemChannelPrice, fallback ke harga toko biasa kalau
+        item itu belum diisi harganya) atau markup persentase otomatis."""
+
+        if self.pricing_mode == CHANNEL_PRICING_MANUAL:
+            row = MenuItemChannelPrice.query.filter_by(
+                channel_id=self.id, menu_item_id=menu_item.id
+            ).first()
+            return row.price if row else menu_item.price
+
+        markup = self.markup_percent or 0
+        return menu_item.price + round(menu_item.price * markup / 100)
+
+    def __repr__(self):
+        return f"<OrderChannel {self.name}>"
+
+
+class MenuItemChannelPrice(db.Model):
+    """Harga manual 1 menu khusus 1 platform ojol - cuma dipakai kalau
+    OrderChannel.pricing_mode == "manual". Item yang belum punya baris
+    di sini otomatis pakai harga toko biasa sebagai fallback (lihat
+    OrderChannel.price_for)."""
+
+    __tablename__ = "menu_item_channel_prices"
+    __table_args__ = (db.UniqueConstraint("menu_item_id", "channel_id"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    menu_item_id = db.Column(db.Integer, db.ForeignKey("menu_items.id"), nullable=False)
+    channel_id = db.Column(db.Integer, db.ForeignKey("order_channels.id"), nullable=False)
+    price = db.Column(db.Integer, nullable=False)
+
+    menu_item = db.relationship("MenuItem")
+
+
 class Order(db.Model):
     __tablename__ = "orders"
 
@@ -343,20 +422,29 @@ class Order(db.Model):
     # 2 pesanan nyaris bersamaan lolos dari pengecekan di kode (staff.py
     # new_order() & public.py submit_order()) - percobaan insert kedua
     # akan gagal dengan IntegrityError, ditangkap & ditangani di sana.
+    # Syarat "table_id IS NOT NULL" sengaja ditambahkan supaya pesanan
+    # Bawa Pulang/Ojek Online (table_id kosong) tidak ikut kena kunci
+    # ini - boleh ada banyak sekaligus tanpa dianggap "tabrakan meja".
     __table_args__ = (
         db.Index(
             "ux_one_unpaid_order_per_table",
             "table_id",
             unique=True,
-            sqlite_where=db.text("is_paid = 0"),
+            sqlite_where=db.text("is_paid = 0 AND table_id IS NOT NULL"),
         ),
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    table_id = db.Column(db.Integer, db.ForeignKey("tables.id"), nullable=False)
+    table_id = db.Column(db.Integer, db.ForeignKey("tables.id"), nullable=True)
 
     # "qr" = tamu submit sendiri dari HP, "staff" = diinput pelayan.
     source = db.Column(db.String(10), nullable=False, default="staff")
+
+    # Makan di Tempat (butuh meja) / Bawa Pulang / Ojek Online (keduanya
+    # tidak butuh meja - lihat ORDER_TYPE_*, table_id boleh kosong).
+    order_type = db.Column(db.String(10), nullable=False, default=ORDER_TYPE_DINE_IN)
+    channel_id = db.Column(db.Integer, db.ForeignKey("order_channels.id"), nullable=True)
+    channel = db.relationship("OrderChannel")
 
     status = db.Column(db.String(20), nullable=False, default="pending")
 
@@ -413,8 +501,26 @@ class Order(db.Model):
     def status_label(self):
         return ORDER_STATUS_LABELS.get(self.status, self.status)
 
+    @property
+    def display_label(self):
+        """Pengganti "Meja X" untuk pesanan tanpa meja (Bawa Pulang/Ojek
+        Online) - dipakai di kartu Dapur/Pelayan/Kasir & struk supaya
+        template tidak perlu tahu lagi soal table_id yang boleh kosong."""
+
+        if self.table:
+            return self.table.label
+        if self.order_type == ORDER_TYPE_OJOL and self.channel:
+            return self.channel.name
+        return str(ORDER_TYPE_LABELS.get(self.order_type, self.order_type))
+
+    @property
+    def display_sublabel(self):
+        if self.table:
+            return self.table.floor_label
+        return str(ORDER_TYPE_LABELS.get(self.order_type, ""))
+
     def __repr__(self):
-        return f"<Order #{self.id} - {self.table.label if self.table else '?'}>"
+        return f"<Order #{self.id} - {self.display_label}>"
 
 
 class OrderItem(db.Model):

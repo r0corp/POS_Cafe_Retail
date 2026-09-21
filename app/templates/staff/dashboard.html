@@ -100,8 +100,8 @@
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-              <h6 class="card-title mb-0">{{ order.table.label }}</h6>
-              <span class="text-muted small">{{ order.table.floor_label }}</span>
+              <h6 class="card-title mb-0">{{ order.display_label }}</h6>
+              <span class="text-muted small">{{ order.display_sublabel }}</span>
             </div>
             <span class="badge-soft {{ 'badge-status-ready' if order.is_paid else 'badge-status-pending' }}">
               {{ _('Lunas') if order.is_paid else _('Belum Bayar') }}

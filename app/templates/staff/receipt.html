@@ -3,6 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // Baca preferensi Mode Gelap yang sama dipakai base.html (localStorage
+    // "theme") - dijalankan paling awal, sebelum CSS dibaca, supaya latar
+    // langsung gelap tanpa kedip. Halaman ini sengaja berdiri sendiri
+    // (lihat catatan di bawah), tapi baca localStorage tidak butuh jaringan
+    // jadi aman tetap dijalankan walau offline.
+    (function () {
+      var theme = "dark";
+      try {
+        theme = localStorage.getItem("theme") || "dark";
+      } catch (e) {}
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
   <title>{{ _('Struk #%(id)s', id=order.id) }}</title>
   <style>
     /* Halaman ini sengaja berdiri sendiri (tidak pakai base.html / CDN
@@ -22,6 +36,16 @@
       font-family: "Courier New", Courier, monospace;
       color: #111;
       padding-bottom: 40px;
+    }
+
+    /* Mode Gelap - baca localStorage "theme" yang sama dipakai base.html
+       (lihat <script> kecil sebelum </head>), gradien navy->terang diganti
+       gelap->gelap dengan sorotan oranye Orulabs di bagian atas supaya
+       tetap ada aksen brand-nya, bukan cuma gelap polos. */
+    :root[data-theme="dark"] body {
+      background:
+        radial-gradient(ellipse 900px 420px at 50% -60px, rgba(240, 120, 40, 0.4), transparent 70%),
+        #0F172A;
     }
 
     /* ---------- Toolbar (layar saja, tidak ikut kecetak) ---------- */
@@ -144,22 +168,29 @@
 
 <div class="receipt-wrap">
   <div class="receipt">
-    {% if settings.receipt_logo_filename %}
+    {% if order.channel and order.channel.logo %}
       <div class="center">
-        <img class="logo" src="{{ url_for('static', filename='uploads/branding/' + settings.receipt_logo_filename) }}" alt="{{ settings.shop_name }}">
+        <img class="logo" src="{{ url_for('static', filename='uploads/branding/' + order.channel.logo) }}" alt="{{ order.channel.name }}">
       </div>
+      <div class="center bold">{{ order.channel.name }}</div>
+      <div class="center shop-tag muted">{{ settings.shop_name }}</div>
+    {% else %}
+      {% if settings.receipt_logo_filename %}
+        <div class="center">
+          <img class="logo" src="{{ url_for('static', filename='uploads/branding/' + settings.receipt_logo_filename) }}" alt="{{ settings.shop_name }}">
+        </div>
+      {% endif %}
+      <div class="center bold">{{ settings.shop_name }}</div>
+      {% if settings.address %}<div class="center">{{ settings.address }}</div>{% endif %}
+      {% if settings.phone %}<div class="center">{{ _('Telp: %(phone)s', phone=settings.phone) }}</div>{% endif %}
     {% endif %}
-
-    <div class="center bold">{{ settings.shop_name }}</div>
-    {% if settings.address %}<div class="center">{{ settings.address }}</div>{% endif %}
-    {% if settings.phone %}<div class="center">{{ _('Telp: %(phone)s', phone=settings.phone) }}</div>{% endif %}
 
     <div class="center shop-tag muted">{{ _('*** STRUK PEMBAYARAN ***') }}</div>
 
     <div class="divider"></div>
 
     <div class="row"><span>{{ _('No. Struk') }}</span><span>#{{ order.id }}</span></div>
-    <div class="row"><span>{{ _('Meja') }}</span><span>{{ order.table.label }} ({{ order.table.floor_label }})</span></div>
+    <div class="row"><span>{{ _('Meja') if order.table else _('Jenis') }}</span><span>{{ order.display_label }} ({{ order.display_sublabel }})</span></div>
     <div class="row"><span>{{ _('Tanggal') }}</span><span>{{ (order.paid_at or order.created_at).strftime('%d/%m/%Y %H:%M') }}</span></div>
     {% if order.served_by %}
       <div class="row"><span>{{ _('Kasir') }}</span><span>{{ order.served_by }}</span></div>

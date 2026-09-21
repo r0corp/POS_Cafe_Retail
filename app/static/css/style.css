@@ -1984,6 +1984,210 @@ textarea.form-control {
   color: #fff;
 }
 
+.order-channel-badge {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.order-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.5rem;
+}
+
+@media (max-width: 767.98px) {
+  .order-type-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Kartu jenis pesanan - logo/ikon di KIRI, teks di KANAN, satu baris
+   pendek (bukan tumpuk vertikal) supaya tidak boros tinggi dan
+   menekan konten menu ke bawah. */
+.order-type-card {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.65rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  text-align: left;
+}
+
+.order-type-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  color: var(--color-primary);
+}
+
+.order-type-icon-logo {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.order-type-card img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.order-type-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.order-type-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-type-text small {
+  font-size: 0.68rem;
+  color: var(--color-muted);
+}
+
+.order-type-card:hover {
+  border-left-color: var(--color-accent);
+}
+
+.order-type-card.active {
+  border-color: var(--color-accent);
+  border-left-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+/* Divider antara blok Jenis Pesanan dan blok Meja/Filter, dan panel
+   Meja+Filter yang digabung jadi SATU kartu (bukan 2 kartu terpisah). */
+.order-setup-divider {
+  border-top: 1px dashed var(--color-border);
+  margin: 1rem 0;
+}
+
+.order-setup-row {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.order-setup-col-table {
+  flex: 0 0 260px;
+  min-width: 0;
+}
+
+.order-setup-col-filter {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.order-setup-col-filter-end {
+  flex: 0 1 auto;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.order-setup-vdivider {
+  flex: 0 0 1px;
+  background: var(--color-border);
+}
+
+@media (max-width: 767.98px) {
+  .order-setup-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .order-setup-col-table {
+    flex-basis: auto;
+  }
+  .order-setup-col-filter-end {
+    margin-left: 0;
+    width: 100%;
+  }
+  .order-setup-vdivider {
+    display: none;
+  }
+}
+
+/* Label + kontrol sejajar 1 baris (Meja, Filter Kategori) - label
+   dibuat seragam ukurannya lewat 1 class yang sama, bukan campur
+   <label class="small"> dan <h6> yang beda ukuran font. */
+.order-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.order-inline-label {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  margin: 0;
+}
+
+.order-inline-divider {
+  flex-shrink: 0;
+  width: 1px;
+  align-self: stretch;
+  background: var(--color-border);
+}
+
+.order-inline-field select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.order-inline-field-wrap {
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
+
+.order-inline-field-wrap .menu-filter-pills {
+  flex: 1 1 auto;
+}
+
+/* Form "Tambah Menu" sebaris (kategori/nama/harga/tombol berdampingan)
+   supaya tidak makan tinggi kartu - lihat menu_admin.html. Semua field
+   dan tombolnya dibuat 4 kolom sama lebar biar tidak ada yang lebih
+   panjang/pendek sebelah. */
+.add-menu-inline-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.5rem;
+}
+
+.add-menu-inline-form select,
+.add-menu-inline-form input[type="text"],
+.add-menu-inline-form input[type="number"],
+.add-menu-inline-form .elegant-select,
+.add-menu-inline-form button {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.add-menu-inline-form button {
+  white-space: normal;
+  line-height: 1.2;
+}
+
 .menu-item-card {
   display: flex;
   flex-direction: column;
@@ -2274,8 +2478,13 @@ textarea.form-control {
 .seat-qr-btn {
   flex-shrink: 0;
   border: none;
-  background: var(--color-bg);
-  color: var(--color-heading);
+  /* Sengaja warna tetap (bukan var(--color-bg)/var(--color-heading)) -
+     latar & icon tombol ini pernah kebalap desync waktu ganti mode
+     gelap/terang (icon ikut jadi terang tapi latar tidak), jadi icon-nya
+     hilang (putih di atas putih). Dikunci putih+navy di kedua mode
+     supaya kontrasnya terjamin. */
+  background: #FFFFFF;
+  color: #0E4C75;
   width: 34px;
   height: 34px;
   border-radius: 50%;

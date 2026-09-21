@@ -35,6 +35,8 @@ from ..models import (
     Ingredient,
     MenuItem,
     MenuItemIngredient,
+    MenuItemChannelPrice,
+    OrderChannel,
     Table,
     Order,
     OrderItem,
@@ -43,6 +45,13 @@ from ..models import (
     LoginLog,
     generate_order_pin,
     ORDER_STATUSES,
+    ORDER_TYPES,
+    ORDER_TYPE_LABELS,
+    ORDER_TYPE_DINE_IN,
+    ORDER_TYPE_TAKEAWAY,
+    ORDER_TYPE_OJOL,
+    CHANNEL_PRICING_PERCENT,
+    CHANNEL_PRICING_MANUAL,
     PAYMENT_METHODS,
     ROLES,
     ROLE_LABELS,
@@ -56,6 +65,18 @@ staff_bp = Blueprint("staff", __name__)
 
 ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".svg"}
 ALLOWED_SOUND_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a"}
+
+# Platform delivery contoh buat Mode Demo (lihat _seed_demo_data()) -
+# markup persentase mengikuti kisaran komisi mitra reguler yang berlaku
+# per September 2026 (bukan merchant preferred/strategis). Logo-nya
+# BUKAN logo resmi Gojek/Grab/Shopee (itu merek dagang pihak lain, tidak
+# diambil dari internet) - cuma lencana inisial warna generik sebagai
+# placeholder sampai Owner upload logo resmi hasil kemitraan sungguhan.
+DEMO_CHANNELS = [
+    ("GoFood", 20, "gofood_demo.png"),
+    ("GrabFood", 30, "grabfood_demo.png"),
+    ("ShopeeFood", 20, "shopeefood_demo.png"),
+]
 
 # Harus sinkron dengan NOTIFICATION_SOUNDS di app/static/js/notify.js.
 # "custom" = nada upload sendiri (lihat notification_sound_file).
@@ -193,7 +214,7 @@ def dashboard():
     ).all()
 
     unpaid_orders = Order.query.filter_by(is_paid=False).all()
-    occupied_table_count = len({order.table_id for order in unpaid_orders})
+    occupied_table_count = len({order.table_id for order in unpaid_orders if order.table_id is not None})
     kitchen_pending_count = Order.query.filter(
         Order.status.in_(["pending", "processing"])
     ).count()
@@ -362,8 +383,11 @@ def new_order():
     # Meja yang masih punya pesanan belum lunas dianggap "terisi" - tidak
     # ditawarkan di sini supaya pelayan tidak numpuk pesanan baru di meja
     # yang sudah dipakai tamu lain (harus tunggu meja itu lunas/kosong dulu).
+    # Cuma pesanan Makan di Tempat yang punya table_id, jadi ini otomatis
+    # tidak kena pengaruh oleh pesanan Bawa Pulang/Ojek Online.
     occupied_table_ids = {
         order.table_id for order in Order.query.filter_by(is_paid=False).all()
+        if order.table_id is not None
     }
     tables = (
         Table.query.filter(~Table.id.in_(occupied_table_ids))
@@ -371,21 +395,45 @@ def new_order():
         .all()
     )
     categories = Category.query.order_by(Category.order, Category.name).all()
+    channels = OrderChannel.query.filter_by(is_active=True).order_by(OrderChannel.sort_order).all()
     preselected_table_id = request.args.get("table_id", type=int)
 
     if request.method == "POST":
-        table_id = request.form.get("table_id", type=int)
-        table = Table.query.get(table_id)
+        order_type = request.form.get("order_type", ORDER_TYPE_DINE_IN)
+        if order_type not in ORDER_TYPES:
+            order_type = ORDER_TYPE_DINE_IN
 
-        if not table:
-            flash(_("Meja tidak valid."), "danger")
-            return redirect(url_for("staff.new_order"))
+        table = None
+        channel = None
 
-        if table.id in occupied_table_ids:
-            flash(_("Meja %(label)s sudah terisi pesanan lain.", label=table.label), "danger")
-            return redirect(url_for("staff.new_order"))
+        if order_type == ORDER_TYPE_DINE_IN:
+            table_id = request.form.get("table_id", type=int)
+            table = Table.query.get(table_id)
 
-        order = Order(table_id=table.id, source="staff", status="pending", pin=generate_order_pin())
+            if not table:
+                flash(_("Meja tidak valid."), "danger")
+                return redirect(url_for("staff.new_order"))
+
+            if table.id in occupied_table_ids:
+                flash(_("Meja %(label)s sudah terisi pesanan lain.", label=table.label), "danger")
+                return redirect(url_for("staff.new_order"))
+
+        elif order_type == ORDER_TYPE_OJOL:
+            channel_id = request.form.get("channel_id", type=int)
+            channel = OrderChannel.query.filter_by(id=channel_id, is_active=True).first()
+
+            if not channel:
+                flash(_("Platform ojol tidak valid."), "danger")
+                return redirect(url_for("staff.new_order"))
+
+        order = Order(
+            table_id=table.id if table else None,
+            order_type=order_type,
+            channel_id=channel.id if channel else None,
+            source="staff",
+            status="pending",
+            pin=generate_order_pin(),
+        )
         added_any = False
 
         for key, value in request.form.items():
@@ -402,11 +450,13 @@ def new_order():
             if not menu_item or not menu_item.is_orderable:
                 continue
 
+            price = channel.price_for(menu_item) if channel else menu_item.price
+
             order.items.append(
                 OrderItem(
                     menu_item_id=menu_item.id,
                     name_snapshot=menu_item.name,
-                    price_snapshot=menu_item.price,
+                    price_snapshot=price,
                     quantity=quantity,
                 )
             )
@@ -429,17 +479,26 @@ def new_order():
             # keburu dapat pesanan lain persis di detik yang sama,
             # lolos dari pengecekan occupied_table_ids di atas.
             db.session.rollback()
-            flash(_("Meja %(label)s baru saja terisi pesanan lain. Coba pilih meja lain.", label=table.label), "danger")
+            flash(_("Meja baru saja terisi pesanan lain. Coba pilih meja lain."), "danger")
             return redirect(url_for("staff.new_order"))
 
-        flash(_("Pesanan untuk %(label)s berhasil dibuat.", label=table.label), "success")
+        flash(_("Pesanan untuk %(label)s berhasil dibuat.", label=order.display_label), "success")
+        if order_type in (ORDER_TYPE_OJOL, ORDER_TYPE_TAKEAWAY):
+            # Tamu/driver biasanya langsung menunggu di kasir - arahkan
+            # langsung ke situ supaya kasir bisa langsung proses bayar &
+            # cetak, tidak perlu muter dulu lewat Dashboard.
+            return redirect(url_for("staff.cashier"))
         return redirect(url_for("staff.dashboard"))
 
     return render_template(
         "staff/order_new.html",
         tables=tables,
         categories=categories,
+        channels=channels,
         preselected_table_id=preselected_table_id,
+        ORDER_TYPE_DINE_IN=ORDER_TYPE_DINE_IN,
+        ORDER_TYPE_TAKEAWAY=ORDER_TYPE_TAKEAWAY,
+        ORDER_TYPE_OJOL=ORDER_TYPE_OJOL,
     )
 
 
@@ -1285,7 +1344,7 @@ def export_report_excel(period_key):
         values = [
             f"#{order.id}",
             order.paid_at.strftime("%d/%m/%Y %H:%M"),
-            order.table.label,
+            order.display_label,
             items_desc,
             "Cash" if order.payment_method == "cash" else "QRIS",
             order.ppn_amount or 0,
@@ -1407,7 +1466,7 @@ def export_report_pdf(period_key):
         table_data.append([
             f"#{order.id}",
             order.paid_at.strftime("%d/%m/%Y %H:%M"),
-            order.table.label,
+            order.display_label,
             Paragraph(items_desc, styles["Normal"]),
             "Cash" if order.payment_method == "cash" else "QRIS",
             f"Rp {order.ppn_amount:,}".replace(",", ".") if order.ppn_amount else "-",
@@ -1838,6 +1897,7 @@ def _system_tab_context():
             "menu_items": MenuItem.query.filter_by(is_demo=True).count(),
             "ingredients": Ingredient.query.filter_by(is_demo=True).count(),
             "tables": Table.query.filter_by(is_demo=True).count(),
+            "channels": OrderChannel.query.filter_by(is_demo=True).count(),
         }
     else:
         with open(_demo_fixture_path(), encoding="utf-8") as f:
@@ -1847,7 +1907,10 @@ def _system_tab_context():
             "menu_items": len(fixture["menu_items"]),
             "ingredients": len(fixture["ingredients"]),
             "tables": 10,
+            "channels": len(DEMO_CHANNELS),
         }
+
+    channels = OrderChannel.query.order_by(OrderChannel.sort_order, OrderChannel.id).all()
 
     return {
         "demo_stats": demo_stats,
@@ -1855,7 +1918,159 @@ def _system_tab_context():
         "cache_info": cache_info,
         "demo_mode_active": demo_mode_active,
         "maintenance_mode_active": maintenance_mode_active,
+        "channels": channels,
+        "CHANNEL_PRICING_PERCENT": CHANNEL_PRICING_PERCENT,
+        "CHANNEL_PRICING_MANUAL": CHANNEL_PRICING_MANUAL,
     }
+
+
+# ============================================================
+# PLATFORM OJOL (GrabFood, ShopeeFood, dst) - lihat OrderChannel di
+# models.py. Dikelola sebagai daftar bebas (bukan field hardcode di
+# Settings) supaya platform baru bisa ditambah kapan saja lewat
+# Pengaturan > Platform Delivery tanpa perlu ubah kode sama sekali.
+# ============================================================
+
+@staff_bp.route("/admin/channels/add", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def channel_add():
+    name = request.form.get("name", "").strip()
+
+    if not name:
+        flash(_("Nama platform wajib diisi."), "danger")
+        return redirect(url_for("staff.admin_settings"))
+
+    pricing_mode = request.form.get("pricing_mode", CHANNEL_PRICING_PERCENT)
+    if pricing_mode not in (CHANNEL_PRICING_PERCENT, CHANNEL_PRICING_MANUAL):
+        pricing_mode = CHANNEL_PRICING_PERCENT
+
+    markup_percent = request.form.get("markup_percent", type=float) or 0
+
+    max_sort = db.session.query(db.func.max(OrderChannel.sort_order)).scalar() or 0
+    channel = OrderChannel(
+        name=name,
+        pricing_mode=pricing_mode,
+        markup_percent=max(0.0, markup_percent),
+        sort_order=max_sort + 1,
+    )
+    db.session.add(channel)
+    db.session.flush()
+
+    error = _save_logo("logo", channel, "logo", filename_base=f"channel-logo-{channel.id}")
+    if error:
+        db.session.rollback()
+        flash(error, "danger")
+        return redirect(url_for("staff.admin_settings"))
+
+    db.session.commit()
+    flash(_("Platform %(name)s ditambahkan.", name=channel.name), "success")
+    return redirect(url_for("staff.admin_settings"))
+
+
+@staff_bp.route("/admin/channels/<int:channel_id>/update", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def channel_update(channel_id):
+    channel = OrderChannel.query.get_or_404(channel_id)
+
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash(_("Nama platform wajib diisi."), "danger")
+        return redirect(url_for("staff.admin_settings"))
+
+    pricing_mode = request.form.get("pricing_mode", CHANNEL_PRICING_PERCENT)
+    if pricing_mode not in (CHANNEL_PRICING_PERCENT, CHANNEL_PRICING_MANUAL):
+        pricing_mode = CHANNEL_PRICING_PERCENT
+
+    markup_percent = request.form.get("markup_percent", type=float) or 0
+
+    error = _save_logo("logo", channel, "logo", filename_base=f"channel-logo-{channel.id}")
+    if error:
+        flash(error, "danger")
+        return redirect(url_for("staff.admin_settings"))
+
+    if request.form.get("remove_logo") == "1":
+        _remove_logo(channel, "logo")
+
+    channel.name = name
+    channel.pricing_mode = pricing_mode
+    channel.markup_percent = max(0.0, markup_percent)
+    channel.is_active = request.form.get("is_active") == "1"
+
+    db.session.commit()
+    flash(_("Platform %(name)s diperbarui.", name=channel.name), "success")
+    return redirect(url_for("staff.admin_settings"))
+
+
+@staff_bp.route("/admin/channels/<int:channel_id>/delete", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def channel_delete(channel_id):
+    channel = OrderChannel.query.get_or_404(channel_id)
+
+    # Pesanan lama yang pernah pakai platform ini TIDAK ikut dihapus -
+    # cukup lepas kaitannya (channel_id jadi kosong) supaya riwayat &
+    # laporan lama tetap ada, cuma label platformnya lewat display_label
+    # fallback ke tulisan umum "Ojek Online".
+    for order in Order.query.filter_by(channel_id=channel.id).all():
+        order.channel_id = None
+
+    _remove_logo(channel, "logo")
+    db.session.delete(channel)
+    db.session.commit()
+
+    flash(_("Platform %(name)s dihapus.", name=channel.name), "success")
+    return redirect(url_for("staff.admin_settings"))
+
+
+@staff_bp.route("/admin/channels/<int:channel_id>/prices", methods=["GET", "POST"])
+@roles_required(ROLE_OWNER)
+def channel_prices(channel_id):
+    channel = OrderChannel.query.get_or_404(channel_id)
+
+    if request.method == "POST":
+        for key, value in request.form.items():
+            if not key.startswith("price_"):
+                continue
+
+            menu_item_id = int(key.replace("price_", ""))
+            price_text = value.strip()
+
+            row = MenuItemChannelPrice.query.filter_by(
+                channel_id=channel.id, menu_item_id=menu_item_id
+            ).first()
+
+            if not price_text:
+                # Dikosongkan = balik pakai harga toko biasa (fallback),
+                # jadi baris override-nya dihapus saja.
+                if row:
+                    db.session.delete(row)
+                continue
+
+            price = int(float(price_text))
+            if row:
+                row.price = price
+            else:
+                db.session.add(
+                    MenuItemChannelPrice(
+                        channel_id=channel.id, menu_item_id=menu_item_id, price=price
+                    )
+                )
+
+        db.session.commit()
+        flash(_("Harga khusus %(name)s disimpan.", name=channel.name), "success")
+        return redirect(url_for("staff.channel_prices", channel_id=channel.id))
+
+    categories = Category.query.order_by(Category.order, Category.name).all()
+    custom_prices = {
+        row.menu_item_id: row.price
+        for row in MenuItemChannelPrice.query.filter_by(channel_id=channel.id).all()
+    }
+
+    return render_template(
+        "staff/channel_prices.html",
+        channel=channel,
+        categories=categories,
+        custom_prices=custom_prices,
+    )
 
 
 def _demo_fixture_path():
@@ -2002,10 +2217,45 @@ def _seed_demo_data():
     # sama kode meja toko yang sungguhan, walau tokonya sudah punya meja
     # 1-10 sendiri. Owner boleh coba alur pesanan sungguhan di meja ini
     # buat demo - order yang kebentuk ikut dibersihkan di _clear_demo_data().
+    #
+    # QR code-nya digenerate di sini juga (sama seperti meja asli lewat
+    # table_map()) - sebelumnya baris Table cuma ditambahkan ke DB tanpa
+    # pernah memanggil _generate_table_qr(), jadi file gambar QR-nya
+    # tidak pernah ada dan modal "Detail Meja" di Mode Demo selalu
+    # gagal muat gambar (terlihat rusak/crash).
     for n in range(1, 11):
-        db.session.add(
-            Table(code=f"demo-{n:02d}", label=f"Meja {n}", floor=1, is_demo=True)
+        table = Table(code=f"demo-{n:02d}", label=f"Meja {n}", floor=1, is_demo=True)
+        db.session.add(table)
+        _generate_table_qr(table)
+
+    # 3 platform delivery demo - markup persentase mengikuti kisaran komisi
+    # riil yang berlaku ke mitra reguler (per September 2026, bukan
+    # merchant preferred/strategis yang komisinya bisa lebih rendah):
+    # GoFood ~20%, GrabFood ~30%, ShopeeFood ~20%. Dipakai Owner buat
+    # contoh sebelum ganti sendiri ke platform & angka yang sungguhan
+    # dipakai tokonya. Logo lencana contoh ikut disalin dari
+    # app/demo_data/branding/ (sama pola-nya dengan _apply_demo_settings()).
+    branding_dir = os.path.join(current_app.static_folder, "uploads", "branding")
+    os.makedirs(branding_dir, exist_ok=True)
+    demo_branding_dir = os.path.join(current_app.root_path, "demo_data", "branding")
+
+    for i, (name, markup, badge_filename) in enumerate(DEMO_CHANNELS, start=1):
+        channel = OrderChannel(
+            name=name,
+            pricing_mode=CHANNEL_PRICING_PERCENT,
+            markup_percent=markup,
+            is_active=True,
+            sort_order=i,
+            is_demo=True,
         )
+        db.session.add(channel)
+        db.session.flush()
+
+        src = os.path.join(demo_branding_dir, badge_filename)
+        if os.path.exists(src):
+            dest_name = f"channel-logo-{channel.id}.png"
+            shutil.copyfile(src, os.path.join(branding_dir, dest_name))
+            channel.logo = dest_name
 
     _apply_demo_settings()
 
@@ -2046,8 +2296,25 @@ def _clear_demo_data():
     demo_table_ids = [t.id for t in demo_tables]
     for order in Order.query.filter(Order.table_id.in_(demo_table_ids)).all():
         db.session.delete(order)
+
+    qr_dir = os.path.join(current_app.root_path, "static", "qrcodes")
     for table in demo_tables:
+        qr_path = os.path.join(qr_dir, f"{table.code}.png")
+        if os.path.exists(qr_path):
+            os.remove(qr_path)
         db.session.delete(table)
+
+    # Platform delivery demo (GoFood/GrabFood/ShopeeFood contoh) - order
+    # yang sempat dibuat lewat platform ini TIDAK punya table_id (lihat
+    # ORDER_TYPE_OJOL di new_order()), jadi tidak ikut kena pembersihan
+    # order berbasis meja di atas - harus dicari lewat channel_id sendiri.
+    demo_channels = OrderChannel.query.filter_by(is_demo=True).all()
+    demo_channel_ids = [c.id for c in demo_channels]
+    for order in Order.query.filter(Order.channel_id.in_(demo_channel_ids)).all():
+        db.session.delete(order)
+    for channel in demo_channels:
+        _remove_logo(channel, "logo")
+        db.session.delete(channel)
 
     _restore_real_settings()
 
@@ -2152,7 +2419,10 @@ def factory_reset_execute():
     session.pop("factory_reset_unlocked", None)
 
     flash(
-        _("Reset ke mode pabrik selesai - semua data toko sudah dikosongkan, kecuali daftar pengguna."),
+        _(
+            "Reset ke mode pabrik selesai - semua data toko sudah dikosongkan, "
+            "kecuali daftar pengguna dan pengaturan Notifikasi."
+        ),
         "success",
     )
     return redirect(url_for("staff.admin_settings"))
@@ -2162,10 +2432,13 @@ def _factory_reset():
     """Kosongkan SEMUA data operasional toko (kategori, menu, resep,
     bahan baku, meja, lantai, riwayat pesanan/login) dan kembalikan
     Pengaturan Toko ke kondisi kosong seperti baru install - KECUALI
-    tabel users (username, role, izin staf sama sekali tidak disentuh).
-    Urutan hapus mengikuti dependensi FK (baris anak dulu baru induk)
-    lewat bulk delete, bukan lewat relationship cascade ORM, supaya
-    aman terlepas dari cascade aktif atau tidak di DB yang dipakai."""
+    tabel users (username, role, izin staf) DAN pengaturan Notifikasi
+    (aktif/tidak, suara, volume per peran) - keduanya sengaja tidak
+    disentuh sama sekali, sama seperti users, supaya konfigurasi yang
+    sudah diatur pemilik tidak ikut hilang tiap kali reset. Urutan
+    hapus mengikuti dependensi FK (baris anak dulu baru induk) lewat
+    bulk delete, bukan lewat relationship cascade ORM, supaya aman
+    terlepas dari cascade aktif atau tidak di DB yang dipakai."""
 
     OrderItem.query.delete()
     Order.query.delete()
@@ -2192,7 +2465,9 @@ def _factory_reset():
     _remove_logo(settings, "logo_square")
     _remove_logo(settings, "logo_wide")
     _remove_logo(settings, "qris_image")
-    _remove_logo(settings, "notification_sound_file")
+    # notification_sound_file SENGAJA tidak dihapus - lihat catatan di
+    # docstring, pengaturan Notifikasi (termasuk file suara custom-nya
+    # kalau ada) ikut dikecualikan dari reset.
 
     settings.shop_name = current_app.config["CAFE_NAME"]
     settings.address = None
@@ -2208,12 +2483,6 @@ def _factory_reset():
     settings.receipt_paper_width = "80"
     settings.ppn_enabled = False
     settings.ppn_percentage = 11.0
-    settings.notification_enabled = True
-    settings.notification_sound = "bell_double"
-    settings.notification_volume = 70
-    settings.notification_sound_dapur = None
-    settings.notification_sound_kasir = None
-    settings.notification_sound_pelayan = None
     settings.demo_settings_backup = None
     settings.maintenance_mode = False
     settings.cache_version = (settings.cache_version or 0) + 1

@@ -6,38 +6,82 @@
 <p class="text-muted small mb-4">{{ _('Untuk tamu yang tidak pesan sendiri lewat QR code.') }}</p>
 
 <form method="post" id="orderForm">
-  <div class="row g-3 mb-4">
-    <div class="col-sm-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <label class="form-label fw-semibold small">{{ _('Meja') }}</label>
-          <select name="table_id" class="form-select" data-elegant-select required {% if not tables %}disabled{% endif %}>
-            <option value="">{{ _('-- Pilih Meja --') }}</option>
-            {% for table in tables %}
-              <option value="{{ table.id }}" {% if preselected_table_id == table.id %}selected{% endif %}>{{ table.label }} ({{ table.floor_label }})</option>
-            {% endfor %}
-          </select>
-          {% if not tables %}
-            <div class="small mt-2" style="color: var(--color-danger);">
-              <i class="bi bi-exclamation-triangle-fill"></i> {{ _('Semua meja sedang terisi - tunggu salah satu kosong dulu.') }}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
+  <input type="hidden" name="order_type" id="orderTypeInput" value="{{ ORDER_TYPE_DINE_IN }}">
+  <input type="hidden" name="channel_id" id="channelIdInput" value="">
 
-    <div class="col-sm-8">
-      <div class="card h-100">
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card">
         <div class="card-body">
-          <h6 class="mb-3">{{ _('Filter Kategori') }}</h6>
-          <div class="menu-filter-pills">
-            <button type="button" class="menu-filter-pill active" data-filter-category="all">{{ _('Semua') }}</button>
-            {% for category in categories %}
-              {% if category.items | selectattr('is_orderable') | list %}
-                <button type="button" class="menu-filter-pill" data-filter-category="{{ category.id }}">{{ category.name }}</button>
-              {% endif %}
+
+          <label class="form-label fw-semibold small">{{ _('Jenis Pesanan') }}</label>
+          <div class="order-type-grid">
+            <button type="button" class="order-type-card active" data-order-type="{{ ORDER_TYPE_DINE_IN }}">
+              <span class="order-type-icon"><i class="bi bi-shop"></i></span>
+              <span class="order-type-text">
+                <span class="order-type-name">{{ _('Makan di Tempat') }}</span>
+                <small>{{ _('Pilih meja') }}</small>
+              </span>
+            </button>
+            <button type="button" class="order-type-card" data-order-type="{{ ORDER_TYPE_TAKEAWAY }}">
+              <span class="order-type-icon"><i class="bi bi-bag"></i></span>
+              <span class="order-type-text">
+                <span class="order-type-name">{{ _('Bawa Pulang') }}</span>
+                <small>{{ _('Tanpa meja') }}</small>
+              </span>
+            </button>
+            {% for channel in channels %}
+              <button type="button" class="order-type-card" data-order-type="{{ ORDER_TYPE_OJOL }}" data-channel-id="{{ channel.id }}">
+                <span class="order-type-icon order-type-icon-logo">
+                  {% if channel.logo %}
+                    <img src="{{ url_for('static', filename='uploads/branding/' + channel.logo) }}" alt="{{ channel.name }}">
+                  {% else %}
+                    <i class="bi bi-bicycle"></i>
+                  {% endif %}
+                </span>
+                <span class="order-type-text">
+                  <span class="order-type-name">{{ channel.name }}</span>
+                  <small>{{ _('Tanpa meja') }}</small>
+                </span>
+              </button>
             {% endfor %}
           </div>
+
+          <div class="order-setup-divider"></div>
+
+          <div class="order-setup-row">
+            <div class="order-setup-col-table" id="tableSelectWrap">
+              <div class="order-inline-field">
+                <label class="order-inline-label" for="tableSelect">{{ _('Meja') }}</label>
+                <select name="table_id" id="tableSelect" class="form-select" data-elegant-select required {% if not tables %}disabled{% endif %}>
+                  <option value="">{{ _('-- Pilih Meja --') }}</option>
+                  {% for table in tables %}
+                    <option value="{{ table.id }}" {% if preselected_table_id == table.id %}selected{% endif %}>{{ table.label }} ({{ table.floor_label }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+              {% if not tables %}
+                <div class="small mt-2" style="color: var(--color-danger);">
+                  <i class="bi bi-exclamation-triangle-fill"></i> {{ _('Semua meja sedang terisi - tunggu salah satu kosong dulu.') }}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="order-setup-col-filter order-setup-col-filter-end" id="categoryFilterWrap">
+              <div class="order-inline-field order-inline-field-wrap">
+                <label class="order-inline-label">{{ _('Filter Kategori') }}</label>
+                <div class="menu-filter-pills">
+                  <button type="button" class="menu-filter-pill active" data-filter-category="all">{{ _('Semua') }}</button>
+                  {% for category in categories %}
+                    {% if category.items | selectattr('is_orderable') | list %}
+                      <button type="button" class="menu-filter-pill" data-filter-category="{{ category.id }}">{{ category.name }}</button>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -53,6 +97,10 @@
               <h6 class="mb-3">{{ category.name }}</h6>
               <div class="menu-grid">
                 {% for item in available_items %}
+                  {% set channel_prices = {} %}
+                  {% for channel in channels %}
+                    {% set _ = channel_prices.update({channel.id: channel.price_for(item)}) %}
+                  {% endfor %}
                   <div class="menu-item-card">
                     {% if item.photo %}
                       <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#viewPhotoModal{{ item.id }}" title="{{ _('Perbesar foto') }}">
@@ -60,7 +108,7 @@
                         <i class="bi bi-arrows-fullscreen thumb-hint-icon"></i>
                         <div class="menu-item-overlay">
                           <div class="menu-item-name">{{ item.name }}</div>
-                          <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                          <div class="menu-item-price" data-price-label>Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
                         </div>
                       </button>
                     {% else %}
@@ -68,12 +116,12 @@
                         <i class="bi bi-cup-hot"></i>
                         <div class="menu-item-overlay">
                           <div class="menu-item-name">{{ item.name }}</div>
-                          <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                          <div class="menu-item-price" data-price-label>Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
                         </div>
                       </div>
                     {% endif %}
                     <div class="menu-item-footer">
-                      <div class="qty-stepper" data-price="{{ item.price }}">
+                      <div class="qty-stepper" data-price="{{ item.price }}" data-channel-prices='{{ channel_prices|tojson }}'>
                         <button type="button" class="qty-minus"><i class="bi bi-dash"></i></button>
                         <input type="number" class="qty-input" name="qty_{{ item.id }}" value="0" min="0" readonly>
                         <button type="button" class="qty-plus"><i class="bi bi-plus"></i></button>
@@ -126,11 +174,35 @@
 
   const CART_ITEMS_SELECTED_LABEL = {{ _('item dipilih')|tojson }};
   const CART_EMPTY_LABEL = {{ _('Belum ada item dipilih')|tojson }};
+  const ORDER_TYPE_DINE_IN = {{ ORDER_TYPE_DINE_IN|tojson }};
+
+  let currentChannelId = null;
+
+  function effectivePrice(stepper) {
+    const basePrice = parseInt(stepper.dataset.price, 10);
+    if (!currentChannelId) return basePrice;
+    try {
+      const channelPrices = JSON.parse(stepper.dataset.channelPrices || "{}");
+      const override = channelPrices[currentChannelId];
+      return override !== undefined ? override : basePrice;
+    } catch (e) {
+      return basePrice;
+    }
+  }
+
+  function refreshPriceLabels() {
+    document.querySelectorAll(".qty-stepper").forEach((stepper) => {
+      const card = stepper.closest(".menu-item-card");
+      if (!card) return;
+      const label = card.querySelector("[data-price-label]");
+      if (label) label.textContent = formatRupiah(effectivePrice(stepper));
+    });
+  }
 
   function updateCart() {
     let total = 0, count = 0;
     document.querySelectorAll(".qty-stepper").forEach((stepper) => {
-      const price = parseInt(stepper.dataset.price, 10);
+      const price = effectivePrice(stepper);
       const qty = parseInt(stepper.querySelector(".qty-input").value, 10) || 0;
       total += price * qty;
       count += qty;
@@ -140,6 +212,34 @@
     document.getElementById("submitBtn").disabled = count === 0;
     if (window.adjustFooterClearance) window.adjustFooterClearance();
   }
+
+  const orderTypeInput = document.getElementById("orderTypeInput");
+  const channelIdInput = document.getElementById("channelIdInput");
+  const tableSelectWrap = document.getElementById("tableSelectWrap");
+  const tableSelect = document.getElementById("tableSelect");
+  const categoryFilterWrap = document.getElementById("categoryFilterWrap");
+
+  document.querySelectorAll(".order-type-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      document.querySelectorAll(".order-type-card").forEach((c) => c.classList.remove("active"));
+      card.classList.add("active");
+
+      const orderType = card.dataset.orderType;
+      const channelId = card.dataset.channelId || "";
+
+      orderTypeInput.value = orderType;
+      channelIdInput.value = channelId;
+      currentChannelId = channelId || null;
+
+      const isDineIn = orderType === ORDER_TYPE_DINE_IN;
+      tableSelectWrap.classList.toggle("d-none", !isDineIn);
+      tableSelect.required = isDineIn;
+      if (!isDineIn) tableSelect.value = "";
+
+      refreshPriceLabels();
+      updateCart();
+    });
+  });
 
   function refreshRowState(stepper) {
     const card = stepper.closest(".menu-item-card");

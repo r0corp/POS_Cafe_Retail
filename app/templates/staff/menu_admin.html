@@ -6,72 +6,55 @@
 <p class="text-muted small mb-4">{{ _('Atur kategori, harga, foto, dan ketersediaan menu yang tampil ke pelanggan.') }}</p>
 
 <div class="row g-3 mb-3">
-  <div class="col-sm-6">
-    <div class="card h-100">
-      <div class="card-body">
-        <h6 class="mb-3">{{ _('Tambah Kategori') }}</h6>
-        <form method="post">
-          <input type="hidden" name="form_type" value="category">
-          <div class="input-group mb-3">
-            <input type="text" name="name" class="form-control" placeholder="{{ _('Nama kategori') }}" required>
-            <button class="btn btn-accent" type="submit"><i class="bi bi-plus"></i></button>
-          </div>
-        </form>
-
-        {% if categories %}
-          <div class="list-group list-group-flush" style="max-height: 220px; overflow-y: auto;">
-            {% for category in categories %}
-              <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-                <span>{{ category.name }}</span>
-                <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">
-                  {{ _('%(count)s menu', count=category.items|length) }}
-                </span>
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <p class="text-muted small mb-0">{{ _('Belum ada kategori. Tambahkan lewat form di atas.') }}</p>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <div class="col-sm-6">
-    <div class="card h-100">
-      <div class="card-body">
-        <h6 class="mb-3">{{ _('Tambah Menu') }}</h6>
-        <form method="post">
-          <input type="hidden" name="form_type" value="menu_item">
-          <div class="mb-2">
-            <select name="category_id" class="form-select" data-elegant-select required>
-              <option value="">{{ _('-- Kategori --') }}</option>
-              {% for category in categories %}
-                <option value="{{ category.id }}">{{ category.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="mb-2">
-            <input type="text" name="name" class="form-control" placeholder="{{ _('Nama menu') }}" required>
-          </div>
-          <div class="mb-3">
-            <input type="number" name="price" class="form-control" placeholder="{{ _('Harga (Rp)') }}" required>
-          </div>
-          <button class="btn btn-accent w-100" type="submit"><i class="bi bi-plus-circle"></i> {{ _('Tambah Menu') }}</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
   <div class="col-12">
-    <div class="card h-100">
+    <div class="card">
       <div class="card-body">
-        <h6 class="mb-3">{{ _('Filter Kategori') }}</h6>
-        <div class="menu-filter-pills">
-          <button type="button" class="menu-filter-pill active" data-filter-category="all">{{ _('Semua') }}</button>
-          {% for category in categories %}
-            <button type="button" class="menu-filter-pill" data-filter-category="{{ category.id }}">{{ category.name }}</button>
-          {% endfor %}
+
+        <div class="order-setup-row">
+          <div class="order-setup-col-table" style="flex-basis: 320px;">
+            <h6 class="mb-2">{{ _('Tambah Kategori') }}</h6>
+            <form method="post">
+              <input type="hidden" name="form_type" value="category">
+              <div class="input-group">
+                <input type="text" name="name" class="form-control" placeholder="{{ _('Nama kategori') }}" required>
+                <button class="btn btn-sm btn-accent" type="submit"><i class="bi bi-plus"></i></button>
+              </div>
+            </form>
+          </div>
+
+          <div class="order-setup-vdivider"></div>
+
+          <div class="order-setup-col-filter">
+            <h6 class="mb-2">{{ _('Tambah Menu') }}</h6>
+            <form method="post" class="add-menu-inline-form">
+              <input type="hidden" name="form_type" value="menu_item">
+              <select name="category_id" class="form-select" data-elegant-select required>
+                <option value="">{{ _('-- Kategori --') }}</option>
+                {% for category in categories %}
+                  <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+              </select>
+              <input type="text" name="name" class="form-control" placeholder="{{ _('Nama menu') }}" required>
+              <input type="number" name="price" class="form-control" placeholder="{{ _('Harga (Rp)') }}" required>
+              <button class="btn btn-accent" type="submit"><i class="bi bi-plus-circle"></i> {{ _('Tambah Menu') }}</button>
+            </form>
+          </div>
         </div>
+
+        <div class="order-setup-divider"></div>
+
+        <div class="d-flex justify-content-end">
+          <div class="order-inline-field order-inline-field-wrap">
+            <label class="order-inline-label">{{ _('Filter Kategori') }}</label>
+            <div class="menu-filter-pills">
+              <button type="button" class="menu-filter-pill active" data-filter-category="all">{{ _('Semua') }}</button>
+              {% for category in categories %}
+                <button type="button" class="menu-filter-pill" data-filter-category="{{ category.id }}">{{ category.name }}</button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>

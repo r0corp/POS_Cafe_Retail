@@ -27,6 +27,11 @@
     </button>
   </li>
   <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-channels" type="button">
+      <i class="bi bi-bicycle"></i> {{ _('Platform Delivery') }}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-system" type="button">
       <i class="bi bi-hdd-stack"></i> {{ _('Sistem') }}
     </button>
@@ -434,6 +439,115 @@
     <!-- .tab-content KEDUA, terpisah dari punya form di atas (lihat
          catatan struktur di komentar dekat pembukaan form). -->
     <div class="tab-content">
+      <!-- ============ PLATFORM OJOL (GrabFood, ShopeeFood, dst) ============ -->
+      <div class="tab-pane fade" id="tab-channels">
+        <p class="text-muted small mb-3">
+          {{ _('Kelola platform pesan-antar yang dipakai toko - kasir bisa langsung buat pesanan tanpa pilih meja lewat platform yang aktif di sini.') }}
+        </p>
+
+        <div class="row g-3 mb-3">
+          {% for channel in channels %}
+            <div class="col-sm-6 col-lg-3">
+              <div class="card h-100">
+                <div class="card-body">
+                  <form method="post" action="{{ url_for('staff.channel_update', channel_id=channel.id) }}" enctype="multipart/form-data">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                      {% if channel.logo %}
+                        <img src="{{ url_for('static', filename='uploads/branding/' + channel.logo) }}" alt="{{ channel.name }}"
+                             style="width: 40px; height: 40px; object-fit: contain; border-radius: 8px; border: 1px solid var(--color-border);">
+                      {% else %}
+                        <div style="width: 40px; height: 40px; border-radius: 8px; border: 1px dashed var(--color-border); display: flex; align-items: center; justify-content: center;">
+                          <i class="bi bi-image text-muted"></i>
+                        </div>
+                      {% endif %}
+                      <input type="text" name="name" class="form-control form-control-sm" value="{{ channel.name }}" required>
+                    </div>
+
+                    <div class="mb-2">
+                      <label class="form-label small">{{ _('Logo Platform') }}</label>
+                      <input type="file" name="logo" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                      {% if channel.logo %}
+                        <div class="form-check mt-1">
+                          <input class="form-check-input" type="checkbox" value="1" name="remove_logo" id="removeLogo{{ channel.id }}">
+                          <label class="form-check-label small text-muted" for="removeLogo{{ channel.id }}">{{ _('Hapus logo') }}</label>
+                        </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="mb-2">
+                      <label class="form-label small">{{ _('Mode Harga') }}</label>
+                      <select name="pricing_mode" class="form-select form-select-sm" data-elegant-select onchange="this.form.querySelector('.markup-field').classList.toggle('d-none', this.value !== '{{ CHANNEL_PRICING_PERCENT }}')">
+                        <option value="{{ CHANNEL_PRICING_PERCENT }}" {% if channel.pricing_mode == CHANNEL_PRICING_PERCENT %}selected{% endif %}>{{ _('Markup Persentase') }}</option>
+                        <option value="{{ CHANNEL_PRICING_MANUAL }}" {% if channel.pricing_mode == CHANNEL_PRICING_MANUAL %}selected{% endif %}>{{ _('Harga Manual per Menu') }}</option>
+                      </select>
+                    </div>
+
+                    <div class="mb-2 markup-field {% if channel.pricing_mode != CHANNEL_PRICING_PERCENT %}d-none{% endif %}">
+                      <label class="form-label small">{{ _('Markup (%%)') }}</label>
+                      <input type="number" name="markup_percent" class="form-control form-control-sm" min="0" step="0.5" value="{{ channel.markup_percent or 0 }}">
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                      <input class="form-check-input" type="checkbox" value="1" name="is_active" id="channelActive{{ channel.id }}" {% if channel.is_active %}checked{% endif %}>
+                      <label class="form-check-label small" for="channelActive{{ channel.id }}">{{ _('Aktif') }}</label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                      <button type="submit" class="btn btn-sm btn-accent flex-grow-1">
+                        <i class="bi bi-check2"></i> {{ _('Simpan') }}
+                      </button>
+                      {% if channel.pricing_mode == CHANNEL_PRICING_MANUAL %}
+                        <a href="{{ url_for('staff.channel_prices', channel_id=channel.id) }}" class="btn btn-sm btn-outline-secondary">
+                          <i class="bi bi-tag"></i>
+                        </a>
+                      {% endif %}
+                    </div>
+                  </form>
+                  <form method="post" action="{{ url_for('staff.channel_delete', channel_id=channel.id) }}" class="mt-2"
+                        onsubmit="return confirm('{{ _('Hapus platform %(name)s?', name=channel.name) }}');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                      <i class="bi bi-trash"></i> {{ _('Hapus Platform') }}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+
+          <div class="col-sm-6 col-lg-3">
+            <div class="card h-100">
+              <div class="card-body">
+                <h6 class="mb-3">{{ _('+ Tambah Platform Baru') }}</h6>
+                <form method="post" action="{{ url_for('staff.channel_add') }}" enctype="multipart/form-data">
+                  <div class="mb-2">
+                    <label class="form-label small">{{ _('Nama Platform') }}</label>
+                    <input type="text" name="name" class="form-control form-control-sm" placeholder="GrabFood" required>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small">{{ _('Logo Platform') }}</label>
+                    <input type="file" name="logo" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small">{{ _('Mode Harga') }}</label>
+                    <select name="pricing_mode" class="form-select form-select-sm" data-elegant-select onchange="this.form.querySelector('.markup-field').classList.toggle('d-none', this.value !== '{{ CHANNEL_PRICING_PERCENT }}')">
+                      <option value="{{ CHANNEL_PRICING_PERCENT }}">{{ _('Markup Persentase') }}</option>
+                      <option value="{{ CHANNEL_PRICING_MANUAL }}">{{ _('Harga Manual per Menu') }}</option>
+                    </select>
+                  </div>
+                  <div class="mb-3 markup-field">
+                    <label class="form-label small">{{ _('Markup (%%)') }}</label>
+                    <input type="number" name="markup_percent" class="form-control form-control-sm" min="0" step="0.5" value="15">
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-accent w-100">
+                    <i class="bi bi-plus-circle"></i> {{ _('Tambah Platform') }}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ============ SISTEM (Cache, Backup, Mode Demo) ============ -->
       <div class="tab-pane fade" id="tab-system">
         {% set cache_bar_colors = ['var(--color-accent)', 'var(--color-primary)', 'var(--color-warning)', 'var(--color-success)'] %}
@@ -590,6 +704,10 @@
                     <div class="cache-size-legend-item">
                       <span class="cache-size-dot" style="background: var(--color-success);"></span>
                       {{ _('%(count)s meja (Lantai 1)', count=demo_stats.tables) }}
+                    </div>
+                    <div class="cache-size-legend-item">
+                      <span class="cache-size-dot" style="background: var(--color-heading);"></span>
+                      {{ _('%(count)s platform delivery', count=demo_stats.channels) }}
                     </div>
                     <div class="cache-size-legend-item">
                       <span class="cache-size-dot" style="background: var(--color-info);"></span>
