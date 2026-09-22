@@ -43,6 +43,7 @@ from ..models import (
     Settings,
     User,
     LoginLog,
+    floor_display_name,
     generate_order_pin,
     ORDER_STATUSES,
     ORDER_TYPES,
@@ -373,28 +374,15 @@ def table_qr_print(table_id):
     return render_template("staff/table_qr_print.html", table=table, settings=settings)
 
 
-@staff_bp.route("/tables/<int:table_id>/qr-print.pdf")
-@roles_required(ROLE_OWNER)
-def table_qr_pdf(table_id):
-    """Versi PDF dari kartu QR meja (tombol "Cetak ke PDF") - kartu kecil
-    ukuran tetap (bukan mengikuti panjang isi kayak struk), jadi cukup
-    ditata langsung tanpa hitung tinggi dulu."""
-    import io
-
+def _draw_table_qr_card(c, table, settings, page_w, page_h, margin):
+    """Gambar 1 kartu QR meja ke canvas reportlab yang sudah ada (dipakai
+    bareng table_qr_pdf & floor_qr_pdf) - TIDAK showPage()/save() sendiri,
+    supaya pemanggilnya bebas atur kapan pindah halaman (1 meja per
+    halaman untuk PDF sekumpulan lantai)."""
     from reportlab.lib.units import mm
     from reportlab.lib.utils import ImageReader
-    from reportlab.pdfgen import canvas as pdf_canvas
 
-    table = Table.query.get_or_404(table_id)
-    settings = get_settings()
-
-    page_w = 90 * mm
-    page_h = 130 * mm
-    margin = 8 * mm
     content_w = page_w - 2 * margin
-
-    buffer = io.BytesIO()
-    c = pdf_canvas.Canvas(buffer, pagesize=(page_w, page_h))
 
     def center_text(text, y, size=10, bold=False, color=(0.05, 0.3, 0.46)):
         c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
@@ -404,21 +392,22 @@ def table_qr_pdf(table_id):
     y = page_h - margin
 
     logo_filename = settings.app_logo_filename
+    logo_path = None
     if logo_filename:
         logo_path = os.path.join(current_app.static_folder, "uploads", "branding", logo_filename)
-        if os.path.exists(logo_path):
-            logo_reader = ImageReader(logo_path)
-            iw, ih = logo_reader.getSize()
-            logo_h = min(14 * mm, content_w * 0.5 * ih / iw)
-            logo_w = logo_h * (iw / ih)
-            c.drawImage(
-                logo_reader, (page_w - logo_w) / 2, y - logo_h,
-                width=logo_w, height=logo_h, mask="auto",
-            )
-            y -= logo_h + 3 * mm
-        else:
-            center_text(settings.shop_name, y, size=13, bold=True)
-            y -= 7 * mm
+        if not os.path.exists(logo_path):
+            logo_path = None
+
+    if logo_path:
+        logo_reader = ImageReader(logo_path)
+        iw, ih = logo_reader.getSize()
+        logo_h = min(14 * mm, content_w * 0.5 * ih / iw)
+        logo_w = logo_h * (iw / ih)
+        c.drawImage(
+            logo_reader, (page_w - logo_w) / 2, y - logo_h,
+            width=logo_w, height=logo_h, mask="auto",
+        )
+        y -= logo_h + 3 * mm
     else:
         center_text(settings.shop_name, y, size=13, bold=True)
         y -= 7 * mm
@@ -452,11 +441,82 @@ def table_qr_pdf(table_id):
 
     center_text("Orulabs © 2026", margin, size=7, color=(0.6, 0.6, 0.6))
 
+
+@staff_bp.route("/tables/<int:table_id>/qr-print.pdf")
+@roles_required(ROLE_OWNER)
+def table_qr_pdf(table_id):
+    """Versi PDF dari kartu QR meja (tombol "Cetak ke PDF") - kartu kecil
+    ukuran tetap (bukan mengikuti panjang isi kayak struk), jadi cukup
+    ditata langsung tanpa hitung tinggi dulu."""
+    import io
+
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas as pdf_canvas
+
+    table = Table.query.get_or_404(table_id)
+    settings = get_settings()
+
+    page_w = 90 * mm
+    page_h = 130 * mm
+    margin = 8 * mm
+
+    buffer = io.BytesIO()
+    c = pdf_canvas.Canvas(buffer, pagesize=(page_w, page_h))
+    _draw_table_qr_card(c, table, settings, page_w, page_h, margin)
     c.showPage()
     c.save()
     buffer.seek(0)
 
     filename = f"qr-{table.code}.pdf"
+    return send_file(
+        buffer, mimetype="application/pdf",
+        as_attachment=True, download_name=filename,
+    )
+
+
+@staff_bp.route("/floors/<int:floor_number>/qr-print")
+@roles_required(ROLE_OWNER)
+def floor_qr_print(floor_number):
+    tables = Table.query.filter_by(floor=floor_number).order_by(Table.label).all()
+    if not tables:
+        abort(404)
+    settings = get_settings()
+
+    return render_template(
+        "staff/floor_qr_print.html",
+        tables=tables, floor_number=floor_number, settings=settings,
+    )
+
+
+@staff_bp.route("/floors/<int:floor_number>/qr-print.pdf")
+@roles_required(ROLE_OWNER)
+def floor_qr_pdf(floor_number):
+    """Versi PDF dari SEMUA kartu QR meja di 1 lantai (tombol "Cetak
+    Semua QR" di kartu lantai) - 1 meja per halaman, kartu yang sama
+    persis dengan table_qr_pdf lewat _draw_table_qr_card()."""
+    import io
+
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas as pdf_canvas
+
+    tables = Table.query.filter_by(floor=floor_number).order_by(Table.label).all()
+    if not tables:
+        abort(404)
+    settings = get_settings()
+
+    page_w = 90 * mm
+    page_h = 130 * mm
+    margin = 8 * mm
+
+    buffer = io.BytesIO()
+    c = pdf_canvas.Canvas(buffer, pagesize=(page_w, page_h))
+    for table in tables:
+        _draw_table_qr_card(c, table, settings, page_w, page_h, margin)
+        c.showPage()
+    c.save()
+    buffer.seek(0)
+
+    filename = f"qr-{floor_display_name(floor_number).lower().replace(' ', '-')}.pdf"
     return send_file(
         buffer, mimetype="application/pdf",
         as_attachment=True, download_name=filename,
