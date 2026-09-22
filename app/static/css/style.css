@@ -2498,6 +2498,18 @@ textarea.form-control {
 
 .seat-occupied .seat-status-dot {
   background: var(--color-warning);
+  animation: seatLedBlink 1.6s ease-in-out infinite;
+}
+
+@keyframes seatLedBlink {
+  0%, 100% { box-shadow: 0 0 0 0 var(--color-warning); opacity: 1; }
+  50% { box-shadow: 0 0 0 6px transparent; opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seat-occupied .seat-status-dot {
+    animation: none;
+  }
 }
 
 .seat-occupied .seat-status-text {
