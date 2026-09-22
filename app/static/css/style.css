@@ -1334,6 +1334,12 @@ a.profile-dropdown-row-link:hover {
 .form-field-row > .form-field-label {
   flex: 0 0 var(--form-field-label-width, 80px);
   margin-bottom: 0;
+  /* Kalau --form-field-label-width dikasih lebih sempit dari panjang
+     teks labelnya sendiri (mis. kolom form yang cuma seperempat lebar
+     card), jangan sampai teksnya patah ke baris kedua - biarkan field-
+     nya saja yang turun ke bawah lewat flex-wrap milik .form-field-row
+     (perilaku fallback yang memang sudah didesain begitu). */
+  white-space: nowrap;
 }
 
 .form-field-row > .form-control,

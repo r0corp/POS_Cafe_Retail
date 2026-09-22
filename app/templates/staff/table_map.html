@@ -13,32 +13,44 @@
           {{ _('%(available)s / %(total)s kosong', available=available_count, total=total_count) }}
         </span>
       </div>
-      <form method="post" style="--form-field-label-width: 90px;">
-        <div class="form-field-row mb-2">
-          <label class="form-label form-field-label small">{{ _('Label Meja') }}</label>
-          <input type="text" name="label" class="form-control" placeholder="{{ _('Contoh: Meja 4') }}" required>
-        </div>
-        <div class="form-field-row mb-2">
-          <label class="form-label form-field-label small">{{ _('Lantai') }}</label>
-          <select name="floor" class="form-select" data-elegant-select required {% if not available_floors %}disabled{% endif %}>
-            {% if not available_floors %}
-              <option value="" selected disabled>{{ _('Tambah lantai dulu di Pengaturan') }}</option>
-            {% endif %}
-            {% for floor in available_floors %}
-              <option value="{{ floor.number }}">{{ floor_display_name(floor.number) }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="form-field-row mb-3">
-          <label class="form-label form-field-label small">{{ _('Kode Unik') }}</label>
-          <div class="input-group">
-            <span class="input-group-text postab-prefix">postab-</span>
-            <input type="text" name="code" class="form-control" placeholder="001" required>
+      <form method="post">
+        <div class="row g-2 align-items-end">
+          <div class="col-sm-3">
+            <div class="form-field-row" style="--form-field-label-width: 74px;">
+              <label class="form-label form-field-label small">{{ _('Label Meja') }}</label>
+              <input type="text" name="label" class="form-control" style="flex: 1 1 70px; min-width: 0;" placeholder="{{ _('Contoh: Meja 4') }}" required>
+            </div>
+          </div>
+          <div class="col-sm-3">
+            <div class="form-field-row" style="--form-field-label-width: 42px;">
+              <label class="form-label form-field-label small">{{ _('Lantai') }}</label>
+              <div style="flex: 1 1 70px; min-width: 0;">
+                <select name="floor" class="form-select" data-elegant-select required {% if not available_floors %}disabled{% endif %}>
+                  {% if not available_floors %}
+                    <option value="" selected disabled>{{ _('Tambah lantai dulu di Pengaturan') }}</option>
+                  {% endif %}
+                  {% for floor in available_floors %}
+                    <option value="{{ floor.number }}">{{ floor_display_name(floor.number) }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-3">
+            <div class="form-field-row" style="--form-field-label-width: 70px;">
+              <label class="form-label form-field-label small">{{ _('Kode Unik') }}</label>
+              <div class="input-group" style="flex: 1 1 70px; min-width: 0;">
+                <span class="input-group-text postab-prefix">postab-</span>
+                <input type="text" name="code" class="form-control" placeholder="001" required>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-3">
+            <button class="btn btn-accent w-100 text-nowrap" type="submit">
+              <i class="bi bi-plus-circle"></i> {{ _('Tambah Meja') }}
+            </button>
           </div>
         </div>
-        <button class="btn btn-accent w-100 text-nowrap" type="submit">
-          <i class="bi bi-plus-circle"></i> {{ _('Tambah Meja') }}
-        </button>
       </form>
     </div>
   </div>
