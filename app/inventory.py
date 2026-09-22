@@ -1,6 +1,7 @@
 from flask_babel import gettext as _
 
-from .models import MenuItemIngredient
+from . import db
+from .models import Ingredient, MenuItemIngredient
 
 
 def check_and_deduct_stock(order):
@@ -11,7 +12,14 @@ def check_and_deduct_stock(order):
     Return None kalau berhasil (stok sudah dikurangi, siap di-commit),
     atau pesan error (string) kalau ada bahan yang tidak cukup - dalam
     kasus itu TIDAK ada stok yang dikurangi (semua bahan dicek dulu
-    sebelum ada yang benar-benar dipotong)."""
+    sebelum ada yang benar-benar dipotong).
+
+    Deduksi dilakukan lewat UPDATE ... WHERE stock_quantity >= qty
+    (bukan baca-lalu-tulis di Python) supaya 2 pesanan yang submit nyaris
+    bersamaan (mis. tamu double-tap tombol submit di koneksi lambat) tidak
+    bisa berdua lolos cek stok berdasarkan angka lama yang sama - baris
+    kedua yang UPDATE-nya tidak match (rowcount 0) dianggap gagal dan
+    seluruh transaksi di-rollback oleh pemanggil."""
 
     required = {}
 
@@ -39,6 +47,28 @@ def check_and_deduct_stock(order):
             )
 
     for entry in required.values():
-        entry["ingredient"].stock_quantity -= entry["qty"]
+        ingredient = entry["ingredient"]
+        result = db.session.execute(
+            Ingredient.__table__.update()
+            .where(
+                Ingredient.id == ingredient.id,
+                Ingredient.stock_quantity >= entry["qty"],
+            )
+            .values(stock_quantity=Ingredient.stock_quantity - entry["qty"])
+        )
+        if result.rowcount == 0:
+            # Bahan ini keburu dipotong pesanan lain di antara cek di atas
+            # dan UPDATE ini - stoknya sekarang sudah tidak cukup lagi.
+            # Rollback supaya bahan LAIN yang sudah kadung ke-UPDATE di
+            # loop ini (kalau ada) ikut dibatalkan - tetap all-or-nothing.
+            db.session.rollback()
+            return _(
+                "Stok %(ingredient)s baru saja dipakai pesanan lain, tidak cukup untuk pesanan %(items)s.",
+                ingredient=ingredient.name,
+                items=", ".join(sorted(entry["menu_names"])),
+            )
+        # Sinkronkan objek Python di session supaya kode setelah pemanggil
+        # (mis. flash/tampilan sisa stok) melihat angka yang sudah baru.
+        db.session.refresh(ingredient)
 
     return None

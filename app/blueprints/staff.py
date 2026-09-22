@@ -3,6 +3,7 @@ from datetime import datetime, time, timedelta
 import qrcode
 import json
 import os
+import re
 import shutil
 import zipfile
 
@@ -268,13 +269,39 @@ def table_map():
         # keikutan ketik manual juga, jangan sampai dobel.
         if code_suffix.startswith("postab-"):
             code_suffix = code_suffix[len("postab-"):]
+        # Kode meja dipakai langsung jadi nama file QR (_generate_table_qr)
+        # - batasi ke karakter yang aman untuk nama file di semua OS.
+        code_suffix = re.sub(r"[^a-z0-9-]", "", code_suffix)
         code = f"postab-{code_suffix}" if code_suffix else ""
 
         if label and floor and code_suffix:
             table = Table(label=label, floor=floor, code=code)
             db.session.add(table)
-            db.session.commit()
-            _generate_table_qr(table)
+            try:
+                db.session.commit()
+            except IntegrityError:
+                # Kode meja unique - dua meja tidak boleh berbagi kode yang
+                # sama (dipakai buat identifikasi QR & URL pesan tamu).
+                db.session.rollback()
+                flash(
+                    _("Kode meja %(code)s sudah dipakai meja lain. Pakai kode lain.", code=code),
+                    "danger",
+                )
+                return redirect(url_for("staff.table_map"))
+
+            try:
+                _generate_table_qr(table)
+            except OSError:
+                # Gagal simpan file QR - jangan tinggalkan meja tanpa QR,
+                # batalkan juga baris mejanya supaya tidak nyangkut di DB.
+                db.session.delete(table)
+                db.session.commit()
+                flash(
+                    _("Gagal membuat QR untuk meja %(label)s. Coba lagi.", label=label),
+                    "danger",
+                )
+                return redirect(url_for("staff.table_map"))
+
             flash(_("Meja %(label)s ditambahkan beserta QR code-nya.", label=label), "success")
         else:
             flash(_("Lengkapi label, lantai, dan kode meja."), "danger")
@@ -374,6 +401,15 @@ def table_qr_print(table_id):
     return render_template("staff/table_qr_print.html", table=table, settings=settings)
 
 
+def _pdf_safe(text):
+    """Font base-14 reportlab (Helvetica/Courier) pakai encoding mirip
+    cp1252 - karakter di luar situ (emoji, tanda kutip pintar hasil
+    copy-paste, dst) di teks yang diketik user (nama toko, nama meja,
+    WiFi, item menu, dll) bikin UnicodeEncodeError dan gagalkan seluruh
+    PDF. Ganti karakter yang tidak didukung jadi '?' daripada crash 500."""
+    return str(text).encode("cp1252", errors="replace").decode("cp1252")
+
+
 def _draw_table_qr_card(c, table, settings, page_w, page_h, margin):
     """Gambar 1 kartu QR meja ke canvas reportlab yang sudah ada (dipakai
     bareng table_qr_pdf & floor_qr_pdf) - TIDAK showPage()/save() sendiri,
@@ -387,7 +423,7 @@ def _draw_table_qr_card(c, table, settings, page_w, page_h, margin):
     def center_text(text, y, size=10, bold=False, color=(0.05, 0.3, 0.46)):
         c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
         c.setFillColorRGB(*color)
-        c.drawCentredString(page_w / 2, y, text)
+        c.drawCentredString(page_w / 2, y, _pdf_safe(text))
 
     y = page_h - margin
 
@@ -439,7 +475,7 @@ def _draw_table_qr_card(c, table, settings, page_w, page_h, margin):
             wifi_value += f"  ·  {_('Pass')}: {settings.wifi_password}"
         c.setFont("Helvetica-Bold", 9)
         c.setFillColorRGB(0.05, 0.3, 0.46)
-        c.drawCentredString(page_w / 2, y - 8.5 * mm, wifi_value)
+        c.drawCentredString(page_w / 2, y - 8.5 * mm, _pdf_safe(wifi_value))
         y -= wifi_h + 4 * mm
 
     qr_path = os.path.join(current_app.static_folder, "qrcodes", f"{table.code}.png")
@@ -840,6 +876,13 @@ def paid_order_status():
 def pay_order(order_id):
     order = Order.query.get_or_404(order_id)
 
+    if order.is_paid:
+        # Submit dobel (klik 2x, tombol back lalu resubmit, atau 2 kasir
+        # buka order yang sama) - tanpa guard ini, data kasir/metode bayar
+        # yang sudah tercatat bisa ketiban timpa oleh submit kedua.
+        flash(_("Pesanan #%(id)s sudah dibayar sebelumnya.", id=order.id), "warning")
+        return redirect(url_for("staff.receipt", order_id=order.id))
+
     method = request.form.get("payment_method")
 
     if method not in PAYMENT_METHODS:
@@ -1001,15 +1044,15 @@ def receipt_pdf(order_id):
         nonlocal y
         c.setFont("Courier-Bold" if bold else "Courier", size or font_size)
         c.setFillGray(0.33 if muted else 0)
-        c.drawCentredString(page_w / 2, y - font_size * 0.8, text)
+        c.drawCentredString(page_w / 2, y - font_size * 0.8, _pdf_safe(text))
         y -= line_h
 
     def row(left, right, bold=False, muted=False):
         nonlocal y
         c.setFont("Courier-Bold" if bold else "Courier", font_size)
         c.setFillGray(0.27 if muted else 0)
-        c.drawString(margin, y - font_size * 0.8, left)
-        c.drawRightString(page_w - margin, y - font_size * 0.8, right)
+        c.drawString(margin, y - font_size * 0.8, _pdf_safe(left))
+        c.drawRightString(page_w - margin, y - font_size * 0.8, _pdf_safe(right))
         y -= line_h
 
     def divider(dashed=True):
@@ -2798,8 +2841,16 @@ def _factory_reset():
     bulk delete, bukan lewat relationship cascade ORM, supaya aman
     terlepas dari cascade aktif atau tidak di DB yang dipakai."""
 
+    # Platform delivery (OrderChannel) & harga khususnya - SENGAJA ikut
+    # dihapus juga (sebelumnya kelewat), soalnya kalau tidak, channel
+    # demo (GoFood/GrabFood/ShopeeFood beserta markup-nya) bisa nyangkut
+    # hidup terus setelah reset dan diam-diam kepakai di pesanan asli.
+    for channel in OrderChannel.query.all():
+        _remove_logo(channel, "logo")
+    MenuItemChannelPrice.query.delete()
     OrderItem.query.delete()
     Order.query.delete()
+    OrderChannel.query.delete()
     MenuItemIngredient.query.delete()
     MenuItem.query.delete()
     Category.query.delete()

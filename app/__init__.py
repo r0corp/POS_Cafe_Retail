@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from flask import Flask, g, jsonify, render_template, request, send_file, session
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_login import LoginManager, current_user
+from flask_login import LoginManager, current_user, logout_user
 from flask_babel import Babel
 from flask_babel import lazy_gettext as _l
 
@@ -154,6 +154,21 @@ def create_app():
         if not last_seen or (now - last_seen).total_seconds() > 20:
             current_user.last_seen_at = now
             db.session.commit()
+
+    @app.before_request
+    def enforce_active_user():
+        # Kalau akun di-nonaktifkan (Pengaturan > Kelola Staf) SAAT user itu
+        # masih login di device lain, sesi lamanya tidak otomatis mati
+        # (cookie login masih valid, hanya toggle di DB) - paksa logout di
+        # request berikutnya supaya staf yang dinonaktifkan langsung
+        # kehilangan akses, bukan baru berhenti setelah dia logout manual.
+        if request.endpoint in (None, "static"):
+            return
+
+        if current_user.is_authenticated and not current_user.is_active_user:
+            logout_user()
+            flash(_l("Akun Anda telah dinonaktifkan. Hubungi Owner."), "danger")
+            return redirect(url_for("auth.login"))
 
     @app.before_request
     def check_maintenance_mode():
