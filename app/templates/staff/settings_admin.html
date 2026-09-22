@@ -57,22 +57,28 @@
             <div class="tab-pane fade show active" id="tab-identity">
               <div class="row g-4">
 
-                <div class="col-12 col-lg-4">
+                <div class="col-12 col-lg-4" style="--form-field-label-width: 120px;">
                   <div class="settings-section-title">
                     <span class="settings-section-num">1</span> {{ _('Identitas Toko') }}
                   </div>
                   <div class="mb-3">
-                    <label class="form-label small fw-semibold">{{ _('Nama Toko') }}</label>
-                    <input type="text" name="shop_name" class="form-control" value="{{ settings.shop_name }}" placeholder="Orulabs Cafe" required>
+                    <div class="form-field-row">
+                      <label class="form-label form-field-label small fw-semibold">{{ _('Nama Toko') }}</label>
+                      <input type="text" name="shop_name" class="form-control" value="{{ settings.shop_name }}" placeholder="Orulabs Cafe" required>
+                    </div>
                     <div class="form-text">{{ _('Tampil di navbar, halaman login, dan menu tamu.') }}</div>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label small fw-semibold">{{ _('Nomor Telepon') }}</label>
-                    <input type="text" name="phone" class="form-control" value="{{ settings.phone or '' }}" placeholder="{{ _('Contoh: 081388xxxxx') }}">
+                    <div class="form-field-row">
+                      <label class="form-label form-field-label small fw-semibold">{{ _('Nomor Telepon') }}</label>
+                      <input type="text" name="phone" class="form-control" value="{{ settings.phone or '' }}" placeholder="{{ _('Contoh: 081388xxxxx') }}">
+                    </div>
                   </div>
                   <div class="mb-1">
-                    <label class="form-label small fw-semibold">{{ _('Alamat Toko') }}</label>
-                    <textarea name="address" class="form-control" rows="2" placeholder="{{ _('Contoh: Jl. Mahoni Blk. E Gg. 2 No.9, Jakarta Utara') }}">{{ settings.address or '' }}</textarea>
+                    <div class="form-field-row">
+                      <label class="form-label form-field-label small fw-semibold">{{ _('Alamat Toko') }}</label>
+                      <textarea name="address" class="form-control" rows="2" placeholder="{{ _('Contoh: Jl. Mahoni Blk. E Gg. 2 No.9, Jakarta Utara') }}">{{ settings.address or '' }}</textarea>
+                    </div>
                   </div>
                 </div>
 
@@ -106,28 +112,28 @@
                   </button>
                 </div>
 
-                <div class="col-12 col-lg-4 settings-col-divider">
+                <div class="col-12 col-lg-4 settings-col-divider" style="--form-field-label-width: 110px;">
                   <div class="settings-section-title">
                     <span class="settings-section-num">3</span> {{ _('Kontak & Sosial') }}
                   </div>
 
-                  <div class="mb-3">
-                    <label class="form-label small fw-semibold"><i class="bi bi-whatsapp"></i> WhatsApp</label>
+                  <div class="mb-3 form-field-row">
+                    <label class="form-label form-field-label small fw-semibold"><i class="bi bi-whatsapp"></i> WhatsApp</label>
                     <input type="text" name="whatsapp" class="form-control" value="{{ settings.whatsapp or '' }}" placeholder="081388xxxxx">
                   </div>
 
-                  <div class="mb-3">
-                    <label class="form-label small fw-semibold"><i class="bi bi-instagram"></i> Instagram</label>
+                  <div class="mb-3 form-field-row">
+                    <label class="form-label form-field-label small fw-semibold"><i class="bi bi-instagram"></i> Instagram</label>
                     <input type="text" name="instagram" class="form-control" value="{{ settings.instagram or '' }}" placeholder="@r0corp">
                   </div>
 
-                  <div class="mb-3">
-                    <label class="form-label small fw-semibold"><i class="bi bi-tiktok"></i> TikTok</label>
+                  <div class="mb-3 form-field-row">
+                    <label class="form-label form-field-label small fw-semibold"><i class="bi bi-tiktok"></i> TikTok</label>
                     <input type="text" name="tiktok" class="form-control" value="{{ settings.tiktok or '' }}" placeholder="@r0corp">
                   </div>
 
-                  <div class="mb-1">
-                    <label class="form-label small fw-semibold"><i class="bi bi-facebook"></i> Facebook</label>
+                  <div class="mb-1 form-field-row">
+                    <label class="form-label form-field-label small fw-semibold"><i class="bi bi-facebook"></i> Facebook</label>
                     <input type="text" name="other_social" class="form-control" value="{{ settings.other_social or '' }}" placeholder="@r0corp">
                   </div>
                 </div>
