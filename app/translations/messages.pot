@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 14:34+0700\n"
+"POT-Creation-Date: 2026-09-22 14:43+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -381,8 +381,8 @@ msgid "Batas Stok Menipis"
 msgstr ""
 
 #: app/blueprints/staff.py:1185 app/blueprints/staff.py:1264
-#: app/templates/staff/settings_admin.html:684
-#: app/templates/staff/settings_admin.html:775
+#: app/templates/staff/settings_admin.html:689
+#: app/templates/staff/settings_admin.html:780
 msgid "Status"
 msgstr ""
 
@@ -1628,7 +1628,7 @@ msgstr ""
 
 #: app/templates/staff/settings_admin.html:155
 #: app/templates/staff/settings_admin.html:177
-#: app/templates/staff/settings_admin.html:329
+#: app/templates/staff/settings_admin.html:334
 msgid "Reset"
 msgstr ""
 
@@ -1746,334 +1746,338 @@ msgid "Sesuaikan dengan ukuran kertas printer thermal Anda."
 msgstr ""
 
 #: app/templates/staff/settings_admin.html:307
-msgid "58mm (umum)"
-msgstr ""
-
-#: app/templates/staff/settings_admin.html:311
 msgid ""
 "58mm - printer thermal kecil/portable, struk lebih ringkas. 80mm - "
 "printer kasir standar, muat lebih banyak kolom per baris."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:318
+#: app/templates/staff/settings_admin.html:310
+msgid "Ukuran Kertas"
+msgstr ""
+
+#: app/templates/staff/settings_admin.html:313
+msgid "58mm (umum)"
+msgstr ""
+
+#: app/templates/staff/settings_admin.html:323
 msgid "QRIS Offline"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:321
+#: app/templates/staff/settings_admin.html:326
 msgid ""
 "Upload gambar QRIS statis toko Anda (dari GoPay Bisnis/DANA Bisnis/bank)."
 " Muncul tombol \"Tampilkan QRIS\" di halaman Kasir, supaya pelayan bisa "
 "langsung tunjukkan QR-nya ke tamu untuk di-scan di meja."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:352
+#: app/templates/staff/settings_admin.html:357
 msgid "Nada Owner (Default Toko)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:355
+#: app/templates/staff/settings_admin.html:360
 msgid ""
 "Mengatur bunyi notifikasi pesanan baru di halaman Dapur & Kasir. Staf "
 "tetap bisa matikan sementara dari tombol suara di halaman masing-masing, "
 "terpisah dari pengaturan ini."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:361
+#: app/templates/staff/settings_admin.html:366
 msgid "Aktifkan Notifikasi Suara"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:362
+#: app/templates/staff/settings_admin.html:367
 msgid ""
 "Kalau dimatikan, halaman Dapur & Kasir tidak akan bunyi sama sekali (mode"
 " bisu penuh)."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:367
+#: app/templates/staff/settings_admin.html:372
 msgid "Volume Notifikasi"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:374
+#: app/templates/staff/settings_admin.html:379
 msgid ""
 "Klik ikon play untuk coba dengarkan, klik kartunya untuk memilih. Nada "
 "ini juga jadi fallback untuk role lain yang belum ditentukan nadanya di "
 "samping."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:382
+#: app/templates/staff/settings_admin.html:387
 msgid "Nada Sendiri (Upload)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:387
-#: app/templates/staff/settings_admin.html:419
-#: app/templates/staff/settings_admin.html:430
-#: app/templates/staff/settings_admin.html:441
-#: app/templates/staff/settings_admin.html:1124
+#: app/templates/staff/settings_admin.html:392
+#: app/templates/staff/settings_admin.html:424
+#: app/templates/staff/settings_admin.html:435
+#: app/templates/staff/settings_admin.html:446
+#: app/templates/staff/settings_admin.html:1129
 msgid "Coba dengarkan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:392
+#: app/templates/staff/settings_admin.html:397
 msgid "Pilih"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:397
+#: app/templates/staff/settings_admin.html:402
 msgid "Hapus nada ini"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:400
+#: app/templates/staff/settings_admin.html:405
 msgid "Belum ada nada yang diupload."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:404
+#: app/templates/staff/settings_admin.html:409
 msgid "Format MP3, WAV, OGG, atau M4A."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:410
+#: app/templates/staff/settings_admin.html:415
 msgid "Nada per Role Staf"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:413
+#: app/templates/staff/settings_admin.html:418
 msgid ""
 "Beda nada per role membantu Anda mengenali device siapa yang bunyi saat "
 "notifikasi masuk. Kosongkan supaya ikut nada Owner di samping."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:417
+#: app/templates/staff/settings_admin.html:422
 msgid "Nada untuk Dapur"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:423
-#: app/templates/staff/settings_admin.html:434
-#: app/templates/staff/settings_admin.html:445
+#: app/templates/staff/settings_admin.html:428
+#: app/templates/staff/settings_admin.html:439
+#: app/templates/staff/settings_admin.html:450
 msgid "Ikuti Nada Owner"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:428
+#: app/templates/staff/settings_admin.html:433
 msgid "Nada untuk Kasir"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:439
+#: app/templates/staff/settings_admin.html:444
 msgid "Nada untuk Pelayan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:452
+#: app/templates/staff/settings_admin.html:457
 msgid ""
 "Pelayan dengar nada ini saat ada pesanan yang siap diantar dari Dapur. "
 "Kasir juga dengar nada ini saat ada pembayaran selesai diproses kasir "
 "lain."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:468
+#: app/templates/staff/settings_admin.html:473
 msgid ""
 "Kelola platform pesan-antar yang dipakai toko - kasir bisa langsung buat "
 "pesanan tanpa pilih meja lewat platform yang aktif di sini."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:492
-#: app/templates/staff/settings_admin.html:553
+#: app/templates/staff/settings_admin.html:497
+#: app/templates/staff/settings_admin.html:558
 msgid "Logo Platform"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:497
+#: app/templates/staff/settings_admin.html:502
 msgid "Hapus Logo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:503
-#: app/templates/staff/settings_admin.html:557
+#: app/templates/staff/settings_admin.html:508
+#: app/templates/staff/settings_admin.html:562
 msgid "Mode Harga"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:505
-#: app/templates/staff/settings_admin.html:559
+#: app/templates/staff/settings_admin.html:510
+#: app/templates/staff/settings_admin.html:564
 msgid "Markup Persentase"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:506
-#: app/templates/staff/settings_admin.html:560
+#: app/templates/staff/settings_admin.html:511
+#: app/templates/staff/settings_admin.html:565
 msgid "Harga Manual per Menu"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:511
-#: app/templates/staff/settings_admin.html:564
+#: app/templates/staff/settings_admin.html:516
+#: app/templates/staff/settings_admin.html:569
 #, python-format
 msgid "Markup (%%)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:517
-#: app/templates/staff/settings_admin.html:686
+#: app/templates/staff/settings_admin.html:522
+#: app/templates/staff/settings_admin.html:691
 msgid "Aktif"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:522
+#: app/templates/staff/settings_admin.html:527
 msgid "Simpan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:532
+#: app/templates/staff/settings_admin.html:537
 #, python-format
 msgid "Hapus platform %(name)s?"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:534
+#: app/templates/staff/settings_admin.html:539
 msgid "Hapus Platform"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:545
+#: app/templates/staff/settings_admin.html:550
 msgid "+ Tambah Platform Baru"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:549
+#: app/templates/staff/settings_admin.html:554
 msgid "Nama Platform"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:569
+#: app/templates/staff/settings_admin.html:574
 msgid "Tambah Platform"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:584
+#: app/templates/staff/settings_admin.html:589
 msgid "Bersihkan Cache Aplikasi"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:589
+#: app/templates/staff/settings_admin.html:594
 msgid "Paksa semua device ambil gambar (logo, foto, QR) versi terbaru."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:594
+#: app/templates/staff/settings_admin.html:599
 msgid "Ukuran Cache Gambar"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:612
+#: app/templates/staff/settings_admin.html:617
 msgid "Belum ada gambar yang diupload."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:618
+#: app/templates/staff/settings_admin.html:623
 msgid "Bersihkan Cache"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:627
+#: app/templates/staff/settings_admin.html:632
 msgid "Backup Database"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:632
+#: app/templates/staff/settings_admin.html:637
 msgid "Backup database & semua gambar dalam 1 file .zip."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:639
+#: app/templates/staff/settings_admin.html:644
 msgid "Belum ada backup. Klik \"Buat Backup Baru\" untuk membuat yang pertama."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:656
+#: app/templates/staff/settings_admin.html:661
 #, python-format
 msgid "Hapus backup %(name)s? Tidak bisa dibatalkan."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:670
+#: app/templates/staff/settings_admin.html:675
 msgid "Buat Backup Baru"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:679
+#: app/templates/staff/settings_admin.html:684
 msgid "Mode Demo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:688
-#: app/templates/staff/settings_admin.html:779
+#: app/templates/staff/settings_admin.html:693
+#: app/templates/staff/settings_admin.html:784
 #: app/templates/staff/users_admin.html:72
 msgid "Nonaktif"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:693
+#: app/templates/staff/settings_admin.html:698
 msgid "PIN Mode Demo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:695
-#: app/templates/staff/settings_admin.html:813
+#: app/templates/staff/settings_admin.html:700
+#: app/templates/staff/settings_admin.html:818
 msgid "Buka Kunci"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:699
-#: app/templates/staff/settings_admin.html:817
+#: app/templates/staff/settings_admin.html:704
+#: app/templates/staff/settings_admin.html:822
 msgid "PIN salah."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:702
+#: app/templates/staff/settings_admin.html:707
 msgid "Kunci Demo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:707
+#: app/templates/staff/settings_admin.html:712
 msgid ""
 "Isi menu & inventory contoh untuk demo - aman, tidak menyentuh data asli "
 "toko."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:713
+#: app/templates/staff/settings_admin.html:718
 msgid "Data contoh yang sedang dimuat"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:715
+#: app/templates/staff/settings_admin.html:720
 msgid "Isi data contoh kalau dinyalakan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:721
+#: app/templates/staff/settings_admin.html:726
 #, python-format
 msgid "%(count)s kategori"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:725
+#: app/templates/staff/settings_admin.html:730
 #, python-format
 msgid "%(count)s menu (dengan foto)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:729
+#: app/templates/staff/settings_admin.html:734
 #, python-format
 msgid "%(count)s bahan baku"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:733
+#: app/templates/staff/settings_admin.html:738
 #, python-format
 msgid "%(count)s meja (Lantai 1)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:737
+#: app/templates/staff/settings_admin.html:742
 #, python-format
 msgid "%(count)s platform delivery"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:741
+#: app/templates/staff/settings_admin.html:746
 msgid "Identitas & logo toko (sementara)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:747
+#: app/templates/staff/settings_admin.html:752
 msgid "Matikan Mode Demo? Semua data contoh akan dihapus."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:750
+#: app/templates/staff/settings_admin.html:755
 msgid "Matikan Mode Demo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:754
+#: app/templates/staff/settings_admin.html:759
 msgid "Aktifkan Mode Demo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:767
+#: app/templates/staff/settings_admin.html:772
 msgid "Mode Perbaikan (Maintenance)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:777
+#: app/templates/staff/settings_admin.html:782
 msgid "Aktif - hanya Owner yang bisa akses"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:784
+#: app/templates/staff/settings_admin.html:789
 msgid ""
 "Aktifkan Mode Perbaikan? Kasir, dapur, dan pelayan tidak akan bisa "
 "memakai aplikasi sampai kamu matikan lagi."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:787
+#: app/templates/staff/settings_admin.html:792
 msgid "Matikan Mode Perbaikan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:791
+#: app/templates/staff/settings_admin.html:796
 msgid "Aktifkan Mode Perbaikan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:798
+#: app/templates/staff/settings_admin.html:803
 msgid ""
 "Aktifkan saat sedang ada perbaikan kode di server produksi. Selama aktif,"
 " semua pengguna lain (kasir, dapur, pelayan, dan siapa pun yang belum "
@@ -2082,20 +2086,20 @@ msgid ""
 "sebelum dinyalakan lagi ke semua orang."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:806
-#: app/templates/staff/settings_admin.html:832
+#: app/templates/staff/settings_admin.html:811
+#: app/templates/staff/settings_admin.html:837
 msgid "Reset ke Mode Pabrik"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:811
+#: app/templates/staff/settings_admin.html:816
 msgid "PIN Reset Pabrik"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:820
+#: app/templates/staff/settings_admin.html:825
 msgid "Kunci Reset"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:826
+#: app/templates/staff/settings_admin.html:831
 msgid ""
 "Kosongkan kategori, menu, bahan baku, meja, lantai, riwayat pesanan, dan "
 "kembalikan Pengaturan Toko ke kondisi kosong - KECUALI menu Pengguna, "
@@ -2103,13 +2107,13 @@ msgid ""
 "dan tidak bisa dibatalkan."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:830
+#: app/templates/staff/settings_admin.html:835
 msgid ""
 "YAKIN reset ke mode pabrik? Semua data toko akan hilang permanen, kecuali"
 " daftar pengguna. Tindakan ini TIDAK BISA dibatalkan."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:847
+#: app/templates/staff/settings_admin.html:852
 msgid "Simpan Pengaturan"
 msgstr ""
 
