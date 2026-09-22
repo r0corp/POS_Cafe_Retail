@@ -326,20 +326,27 @@
 {% endblock %}
 
 <script>
-  // Posisi toast selalu di BAWAH navbar (bukan angka tetap) - navbar-nya
-  // "sticky" dan tingginya beda-beda tergantung lebar layar (brand +
-  // jam kadang jadi 1 baris, kadang 2). Dihitung SEBELUM markup toast
-  // di bawah ini di-render, supaya tidak ada "lompatan" posisi begitu
-  // toast pertama kali muncul.
+  // Ukuran navbar (sticky, tingginya beda-beda tergantung lebar layar -
+  // brand+jam kadang jadi 1 baris, kadang 2) dipakai buat 2 hal, jadi
+  // dihitung sekali di sini SEBELUM konten di bawah ini di-render:
+  //   1. --toast-top: posisi toast selalu tepat di BAWAH navbar.
+  //   2. --navbar-backdrop-height: .app-navbar-backdrop tadinya cuma
+  //      setinggi 14px (celah DI ATAS navbar doang), padahal navbar
+  //      juga punya jarak 16px di kiri/kanan (margin kartu) yang TIDAK
+  //      ketutup apa-apa - pas discroll, judul/teks konten di
+  //      belakangnya "bocor" nongol tepat di celah kiri/kanan itu.
+  //      Backdrop-nya diperpanjang sampai tepi bawah navbar (bukan cuma
+  //      14px) supaya celah kiri-kanannya ikut ketutup penuh juga.
   (function () {
-    function positionToastStack() {
+    function positionNavbarElements() {
       var navbar = document.querySelector(".app-navbar");
       if (!navbar) return;
       var rect = navbar.getBoundingClientRect();
       document.documentElement.style.setProperty("--toast-top", (rect.bottom + 12) + "px");
+      document.documentElement.style.setProperty("--navbar-backdrop-height", rect.bottom + "px");
     }
-    positionToastStack();
-    window.addEventListener("resize", positionToastStack);
+    positionNavbarElements();
+    window.addEventListener("resize", positionNavbarElements);
   })();
 </script>
 

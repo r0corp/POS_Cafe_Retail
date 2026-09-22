@@ -107,17 +107,20 @@ a {
    ============================================================ */
 /* Navbar-nya "sticky" - tetap nempel di atas layar pas halaman
    di-scroll ke bawah, tidak ikut hilang ke atas bareng konten. Karena
-   nav-nya punya jarak (top:14px) dari tepi layar, celah 14px di ATAS
-   nav itu sendiri tidak ketutup apa-apa - konten yang lagi di-scroll
-   bisa "nongol" sekilas di celah itu. .app-navbar-backdrop nutup
-   celah itu spesifik (fixed, warna sama kayak background halaman)
+   nav-nya punya jarak dari tepi layar (atas 14px, DAN kiri/kanan 16px
+   dari margin kartunya), celah-celah itu sendiri tidak ketutup apa-apa
+   - konten yang lagi di-scroll bisa "bocor" nongol di situ (paling
+   kentara di celah kiri/kanan). .app-navbar-backdrop nutup semua celah
+   itu sekaligus (fixed, full width, warna sama kayak background
+   halaman, tinggi mengikuti tepi bawah navbar lewat --navbar-backdrop-
+   height dari JS - lihat script "positionNavbarElements" di base.html)
    supaya tidak ada yang keliatan nongol lagi. */
 .app-navbar-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 14px;
+  height: var(--navbar-backdrop-height, 14px);
   background: var(--color-bg);
   z-index: 39;
 }
@@ -240,9 +243,10 @@ a {
 }
 
 @media (max-width: 575.98px) {
-  .app-navbar-backdrop {
-    height: 10px;
-  }
+  /* Tinggi .app-navbar-backdrop TIDAK di-override di sini lagi - JS
+     (positionNavbarElements) sudah menghitung ulang --navbar-backdrop-
+     height tiap kali ukuran layar berubah, termasuk margin 10px + tepi
+     bawah navbar yang lebih pendek/kadang 2-baris di lebar ini. */
 
   .app-navbar {
     top: 10px;
