@@ -1299,6 +1299,35 @@ a.profile-dropdown-row-link:hover {
   box-shadow: 0 0 0 3px var(--color-accent-light);
 }
 
+/* Label sejajar di samping field-nya (bukan di atas) - dipakai lewat
+   class ".form-field-row" pada div pembungkus label+field. Otomatis
+   pindah ke atas field lagi kalau ruangnya sempit, TANPA media query -
+   cukup mengandalkan flex-wrap: begitu field (flex-basis 160px) tidak
+   muat lagi sejajar dengan label di lebar container saat ini, field-nya
+   pindah baris sendiri dan otomatis melebar penuh karena flex-grow. Ini
+   masih versi coba-coba di satu form (Tambah User) dulu - kalau sudah
+   oke baru dipasang di form lain. */
+.form-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+}
+
+.form-field-row > .form-field-label {
+  flex: 0 0 auto;
+  min-width: 80px;
+  margin-bottom: 0;
+}
+
+.form-field-row > .form-control,
+.form-field-row > .form-select,
+.form-field-row > .elegant-select {
+  flex: 1 1 160px;
+  min-width: 160px;
+}
+
 /* Seragamkan semua field teks/textarea/select dengan tampilan field
    opsi (elegant-select-trigger) - border, radius, padding, font-size
    sama persis supaya tidak ada yang terlihat "lebih besar/kotak". */
