@@ -116,6 +116,10 @@
               {% endif %}
             </div>
 
+            <div class="seat-table-row">
+              <span class="seat-label">{{ table.label }}</span>
+            </div>
+
             {% if not order %}
               <div class="seat-empty-icon" aria-hidden="true">
                 <svg width="46" height="34" viewBox="0 0 60 44">
@@ -127,10 +131,6 @@
                 </svg>
               </div>
             {% endif %}
-
-            <div class="seat-table-row">
-              <span class="seat-label">{{ table.label }}</span>
-            </div>
             {% if order %}
               <div class="seat-sub">
                 {{ _('Pesanan #%(id)s', id=order.id) }}
