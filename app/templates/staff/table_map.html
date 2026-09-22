@@ -98,7 +98,21 @@
                 <span class="seat-status-text">{{ _('Terisi') if order else _('Kosong') }}</span>
               </div>
               {% if is_owner %}
-                <button type="button" class="seat-qr-btn" data-bs-toggle="modal" data-bs-target="#qrModal{{ table.id }}" title="{{ _('Detail meja') }}" aria-label="{{ _('Detail meja') }}"></button>
+                <button type="button" class="seat-qr-btn" data-bs-toggle="modal" data-bs-target="#qrModal{{ table.id }}" title="{{ _('Detail meja') }}" aria-label="{{ _('Detail meja') }}">
+                  <svg class="seat-qr-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"></circle>
+                    <rect x="4.5" y="4.5" width="5" height="5" rx="0.6" stroke="currentColor" stroke-width="1.4"></rect>
+                    <rect x="14.5" y="4.5" width="5" height="5" rx="0.6" stroke="currentColor" stroke-width="1.4"></rect>
+                    <rect x="4.5" y="14.5" width="5" height="5" rx="0.6" stroke="currentColor" stroke-width="1.4"></rect>
+                    <rect x="6.4" y="6.4" width="1.4" height="1.4" fill="currentColor"></rect>
+                    <rect x="16.4" y="6.4" width="1.4" height="1.4" fill="currentColor"></rect>
+                    <rect x="6.4" y="16.4" width="1.4" height="1.4" fill="currentColor"></rect>
+                    <rect x="13.3" y="13.3" width="1.6" height="1.6" fill="currentColor"></rect>
+                    <rect x="16.2" y="13.3" width="1.6" height="1.6" fill="currentColor"></rect>
+                    <rect x="13.3" y="16.2" width="1.6" height="1.6" fill="currentColor"></rect>
+                    <rect x="16.2" y="16.8" width="1.4" height="1.4" fill="currentColor"></rect>
+                  </svg>
+                </button>
               {% endif %}
             </div>
 
