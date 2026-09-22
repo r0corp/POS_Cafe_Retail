@@ -107,7 +107,7 @@
                   </div>
                 </div>
 
-                <div class="col-12 col-lg-3 settings-col-divider" style="--form-field-label-width: 90px;">
+                <div class="col-12 col-lg-3 settings-col-divider" style="--form-field-label-width: 100px;">
                   <div class="settings-section-title">
                     <span class="settings-section-num">3</span> {{ _('Info WiFi') }}
                   </div>
@@ -117,12 +117,12 @@
 
                   <div class="mb-3 form-field-row">
                     <label class="form-label form-field-label small fw-semibold">{{ _('Nama WiFi') }}</label>
-                    <input type="text" name="wifi_name" class="form-control" value="{{ settings.wifi_name or '' }}" placeholder="{{ _('Contoh: KafeSaya-Tamu') }}">
+                    <input type="text" name="wifi_name" class="form-control" style="flex: 1 1 100px; min-width: 0;" value="{{ settings.wifi_name or '' }}" placeholder="{{ _('Contoh: KafeSaya-Tamu') }}">
                   </div>
 
                   <div class="mb-1 form-field-row">
                     <label class="form-label form-field-label small fw-semibold">{{ _('Password WiFi') }}</label>
-                    <input type="text" name="wifi_password" class="form-control" value="{{ settings.wifi_password or '' }}" placeholder="{{ _('Kosongkan kalau WiFi tanpa password') }}">
+                    <input type="text" name="wifi_password" class="form-control" style="flex: 1 1 100px; min-width: 0;" value="{{ settings.wifi_password or '' }}" placeholder="{{ _('Kosongkan kalau WiFi tanpa password') }}">
                   </div>
                 </div>
 
