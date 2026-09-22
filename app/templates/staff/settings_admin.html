@@ -149,20 +149,17 @@
                         <div class="form-field-row mb-2" style="--form-field-label-width: 100px;">
                           <label class="form-label form-field-label small fw-semibold">{{ _('Logo Persegi') }}</label>
                           <div style="flex: 1 1 100px; min-width: 0;">
-                            <input type="file" name="logo_square" class="form-control form-control-sm" style="width: 100%; min-width: 0;" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                            <input type="file" name="logo_square" id="logoSquareInput" class="form-control form-control-sm" style="width: 100%; min-width: 0;" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview-img="logoSquarePreviewImg" data-preview-placeholder="logoSquarePreviewPlaceholder">
                             {% if settings.logo_square %}
                               <input type="checkbox" class="btn-check" name="remove_logo_square" value="1" id="removeSquare" autocomplete="off">
                               <label class="btn btn-sm btn-outline-danger mt-2" for="removeSquare">{{ _('Reset') }}</label>
                             {% endif %}
                           </div>
-                          {% if settings.logo_square %}
-                            <img src="{{ url_for('static', filename='uploads/branding/' + settings.logo_square) }}"
-                                 alt="{{ _('Logo persegi') }}" style="width: 56px; height: 56px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px; flex-shrink: 0;">
-                          {% else %}
-                            <div class="d-flex align-items-center justify-content-center text-muted" style="width: 56px; height: 56px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm); flex-shrink: 0;">
-                              <i class="bi bi-image"></i>
-                            </div>
-                          {% endif %}
+                          <img id="logoSquarePreviewImg" src="{{ url_for('static', filename='uploads/branding/' + settings.logo_square) if settings.logo_square else '' }}"
+                               alt="{{ _('Logo persegi') }}" class="{{ '' if settings.logo_square else 'd-none' }}" style="width: 56px; height: 56px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px; flex-shrink: 0;">
+                          <div id="logoSquarePreviewPlaceholder" class="d-flex align-items-center justify-content-center text-muted {{ 'd-none' if settings.logo_square else '' }}" style="width: 56px; height: 56px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm); flex-shrink: 0;">
+                            <i class="bi bi-image"></i>
+                          </div>
                         </div>
                         <div class="form-text">{{ _('Navbar & halaman login. Idealnya rasio 1:1.') }}</div>
                       </div>
@@ -171,20 +168,17 @@
                         <div class="form-field-row mb-2" style="--form-field-label-width: 100px;">
                           <label class="form-label form-field-label small fw-semibold">{{ _('Logo Panjang') }}</label>
                           <div style="flex: 1 1 100px; min-width: 0;">
-                            <input type="file" name="logo_wide" class="form-control form-control-sm" style="width: 100%; min-width: 0;" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                            <input type="file" name="logo_wide" id="logoWideInput" class="form-control form-control-sm" style="width: 100%; min-width: 0;" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview-img="logoWidePreviewImg" data-preview-placeholder="logoWidePreviewPlaceholder">
                             {% if settings.logo_wide %}
                               <input type="checkbox" class="btn-check" name="remove_logo_wide" value="1" id="removeWide" autocomplete="off">
                               <label class="btn btn-sm btn-outline-danger mt-2" for="removeWide">{{ _('Reset') }}</label>
                             {% endif %}
                           </div>
-                          {% if settings.logo_wide %}
-                            <img src="{{ url_for('static', filename='uploads/branding/' + settings.logo_wide) }}"
-                                 alt="{{ _('Logo panjang') }}" style="width: 100px; height: 56px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px; flex-shrink: 0;">
-                          {% else %}
-                            <div class="d-flex align-items-center justify-content-center text-muted" style="width: 100px; height: 56px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm); flex-shrink: 0;">
-                              <i class="bi bi-image"></i>
-                            </div>
-                          {% endif %}
+                          <img id="logoWidePreviewImg" src="{{ url_for('static', filename='uploads/branding/' + settings.logo_wide) if settings.logo_wide else '' }}"
+                               alt="{{ _('Logo panjang') }}" class="{{ '' if settings.logo_wide else 'd-none' }}" style="width: 100px; height: 56px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px; flex-shrink: 0;">
+                          <div id="logoWidePreviewPlaceholder" class="d-flex align-items-center justify-content-center text-muted {{ 'd-none' if settings.logo_wide else '' }}" style="width: 100px; height: 56px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm); flex-shrink: 0;">
+                            <i class="bi bi-image"></i>
+                          </div>
                         </div>
                         <div class="form-text">{{ _('Header menu tamu & kop struk. Rasio landscape.') }}</div>
                       </div>
@@ -332,21 +326,18 @@
                     <div class="flex-grow-1 form-field-row" style="--form-field-label-width: 90px; min-width: 0;">
                       <label class="form-label form-field-label small">{{ _('Upload QRIS') }}</label>
                       <div style="flex: 1 1 100px; min-width: 0;">
-                        <input type="file" name="qris_image" class="form-control form-control-sm" style="width: 100%; min-width: 0;" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                        <input type="file" name="qris_image" id="qrisImageInput" class="form-control form-control-sm" style="width: 100%; min-width: 0;" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview-img="qrisPreviewImg" data-preview-placeholder="qrisPreviewPlaceholder">
                         {% if settings.qris_image %}
                           <input type="checkbox" class="btn-check" name="remove_qris_image" value="1" id="removeQris" autocomplete="off">
                           <label class="btn btn-sm btn-outline-danger mt-2" for="removeQris">{{ _('Reset') }}</label>
                         {% endif %}
                       </div>
                     </div>
-                    {% if settings.qris_image %}
-                      <img src="{{ url_for('static', filename='uploads/branding/' + settings.qris_image) }}"
-                           alt="QRIS" style="width: 100px; height: 100px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px; flex-shrink: 0;">
-                    {% else %}
-                      <div class="d-flex align-items-center justify-content-center text-muted" style="width: 100px; height: 100px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm); flex-shrink: 0;">
-                        <i class="bi bi-qr-code fs-3"></i>
-                      </div>
-                    {% endif %}
+                    <img id="qrisPreviewImg" src="{{ url_for('static', filename='uploads/branding/' + settings.qris_image) if settings.qris_image else '' }}"
+                         alt="QRIS" class="{{ '' if settings.qris_image else 'd-none' }}" style="width: 100px; height: 100px; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px; flex-shrink: 0;">
+                    <div id="qrisPreviewPlaceholder" class="d-flex align-items-center justify-content-center text-muted {{ 'd-none' if settings.qris_image else '' }}" style="width: 100px; height: 100px; border: 1px dashed var(--color-border); border-radius: var(--radius-sm); flex-shrink: 0;">
+                      <i class="bi bi-qr-code fs-3"></i>
+                    </div>
                   </div>
                 </div>
 
@@ -486,21 +477,18 @@
                   <form method="post" action="{{ url_for('staff.channel_update', channel_id=channel.id) }}" enctype="multipart/form-data" style="--form-field-label-width: 100px;">
                     <div class="mb-3 form-field-row">
                       <div class="form-field-label">
-                        {% if channel.logo %}
-                          <img src="{{ url_for('static', filename='uploads/branding/' + channel.logo) }}" alt="{{ channel.name }}"
-                               style="width: 64px; height: 64px; object-fit: contain; border-radius: 10px; border: 1px solid var(--color-border);">
-                        {% else %}
-                          <div style="width: 64px; height: 64px; border-radius: 10px; border: 1px dashed var(--color-border); display: flex; align-items: center; justify-content: center;">
-                            <i class="bi bi-image text-muted" style="font-size: 1.3rem;"></i>
-                          </div>
-                        {% endif %}
+                        <img id="channelLogoPreview{{ channel.id }}" src="{{ url_for('static', filename='uploads/branding/' + channel.logo) if channel.logo else '' }}" alt="{{ channel.name }}"
+                             class="{{ '' if channel.logo else 'd-none' }}" style="width: 64px; height: 64px; object-fit: contain; border-radius: 10px; border: 1px solid var(--color-border);">
+                        <div id="channelLogoPlaceholder{{ channel.id }}" class="{{ 'd-none' if channel.logo }}" style="width: 64px; height: 64px; border-radius: 10px; border: 1px dashed var(--color-border); display: flex; align-items: center; justify-content: center;">
+                          <i class="bi bi-image text-muted" style="font-size: 1.3rem;"></i>
+                        </div>
                       </div>
                       <input type="text" name="name" class="form-control form-control-sm" value="{{ channel.name }}" required>
                     </div>
 
                     <div class="mb-2 form-field-row">
                       <label class="form-label form-field-label small">{{ _('Logo Platform') }}</label>
-                      <input type="file" name="logo" id="logoFile{{ channel.id }}" class="form-control form-control-sm logo-file-input {{ 'd-none' if channel.logo }}" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                      <input type="file" name="logo" id="logoFile{{ channel.id }}" class="form-control form-control-sm logo-file-input {{ 'd-none' if channel.logo }}" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview-img="channelLogoPreview{{ channel.id }}" data-preview-placeholder="channelLogoPlaceholder{{ channel.id }}">
                       <input type="checkbox" name="remove_logo" id="removeLogo{{ channel.id }}" class="d-none logo-remove-flag" value="1">
                       {% if channel.logo %}
                         <button type="button" class="btn btn-sm btn-outline-danger logo-delete-btn" data-file-input="logoFile{{ channel.id }}" data-remove-input="removeLogo{{ channel.id }}">
@@ -878,6 +866,10 @@
       if (fileInput) {
         fileInput.value = "";
         fileInput.classList.remove("d-none");
+        const img = document.getElementById(fileInput.dataset.previewImg || "");
+        const placeholder = document.getElementById(fileInput.dataset.previewPlaceholder || "");
+        if (img) img.classList.add("d-none");
+        if (placeholder) placeholder.classList.remove("d-none");
       }
       btn.classList.add("d-none");
     });
@@ -892,6 +884,23 @@
       const row = input.closest(".form-field-row");
       const removeInput = row ? row.querySelector(".logo-remove-flag") : null;
       if (removeInput) removeInput.checked = false;
+    });
+  });
+
+  // Auto-preview gambar - begitu file dipilih di field upload manapun
+  // yang punya data-preview-img (Logo Persegi, Logo Panjang, QRIS
+  // Offline, Logo tiap Platform Delivery), langsung tampilkan gambarnya
+  // di kotak pratinjau tanpa perlu tekan Simpan dulu.
+  document.querySelectorAll("input[type=file][data-preview-img]").forEach(function (input) {
+    input.addEventListener("change", function () {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const img = document.getElementById(input.dataset.previewImg);
+      const placeholder = document.getElementById(input.dataset.previewPlaceholder || "");
+      if (!img) return;
+      img.src = URL.createObjectURL(file);
+      img.classList.remove("d-none");
+      if (placeholder) placeholder.classList.add("d-none");
     });
   });
 
