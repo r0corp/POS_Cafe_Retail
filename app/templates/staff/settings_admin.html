@@ -277,7 +277,7 @@
                   <div class="settings-section-title">
                     <span class="settings-section-num">1</span> {{ _('PPN (Pajak Pertambahan Nilai)') }}
                   </div>
-                  <p class="text-muted small mb-3">
+                  <p class="text-muted small mb-3 settings-section-desc">
                     {{ _('Kalau ada ketentuan PPN dari pemerintah, aktifkan dan masukkan persentasenya di sini - otomatis dihitung & ditambahkan ke total tagihan mulai dari Kasir sampai struk cetak dan laporan penjualan.') }}
                   </p>
                   <div class="d-flex align-items-center gap-3 mb-1">
@@ -302,11 +302,13 @@
                     <span class="settings-section-num">2</span> {{ _('Kertas Struk') }}
                   </div>
                   <div class="mb-1">
-                    <div class="form-text mt-0 mb-1">{{ _('Sesuaikan dengan ukuran kertas printer thermal Anda.') }}</div>
-                    <div class="form-text mt-0 mb-4">
-                      {{ _('58mm - printer thermal kecil/portable, struk lebih ringkas. 80mm - printer kasir standar, muat lebih banyak kolom per baris.') }}
+                    <div class="settings-section-desc">
+                      <div class="form-text mt-0 mb-1">{{ _('Sesuaikan dengan ukuran kertas printer thermal Anda.') }}</div>
+                      <div class="form-text mt-0 mb-0">
+                        {{ _('58mm - printer thermal kecil/portable, struk lebih ringkas. 80mm - printer kasir standar, muat lebih banyak kolom per baris.') }}
+                      </div>
                     </div>
-                    <div class="form-field-row" style="--form-field-label-width: 110px;">
+                    <div class="form-field-row mt-3" style="--form-field-label-width: 110px;">
                       <label class="form-label form-field-label small">{{ _('Ukuran Kertas') }}</label>
                       <div style="flex: 0 0 180px; max-width: 180px;">
                         <select name="receipt_paper_width" class="form-select" data-elegant-select>
@@ -322,7 +324,7 @@
                   <div class="settings-section-title">
                     <span class="settings-section-num">3</span> {{ _('QRIS Offline') }}
                   </div>
-                  <p class="text-muted small mb-3">
+                  <p class="text-muted small mb-3 settings-section-desc">
                     {{ _('Upload gambar QRIS statis toko Anda (dari GoPay Bisnis/DANA Bisnis/bank). Muncul tombol "Tampilkan QRIS" di halaman Kasir, supaya pelayan bisa langsung tunjukkan QR-nya ke tamu untuk di-scan di meja.') }}
                   </p>
 

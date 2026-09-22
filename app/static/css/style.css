@@ -1745,6 +1745,16 @@ textarea.form-control {
   font-weight: 700;
 }
 
+/* Kartu PPN/Kertas Struk/QRIS Offline berdampingan (tab Struk &
+   Pembayaran) punya paragraf pembuka yang panjangnya beda-beda, jadi
+   field di bawahnya jatuh di ketinggian yang beda-beda juga kalau
+   dibiarkan alami. Kasih tinggi minimum yang sama ke paragrafnya
+   (bukan ke seluruh kartu) supaya field-nya mulai dari baris yang
+   sama persis di ketiga kartu. */
+.settings-section-desc {
+  min-height: 84px;
+}
+
 /* Pemisah antar kolom kanan-kiri di tab Struk & Pembayaran - cuma
    muncul begitu kolomnya benar-benar sejajar (breakpoint lg ke atas),
    supaya di layar sempit (kolom ditumpuk vertikal) tidak ada garis
