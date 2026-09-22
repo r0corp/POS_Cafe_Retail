@@ -19,6 +19,7 @@
   --color-success-bg: #DCFCE7;
   --color-warning: #DB6A1D;
   --color-warning-bg: #FBEAD9;
+  --color-warning-dot: rgba(219, 106, 29, 0.16);
   --color-info: #0EA5E9;
   --color-info-bg: #E0F2FE;
   --color-danger: #DC2626;
@@ -70,6 +71,7 @@
   --color-success-bg: rgba(74, 222, 128, 0.15);
   --color-warning: #FB923C;
   --color-warning-bg: rgba(251, 146, 60, 0.16);
+  --color-warning-dot: rgba(251, 146, 60, 0.28);
   --color-info: #38BDF8;
   --color-info-bg: rgba(56, 189, 248, 0.15);
   --color-danger: #F87171;
@@ -2450,13 +2452,11 @@ textarea.form-control {
 /* Kartunya sendiri putih polos + list oranye di atas (sama kayak
    card lain) - status Kosong/Terisi ditandai lewat warna ikon+teks
    (biru/oranye) dan titik+teks status di pojok kiri atas. Kartu
-   Kosong juga dapat tekstur titik halus (warna biru/logo Orulabs)
-   supaya lebih menarik dibanding kartu polos biasa. */
+   Terisi dapat tekstur titik halus (warna oranye) supaya meja yang
+   lagi dipakai lebih menonjol dibanding meja kosong yang polos. */
 .seat-available {
   color: var(--color-primary);
   background-color: var(--color-surface);
-  background-image: radial-gradient(circle, var(--color-primary-dot) 1px, transparent 1.5px);
-  background-size: 14px 14px;
 }
 
 .seat-available:hover {
@@ -2506,6 +2506,8 @@ textarea.form-control {
 
 .seat-occupied {
   color: var(--color-warning);
+  background-image: radial-gradient(circle, var(--color-warning-dot) 1px, transparent 1.5px);
+  background-size: 14px 14px;
 }
 
 /* Ikon meja + nama meja sejajar satu baris (bukan ditumpuk lagi). */
