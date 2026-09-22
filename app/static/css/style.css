@@ -2590,19 +2590,14 @@ textarea.form-control {
 
 /* Tombol QR/detail meja (khusus Owner) - sejajar sama baris status
    (lihat .seat-top-row), ukurannya dibesarkan dikit biar gampang
-   di-tap di tablet. */
+   di-tap di tablet. Cuma outline bulat (bukan latar solid) supaya
+   tidak terlalu "nge-block" - garisnya pakai currentColor, jadi
+   otomatis senada dengan warna icon-nya sendiri (ikut status meja,
+   lihat .seat-available/.seat-occupied di bawah). */
 .seat-qr-btn {
   flex-shrink: 0;
-  border: none;
-  /* Latar sengaja tetap putih di kedua mode gelap/terang (bukan
-     var(--color-bg)/var(--color-heading)) - latarnya pernah kebalap
-     desync waktu ganti tema (icon ikut jadi terang tapi latar tidak),
-     jadi icon-nya hilang (putih di atas putih). Warna icon-nya sendiri
-     ikut status meja (lihat .seat-available/.seat-occupied di bawah) -
-     sama seperti warna tombol aksi di kartu itu (Pesan/Ke Kasir),
-     supaya nyambung, tapi tetap warna solid (bukan var(--color-bg)
-     dkk) jadi kontrasnya tidak ikut goyah pas ganti tema. */
-  background: #FFFFFF;
+  background: transparent;
+  border: 1.5px solid currentColor;
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -2613,7 +2608,7 @@ textarea.form-control {
 }
 
 .seat-qr-btn:hover {
-  background: #fff;
+  background: transparent;
 }
 
 .seat-available .seat-qr-btn {
