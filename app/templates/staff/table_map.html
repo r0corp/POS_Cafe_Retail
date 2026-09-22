@@ -3,48 +3,47 @@
 
 {% block content %}
 <h4 class="mb-3"><span class="page-title-icon"><i class="bi bi-grid-3x3-gap-fill"></i></span>{{ _('Meja') }}</h4>
-<div class="d-flex justify-content-end align-items-center mb-4 flex-wrap gap-2">
-  <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">
-    {{ _('%(available)s / %(total)s kosong', available=available_count, total=total_count) }}
-  </span>
-  {% if is_owner %}
-    <button class="btn btn-sm btn-accent text-nowrap" type="button" data-bs-toggle="collapse" data-bs-target="#addTableForm">
-      <i class="bi bi-plus-circle"></i> {{ _('Tambah Meja') }}
-    </button>
-  {% endif %}
-</div>
 
 {% if is_owner %}
-  <div class="collapse mb-4" id="addTableForm">
-    <div class="card">
-      <div class="card-body">
-        <h6 class="mb-3">{{ _('Tambah Meja Baru') }}</h6>
-        <form method="post" class="row g-2 align-items-end">
-          <div class="col-sm-3">
-            <label class="form-label small">{{ _('Label Meja') }}</label>
-            <input type="text" name="label" class="form-control" placeholder="{{ _('Contoh: Meja 4') }}" required>
-          </div>
-          <div class="col-sm-3">
-            <label class="form-label small">{{ _('Lantai') }}</label>
-            <select name="floor" class="form-select" data-elegant-select required {% if not available_floors %}disabled{% endif %}>
-              {% for floor in available_floors %}
-                <option value="{{ floor.number }}">{{ floor_display_name(floor.number) }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-sm-3">
-            <label class="form-label small">{{ _('Kode Unik') }}</label>
-            <div class="input-group">
-              <span class="input-group-text postab-prefix">postab-</span>
-              <input type="text" name="code" class="form-control" placeholder="001" required>
-            </div>
-          </div>
-          <div class="col-sm-3">
-            <button class="btn btn-accent w-100 text-nowrap" type="submit">{{ _('Tambah') }}</button>
-          </div>
-        </form>
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h6 class="mb-0">{{ _('Tambah Meja Baru') }}</h6>
+        <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">
+          {{ _('%(available)s / %(total)s kosong', available=available_count, total=total_count) }}
+        </span>
       </div>
+      <form method="post" style="--form-field-label-width: 90px;">
+        <div class="form-field-row mb-2">
+          <label class="form-label form-field-label small">{{ _('Label Meja') }}</label>
+          <input type="text" name="label" class="form-control" placeholder="{{ _('Contoh: Meja 4') }}" required>
+        </div>
+        <div class="form-field-row mb-2">
+          <label class="form-label form-field-label small">{{ _('Lantai') }}</label>
+          <select name="floor" class="form-select" data-elegant-select required {% if not available_floors %}disabled{% endif %}>
+            {% for floor in available_floors %}
+              <option value="{{ floor.number }}">{{ floor_display_name(floor.number) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-field-row mb-3">
+          <label class="form-label form-field-label small">{{ _('Kode Unik') }}</label>
+          <div class="input-group">
+            <span class="input-group-text postab-prefix">postab-</span>
+            <input type="text" name="code" class="form-control" placeholder="001" required>
+          </div>
+        </div>
+        <button class="btn btn-accent w-100 text-nowrap" type="submit">
+          <i class="bi bi-plus-circle"></i> {{ _('Tambah Meja') }}
+        </button>
+      </form>
     </div>
+  </div>
+{% else %}
+  <div class="d-flex justify-content-end mb-4">
+    <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">
+      {{ _('%(available)s / %(total)s kosong', available=available_count, total=total_count) }}
+    </span>
   </div>
 {% endif %}
 
