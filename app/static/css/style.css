@@ -3301,7 +3301,7 @@ textarea.form-control {
   z-index: 2100;
   display: flex;
   flex-direction: column;
-  width: min(380px, calc(100vw - 24px));
+  width: min(300px, calc(100vw - 24px));
   pointer-events: none;
   transition: top 0.2s ease;
 }
@@ -3310,13 +3310,13 @@ textarea.form-control {
   position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 0.65rem;
+  gap: 0.5rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-hover);
-  padding: 0.85rem 2.2rem 0.95rem 0.9rem;
-  margin-bottom: 0.6rem;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: 0.55rem 1.7rem 0.6rem 0.7rem;
+  margin-bottom: 0.4rem;
   overflow: hidden;
   pointer-events: auto;
   animation: toastIn 0.25s ease-out;
@@ -3334,7 +3334,7 @@ textarea.form-control {
 
 .toast-icon {
   flex-shrink: 0;
-  font-size: 1.15rem;
+  font-size: 0.95rem;
   line-height: 1.4;
 }
 
@@ -3348,21 +3348,21 @@ textarea.form-control {
 
 .toast-body {
   flex: 1;
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   color: var(--color-text);
-  padding-top: 0.1rem;
+  padding-top: 0.05rem;
 }
 
 .toast-close {
   position: absolute;
-  top: 0.55rem;
-  right: 0.5rem;
+  top: 0.4rem;
+  right: 0.4rem;
   border: none;
   background: transparent;
   color: var(--color-muted);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   line-height: 1;
-  padding: 0.15rem;
+  padding: 0.1rem;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -3376,7 +3376,7 @@ textarea.form-control {
   position: absolute;
   left: 0;
   bottom: 0;
-  height: 3px;
+  height: 2px;
   width: 100%;
   background: var(--color-primary);
   transform-origin: left;
