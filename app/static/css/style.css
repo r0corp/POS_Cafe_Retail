@@ -1213,6 +1213,12 @@ a.profile-dropdown-row-link:hover {
   border-radius: var(--radius-sm);
   padding: 0.32rem 0.65rem;
   font-size: 0.8rem;
+  /* .form-control (Bootstrap) punya line-height: 1.5 bawaan, tapi ini
+     bukan class Bootstrap jadi cuma warisan line-height default
+     browser (~1.15) - bikin trigger-nya lebih pendek dari field teks
+     biasa walau padding & font-size-nya sama persis. Disamakan supaya
+     tingginya identik. */
+  line-height: 1.5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2207,7 +2213,12 @@ textarea.form-control {
   margin: 0;
 }
 
-.add-menu-inline-form button {
+/* ">" (anak langsung) sengaja dipakai, BUKAN "descendant" biasa -
+   supaya cuma kena tombol submit "+ Tambah Menu" (anak langsung form
+   ini), tidak ikut kena tombol trigger dropdown kategori (elegant-
+   select-trigger, anak dari .elegant-select di dalamnya) yang jadi
+   lebih pendek dari field lain kalau line-height-nya ikut ketiban. */
+.add-menu-inline-form > button {
   white-space: normal;
   line-height: 1.2;
 }
