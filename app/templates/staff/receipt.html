@@ -39,13 +39,12 @@
     }
 
     /* Mode Gelap - baca localStorage "theme" yang sama dipakai base.html
-       (lihat <script> kecil sebelum </head>), gradien navy->terang diganti
-       gelap->gelap dengan sorotan oranye Orulabs di bagian atas supaya
-       tetap ada aksen brand-nya, bukan cuma gelap polos. */
+       (lihat <script> kecil sebelum </head>). Bentuk gradiennya disamakan
+       dengan mode terang di atas (oranye di atas, turun ke warna dasar di
+       260px), cuma warna dasarnya diganti gelap supaya tetap konsisten
+       tampilannya di kedua mode, bukan efek glow yang beda sendiri. */
     :root[data-theme="dark"] body {
-      background:
-        radial-gradient(ellipse 900px 420px at 50% -60px, rgba(240, 120, 40, 0.4), transparent 70%),
-        #0F172A;
+      background: linear-gradient(180deg, #B5591C 0%, #0F172A 260px);
     }
 
     /* ---------- Toolbar (layar saja, tidak ikut kecetak) ---------- */
