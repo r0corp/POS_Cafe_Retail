@@ -329,12 +329,15 @@
                   </p>
 
                   <div class="d-flex align-items-start gap-4 mb-2">
-                    <div class="flex-grow-1">
-                      <input type="file" name="qris_image" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
-                      {% if settings.qris_image %}
-                        <input type="checkbox" class="btn-check" name="remove_qris_image" value="1" id="removeQris" autocomplete="off">
-                        <label class="btn btn-sm btn-outline-danger mt-2" for="removeQris">{{ _('Reset') }}</label>
-                      {% endif %}
+                    <div class="flex-grow-1 form-field-row" style="--form-field-label-width: 90px; min-width: 0;">
+                      <label class="form-label form-field-label small">{{ _('Upload QRIS') }}</label>
+                      <div style="flex: 1 1 100px; min-width: 0;">
+                        <input type="file" name="qris_image" class="form-control form-control-sm" style="width: 100%; min-width: 0;" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                        {% if settings.qris_image %}
+                          <input type="checkbox" class="btn-check" name="remove_qris_image" value="1" id="removeQris" autocomplete="off">
+                          <label class="btn btn-sm btn-outline-danger mt-2" for="removeQris">{{ _('Reset') }}</label>
+                        {% endif %}
+                      </div>
                     </div>
                     {% if settings.qris_image %}
                       <img src="{{ url_for('static', filename='uploads/branding/' + settings.qris_image) }}"
