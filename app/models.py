@@ -171,6 +171,14 @@ class Settings(db.Model):
     whatsapp = db.Column(db.String(30))
     other_social = db.Column(db.String(255))
 
+    # Nama & password WiFi toko - ditampilkan di kartu cetak QR meja
+    # (sebelum ajakan "Scan untuk pesan"), soalnya aplikasi ini diakses
+    # lewat jaringan LOKAL (bukan internet publik) - tamu wajib nyambung
+    # ke WiFi toko dulu sebelum QR-nya bisa dibuka. Kosong berarti
+    # blok WiFi tidak ditampilkan sama sekali di kartu QR.
+    wifi_name = db.Column(db.String(100))
+    wifi_password = db.Column(db.String(100))
+
     # Snapshot JSON identitas toko asli (nama, alamat, kontak, nama file
     # logo) - dibuat OTOMATIS sesaat sebelum Mode Demo menimpa field-field
     # itu dengan konten contoh (lihat staff._seed_demo_data()), dan dipakai

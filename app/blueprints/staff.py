@@ -424,6 +424,24 @@ def _draw_table_qr_card(c, table, settings, page_w, page_h, margin):
     center_text(table.floor_label, y, size=9, color=(0.53, 0.53, 0.53))
     y -= 8 * mm
 
+    # Blok "sambungkan WiFi dulu" - lihat catatan di wifi_name/
+    # wifi_password (models.py): aplikasi ini jalan di jaringan LOKAL,
+    # jadi QR-nya baru kebuka kalau tamu sudah nyambung ke WiFi toko.
+    if settings.wifi_name:
+        wifi_h = 11 * mm
+        c.setFillColorRGB(0.988, 0.890, 0.796)
+        c.roundRect(margin, y - wifi_h, content_w, wifi_h, 2 * mm, fill=1, stroke=0)
+        c.setFont("Helvetica-Bold", 6.5)
+        c.setFillColorRGB(0.71, 0.35, 0.11)
+        c.drawCentredString(page_w / 2, y - 4.2 * mm, _("SAMBUNGKAN KE WIFI DULU"))
+        wifi_value = settings.wifi_name
+        if settings.wifi_password:
+            wifi_value += f"  ·  {_('Pass')}: {settings.wifi_password}"
+        c.setFont("Helvetica-Bold", 9)
+        c.setFillColorRGB(0.05, 0.3, 0.46)
+        c.drawCentredString(page_w / 2, y - 8.5 * mm, wifi_value)
+        y -= wifi_h + 4 * mm
+
     qr_path = os.path.join(current_app.static_folder, "qrcodes", f"{table.code}.png")
     qr_size = 55 * mm
     qr_x = (page_w - qr_size) / 2
@@ -457,7 +475,7 @@ def table_qr_pdf(table_id):
     settings = get_settings()
 
     page_w = 90 * mm
-    page_h = 130 * mm
+    page_h = 130 * mm + (12 * mm if settings.wifi_name else 0)
     margin = 8 * mm
 
     buffer = io.BytesIO()
@@ -505,7 +523,7 @@ def floor_qr_pdf(floor_number):
     settings = get_settings()
 
     page_w = 90 * mm
-    page_h = 130 * mm
+    page_h = 130 * mm + (12 * mm if settings.wifi_name else 0)
     margin = 8 * mm
 
     buffer = io.BytesIO()
@@ -2049,6 +2067,8 @@ def admin_settings():
         settings.tiktok = request.form.get("tiktok", "").strip() or None
         settings.whatsapp = request.form.get("whatsapp", "").strip() or None
         settings.other_social = request.form.get("other_social", "").strip() or None
+        settings.wifi_name = request.form.get("wifi_name", "").strip() or None
+        settings.wifi_password = request.form.get("wifi_password", "").strip() or None
 
         settings.notification_enabled = request.form.get("notification_enabled") == "1"
         notification_sound = request.form.get("notification_sound", "church_bell")
@@ -2814,6 +2834,8 @@ def _factory_reset():
     settings.tiktok = None
     settings.whatsapp = None
     settings.other_social = None
+    settings.wifi_name = None
+    settings.wifi_password = None
     settings.app_logo_choice = "square"
     settings.login_logo_choice = "square"
     settings.receipt_logo_choice = "wide"

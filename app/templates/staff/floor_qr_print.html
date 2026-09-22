@@ -175,6 +175,33 @@
       margin-top: 2px;
     }
 
+    /* Blok "sambungkan WiFi dulu" - muncul di ATAS kotak QR (sebelum
+       ajakan scan), soalnya aplikasi ini jalan di jaringan LOKAL, bukan
+       internet publik - QR-nya baru bisa kebuka kalau tamu sudah
+       nyambung ke WiFi toko. Cuma tampil kalau nama WiFi diisi di
+       Pengaturan. */
+    .wifi-hint {
+      background: #FCE3CB;
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+    }
+
+    .wifi-hint-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #B5591C;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .wifi-hint-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0E4C75;
+      margin-top: 2px;
+    }
+
     @media print {
       body { background: #fff; padding-bottom: 0; }
       .toolbar { display: none; }
@@ -225,6 +252,13 @@
 
       <div class="table-label">{{ table.label }}</div>
       <div class="floor-label">{{ table.floor_label }}</div>
+
+      {% if settings.wifi_name %}
+        <div class="wifi-hint">
+          <div class="wifi-hint-label">{{ _('Sambungkan ke WiFi dulu') }}</div>
+          <div class="wifi-hint-value">{{ settings.wifi_name }}{% if settings.wifi_password %} &middot; {{ _('Pass') }}: {{ settings.wifi_password }}{% endif %}</div>
+        </div>
+      {% endif %}
 
       <div class="qr-box">
         <img src="{{ url_for('static', filename='qrcodes/' + table.code + '.png') }}" alt="QR {{ table.label }}">
