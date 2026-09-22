@@ -3,6 +3,23 @@
 Aplikasi POS sederhana untuk kafe/warkop hybrid (order via QR code di
 meja + input manual oleh pelayan), dibuat dengan Flask + SQLite.
 
+## Screenshot
+
+| | |
+|---|---|
+| ![Login](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| Login | Dashboard |
+| ![Denah Meja](docs/screenshots/denah-meja.png) | ![Input Pesanan Manual](docs/screenshots/input-pesanan.jpg) |
+| Denah Meja | Input Pesanan Manual — pilih Jenis Pesanan (Dine in/Takeaway/platform delivery) |
+| ![Kasir](docs/screenshots/kasir.png) | ![Dapur](docs/screenshots/dapur.png) |
+| Kasir | Dapur (badge kecil menandai pesanan dari platform delivery) |
+| ![Kelola Menu](docs/screenshots/kelola-menu.jpg) | ![Laporan](docs/screenshots/laporan.png) |
+| Kelola Menu | Laporan Penjualan |
+| ![Pengaturan Platform Delivery](docs/screenshots/platform-delivery.png) | ![Struk](docs/screenshots/struk-toko.png) |
+| Pengaturan → Platform Delivery | Struk toko biasa |
+| ![Struk platform delivery](docs/screenshots/struk-platform.png) | |
+| Struk pesanan dari platform delivery (pakai logo platform) | |
+
 ## Menjalankan (development)
 
 ```bash
@@ -50,11 +67,18 @@ Buka `http://127.0.0.1:5000` — akan diarahkan ke halaman login.
   begitu dibayar lunas. Khusus Owner, halaman ini juga jadi tempat
   kelola meja: tombol "Tambah Meja" dan ikon QR di tiap kartu untuk
   lihat/cetak QR code-nya — tidak perlu halaman terpisah lagi.
-- `/orders/new` — input pesanan manual oleh pelayan
+- `/orders/new` — input pesanan manual oleh pelayan/kasir. Diawali
+  pilih **Jenis Pesanan**: Makan di Tempat (lanjut pilih meja), Bawa
+  Pulang, atau salah satu **platform delivery** yang aktif (GoFood/
+  GrabFood/ShopeeFood/dll) — untuk jenis selain Makan di Tempat, tidak
+  perlu pilih meja sama sekali, harga menu otomatis menyesuaikan markup
+  platform tersebut.
 - `/kitchen` — antrian dapur, update status pesanan. Ada **notifikasi
   suara otomatis** (2 nada pendek, dibuat langsung lewat Web Audio API
   jadi tidak butuh internet) tiap ada pesanan baru masuk, plus tombol
-  mute/unmute di pojok kanan atas (preferensi tersimpan per-device)
+  mute/unmute di pojok kanan atas (preferensi tersimpan per-device).
+  Pesanan dari platform delivery ditandai lencana kecil logo platform
+  di kartunya, begitu juga di Kasir.
 - `/cashier` — tandai pesanan sudah dibayar (lanjut otomatis ke struk).
   Sama seperti Dapur, ada **notifikasi suara** tiap pesanan baru
   menunggu pembayaran, plus bagian **"Riwayat Hari Ini"** buat cari transaksi yang sudah
@@ -65,7 +89,9 @@ Buka `http://127.0.0.1:5000` — akan diarahkan ke halaman login.
   langsung tunjukkan ke tamu untuk di-scan di meja makan (tidak perlu
   tamu jalan ke kasir).
 - `/orders/<id>/receipt` — struk siap cetak (logo, alamat, kontak,
-  sosial media, nama kasir yang melayani, rincian item)
+  sosial media, nama kasir yang melayani, rincian item). Untuk pesanan
+  dari platform delivery, struk memakai **logo platform** itu sendiri,
+  bukan logo toko.
 - `/admin/menu` — kelola menu (khusus Owner). Tiap item menu bisa
   diatur **resep bahan baku**-nya lewat modal foto (klik gambar
   menu → bagian "Resep Bahan Baku") — pilih bahan & jumlah pemakaian
@@ -92,7 +118,11 @@ Buka `http://127.0.0.1:5000` — akan diarahkan ke halaman login.
   telepon, sosial media (Instagram/TikTok/WhatsApp/lainnya), lebar
   kertas printer thermal (58mm/80mm), gambar QRIS offline toko, dan tab
   **Notifikasi** (aktif/nonaktifkan suara, volume, pilih dari 10 nada
-  notifikasi siap coba-dengar) — khusus Owner
+  notifikasi siap coba-dengar) — khusus Owner. Ada juga tab **Platform
+  Delivery** untuk kelola daftar platform pesan-antar yang dipakai toko
+  (tambah/nonaktifkan platform, upload logonya, dan atur mode harga per
+  platform — markup persentase otomatis dari harga toko, atau harga
+  manual per item menu).
 - `/reports` — laporan penjualan, dipisah 4 tab (Harian/Mingguan/
   Bulanan/Tahunan), tiap tab ada 4 card ringkasan (total penjualan,
   jumlah transaksi, rata-rata per transaksi, item terjual) plus daftar
