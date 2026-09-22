@@ -2439,12 +2439,14 @@ textarea.form-control {
   text-decoration: none;
 }
 
-/* Baris atas (status + tombol QR) selalu sejajar satu garis, lebar
-   penuh kartu, supaya keduanya rapi berdampingan di pojok kiri/kanan. */
+/* Status (dot+teks) dibuat rata TENGAH di lebar penuh kartu - tombol
+   QR dilepas dari alur flex-nya (position:absolute, lihat
+   .seat-qr-btn) supaya tetap nempel pojok kanan-atas tanpa mengganggu
+   perataan tengah ini. */
 .seat-top-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   width: 100%;
   margin-bottom: 10px;
 }
@@ -2480,8 +2482,16 @@ textarea.form-control {
 
 .seat-status-text {
   font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-primary);
+  font-weight: 400;
+  /* Putih cuma di mode gelap (lihat override di bawah) - kartu meja
+     latarnya putih polos di mode terang, jadi teks putih di situ bakal
+     hilang total. var(--color-text) dipakai sebagai default (mode
+     terang) supaya tetap kebaca. */
+  color: var(--color-text);
+}
+
+:root[data-theme="dark"] .seat-status-text {
+  color: #fff;
 }
 
 /* Ikon denah meja + kursi - cuma tampil di kartu Kosong, warnanya
@@ -2510,10 +2520,6 @@ textarea.form-control {
   .seat-occupied .seat-status-dot {
     animation: none;
   }
-}
-
-.seat-occupied .seat-status-text {
-  color: var(--color-warning);
 }
 
 .seat-occupied {
@@ -2600,14 +2606,17 @@ textarea.form-control {
   color: #fff;
 }
 
-/* Tombol QR/detail meja (khusus Owner) - sejajar sama baris status
-   (lihat .seat-top-row), ukurannya dibesarkan dikit biar gampang
-   di-tap di tablet. Cuma outline bulat (bukan latar solid) supaya
-   tidak terlalu "nge-block" - garisnya pakai currentColor, jadi
-   otomatis senada dengan warna icon-nya sendiri (ikut status meja,
-   lihat .seat-available/.seat-occupied di bawah). */
+/* Tombol QR/detail meja (khusus Owner) - dilepas dari alur .seat-top-row
+   (position:absolute, nempel ke .seat yang position:relative) supaya
+   baris status di sebelahnya bisa rata tengah penuh tanpa kepentok
+   tombol ini. Cuma outline bulat (bukan latar solid) supaya tidak
+   terlalu "nge-block" - garisnya pakai currentColor, jadi otomatis
+   senada dengan warna icon-nya sendiri (ikut status meja, lihat
+   .seat-available/.seat-occupied di bawah). */
 .seat-qr-btn {
-  flex-shrink: 0;
+  position: absolute;
+  top: 14px;
+  right: 12px;
   background: transparent;
   border: 1.5px solid currentColor;
   width: 34px;
