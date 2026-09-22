@@ -471,15 +471,17 @@
               <div class="card h-100">
                 <div class="card-body">
                   <form method="post" action="{{ url_for('staff.channel_update', channel_id=channel.id) }}" enctype="multipart/form-data" style="--form-field-label-width: 100px;">
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                      {% if channel.logo %}
-                        <img src="{{ url_for('static', filename='uploads/branding/' + channel.logo) }}" alt="{{ channel.name }}"
-                             style="width: 40px; height: 40px; object-fit: contain; border-radius: 8px; border: 1px solid var(--color-border);">
-                      {% else %}
-                        <div style="width: 40px; height: 40px; border-radius: 8px; border: 1px dashed var(--color-border); display: flex; align-items: center; justify-content: center;">
-                          <i class="bi bi-image text-muted"></i>
-                        </div>
-                      {% endif %}
+                    <div class="mb-3 form-field-row">
+                      <div class="form-field-label">
+                        {% if channel.logo %}
+                          <img src="{{ url_for('static', filename='uploads/branding/' + channel.logo) }}" alt="{{ channel.name }}"
+                               style="width: 40px; height: 40px; object-fit: contain; border-radius: 8px; border: 1px solid var(--color-border);">
+                        {% else %}
+                          <div style="width: 40px; height: 40px; border-radius: 8px; border: 1px dashed var(--color-border); display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-image text-muted"></i>
+                          </div>
+                        {% endif %}
+                      </div>
                       <input type="text" name="name" class="form-control form-control-sm" value="{{ channel.name }}" required>
                     </div>
 
