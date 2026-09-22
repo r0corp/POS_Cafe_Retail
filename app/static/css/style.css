@@ -48,8 +48,9 @@
   --shadow-btn: 0 2px 6px rgba(240, 120, 40, 0.18), 0 1px 2px rgba(219, 106, 29, 0.14);
   --shadow-btn-hover: 0 8px 18px rgba(240, 120, 40, 0.32), 0 3px 8px rgba(219, 106, 29, 0.22);
   /* Versi biru, KHUSUS dipakai tombol "Pesan" di kartu meja
-     (.seat-btn-order:hover) - tombol lain semua tetap pakai
-     --shadow-btn-hover oranye di atas. */
+     (.seat-btn-order & :hover) - tombol lain semua tetap pakai
+     --shadow-btn/--shadow-btn-hover oranye di atas. */
+  --shadow-btn-blue: 0 2px 6px rgba(27, 160, 248, 0.18), 0 1px 2px rgba(14, 76, 117, 0.14);
   --shadow-btn-blue-hover: 0 8px 18px rgba(27, 160, 248, 0.32), 0 3px 8px rgba(14, 76, 117, 0.22);
 
   --font-heading: "Poppins", "Segoe UI", sans-serif;
@@ -103,6 +104,7 @@
 
   --shadow-btn: 0 2px 6px rgba(240, 120, 40, 0.28), 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-btn-hover: 0 8px 18px rgba(240, 120, 40, 0.45), 0 3px 8px rgba(251, 146, 60, 0.3);
+  --shadow-btn-blue: 0 2px 6px rgba(56, 189, 248, 0.28), 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-btn-blue-hover: 0 8px 18px rgba(56, 189, 248, 0.45), 0 3px 8px rgba(27, 160, 248, 0.3);
 }
 
@@ -2615,30 +2617,36 @@ textarea.form-control {
   line-height: 1.2;
 }
 
-.seat-btn-order {
+/* .seat-btn-order/-cashier dipakai BARENG .seat-btn di elemen yang
+   sama (class="seat-btn seat-btn-order") - selector satu-class biasa
+   di sini sama spesifisitasnya dengan aturan bareng ".seat-btn, ...
+   {box-shadow: var(--shadow-btn)}" di bawah nanti, jadi menang-
+   kalahnya cuma ditentukan urutan baris CSS (rawan patah kalau ada
+   yang nge-edit taruh aturan lain belakangan). Dipakai selector
+   gabungan ".seat-btn.seat-btn-order" (2 class sekaligus) supaya
+   spesifisitasnya PASTI lebih tinggi dan menang apa pun urutannya. */
+.seat-btn.seat-btn-order {
   background: var(--color-primary);
   color: #fff;
+  box-shadow: var(--shadow-btn-blue);
 }
 
-/* Khusus tombol "Pesan" di kartu meja - shadow hover-nya di-override
-   ke biru (--shadow-btn-blue-hover), soalnya --shadow-btn-hover
-   bawaan (dipakai bareng semua tombol lain) selalu oranye, jadi kalau
-   dibiarkan bakal ada "halo" oranye ngambang di tombol yang sekarang
-   sudah biru ini. */
-.seat-btn-order:hover {
+.seat-btn.seat-btn-order:hover {
   background: var(--color-primary-dark);
   color: #fff;
   box-shadow: var(--shadow-btn-blue-hover);
 }
 
-.seat-btn-cashier {
+.seat-btn.seat-btn-cashier {
   background: var(--color-accent);
   color: #fff;
+  box-shadow: var(--shadow-btn);
 }
 
-.seat-btn-cashier:hover {
+.seat-btn.seat-btn-cashier:hover {
   background: var(--color-warning);
   color: #fff;
+  box-shadow: var(--shadow-btn-hover);
 }
 
 /* Tombol QR/detail meja (khusus Owner) - dilepas dari alur .seat-top-row
