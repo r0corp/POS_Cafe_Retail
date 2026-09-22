@@ -328,12 +328,28 @@
 <div class="container-fluid pb-5 has-fixed-footer">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}
+      <div class="toast-stack" id="toastStack">
+        {% for category, message in messages %}
+          <div class="toast-item toast-{{ category }}" role="alert">
+            <span class="toast-icon">
+              {% if category == 'success' %}
+                <i class="bi bi-check-circle-fill"></i>
+              {% elif category == 'danger' %}
+                <i class="bi bi-x-circle-fill"></i>
+              {% elif category == 'warning' %}
+                <i class="bi bi-exclamation-triangle-fill"></i>
+              {% else %}
+                <i class="bi bi-info-circle-fill"></i>
+              {% endif %}
+            </span>
+            <span class="toast-body">{{ message }}</span>
+            <button type="button" class="toast-close" aria-label="Close">
+              <i class="bi bi-x"></i>
+            </button>
+            <span class="toast-progress"></span>
+          </div>
+        {% endfor %}
+      </div>
     {% endif %}
   {% endwith %}
 
@@ -563,6 +579,48 @@
   {% endif %}
 </script>
 {% endif %}
+<script>
+  // Toast notifikasi (pengganti alert lebar-penuh lama) - auto-hilang
+  // sendiri setelah beberapa detik dengan progress-bar, jeda kalau
+  // di-hover, dan bisa ditutup manual lewat tombol "x".
+  (function () {
+    var DURATION_MS = 5000;
+    document.querySelectorAll(".toast-item").forEach(function (toast) {
+      var bar = toast.querySelector(".toast-progress");
+      var closeBtn = toast.querySelector(".toast-close");
+      var timer = null;
+
+      function dismiss() {
+        if (!toast.isConnected) return;
+        toast.classList.add("toast-out");
+        toast.addEventListener("animationend", function () { toast.remove(); }, { once: true });
+      }
+
+      function startTimer() {
+        if (bar) {
+          bar.style.animationDuration = DURATION_MS + "ms";
+          bar.style.animationPlayState = "running";
+        }
+        timer = setTimeout(dismiss, DURATION_MS);
+      }
+
+      function pauseTimer() {
+        clearTimeout(timer);
+        if (bar) bar.style.animationPlayState = "paused";
+      }
+
+      startTimer();
+      toast.addEventListener("mouseenter", pauseTimer);
+      toast.addEventListener("mouseleave", startTimer);
+      if (closeBtn) {
+        closeBtn.addEventListener("click", function () {
+          clearTimeout(timer);
+          dismiss();
+        });
+      }
+    });
+  })();
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
