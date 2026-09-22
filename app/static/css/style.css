@@ -2020,7 +2020,7 @@ textarea.form-control {
   color: var(--color-muted);
 }
 
-.empty-state i {
+.empty-state > i {
   font-size: 2.5rem;
   color: var(--color-accent-light);
   display: block;
