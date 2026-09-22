@@ -245,6 +245,24 @@
                         <i class="bi bi-info-circle"></i>
                         {{ _('Kalau logo pilihan belum diupload, otomatis pakai logo lain yang sudah ada.') }}
                       </p>
+
+                      <div class="form-text mt-3 mb-1">{{ _('Pratinjau') }}</div>
+                      <div class="navbar-preview-mock">
+                        <span class="navbar-preview-brand">
+                          <span class="navbar-preview-icon" id="navbarPreviewIcon">
+                            {% if settings.app_logo_filename %}
+                              <img src="{{ url_for('static', filename='uploads/branding/' + settings.app_logo_filename) }}" alt="">
+                            {% else %}
+                              <i class="bi bi-cup-hot-fill"></i>
+                            {% endif %}
+                          </span>
+                          <span class="navbar-preview-name" id="navbarPreviewName">{{ settings.shop_name or cafe_name }}</span>
+                        </span>
+                        <span class="navbar-preview-clock">
+                          <span class="navbar-preview-date" id="navbarPreviewDate"></span>
+                          <span class="navbar-preview-time" id="navbarPreviewTime"></span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -828,6 +846,35 @@
 
 {% block scripts %}
 <script>
+  // Pratinjau navbar (kartu "Tampilan Navbar Aplikasi") - ikut berubah
+  // langsung begitu dropdown diganti, tanpa perlu simpan dulu. Tanggal
+  // & jamnya cuma contoh statis (dibuat sekali saat halaman dimuat,
+  // format sama seperti jam navbar asli di base.html), bukan jam hidup
+  // - preview ini kan bukan navbar sungguhan.
+  (function () {
+    const select = document.querySelector('select[name="navbar_display"]');
+    const iconEl = document.getElementById("navbarPreviewIcon");
+    const nameEl = document.getElementById("navbarPreviewName");
+    const dateEl = document.getElementById("navbarPreviewDate");
+    const timeEl = document.getElementById("navbarPreviewTime");
+    if (!select || !iconEl || !nameEl) return;
+
+    function applyPreview() {
+      const v = select.value;
+      iconEl.classList.toggle("d-none", v === "name");
+      nameEl.classList.toggle("d-none", v === "logo");
+    }
+    select.addEventListener("change", applyPreview);
+    applyPreview();
+
+    if (dateEl && timeEl) {
+      const clockLocale = "{{ current_lang }}" === "en" ? "en-US" : "id-ID";
+      const now = new Date();
+      dateEl.textContent = now.toLocaleDateString(clockLocale, { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+      timeEl.textContent = now.toLocaleTimeString(clockLocale, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+  })();
+
   // Buka kunci Mode Demo - kirim PIN ke server (BUKAN dicocokkan di
   // browser, supaya PIN aslinya tidak pernah nyampe ke sisi klien sama
   // sekali). Server yang jawab benar/salah, dan ITU JUGA yang jadi

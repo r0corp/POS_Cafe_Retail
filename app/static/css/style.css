@@ -3105,6 +3105,76 @@ textarea.form-control {
   flex-direction: column;
 }
 
+/* Mini pratinjau navbar di kartu "Tampilan Navbar Aplikasi" - supaya
+   area di bawah dropdown tidak kosong, dan user langsung lihat efek
+   tiap opsi (Logo+Nama / Hanya Logo / Hanya Nama) tanpa perlu simpan
+   dulu. JS toggle logo/nama-nya lewat settings_admin.html. */
+.navbar-preview-mock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.navbar-preview-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-heading);
+}
+
+.navbar-preview-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 1.3rem;
+  color: var(--color-accent);
+}
+
+.navbar-preview-icon img {
+  height: 28px;
+  max-width: 90px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.navbar-preview-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navbar-preview-clock {
+  text-align: right;
+  line-height: 1.25;
+  flex-shrink: 0;
+}
+
+.navbar-preview-date {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.navbar-preview-time {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
 /* Kartu berpengaman PIN (Mode Demo, Reset ke Mode Pabrik) terkunci
    sampai PIN benar dimasukkan - blur + tidak bisa diklik sama sekali
    (bukan cuma efek visual, tombolnya juga dikasih "disabled" dari
