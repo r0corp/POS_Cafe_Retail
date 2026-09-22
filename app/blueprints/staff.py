@@ -724,6 +724,194 @@ def receipt(order_id):
     )
 
 
+@staff_bp.route("/orders/<int:order_id>/receipt.pdf")
+@roles_required(ROLE_OWNER, ROLE_KASIR)
+def receipt_pdf(order_id):
+    """Versi PDF dari struk (tombol "Cetak ke PDF") - dibuat manual pakai
+    reportlab canvas (bukan platypus) karena lebar kertasnya sempit ala
+    printer thermal (58/80mm) dan tingginya harus mengikuti panjang isi
+    struk, bukan ukuran kertas baku seperti A4."""
+    import io
+
+    from reportlab.lib.units import mm
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas as pdf_canvas
+
+    order = Order.query.get_or_404(order_id)
+    settings = get_settings()
+
+    page_w = (58 if settings.receipt_paper_width == "58" else 80) * mm
+    margin = 4 * mm
+    content_w = page_w - 2 * margin
+    line_h = 4.6 * mm
+    font_size = 8 if settings.receipt_paper_width == "58" else 9
+
+    logo_filename = (
+        order.channel.logo if (order.channel and order.channel.logo)
+        else settings.receipt_logo_filename
+    )
+    logo_reader = None
+    logo_h = 0
+    if logo_filename:
+        logo_path = os.path.join(current_app.static_folder, "uploads", "branding", logo_filename)
+        if os.path.exists(logo_path):
+            logo_reader = ImageReader(logo_path)
+            iw, ih = logo_reader.getSize()
+            logo_h = min(18 * mm, content_w * 0.5 * ih / iw)
+
+    # Kumpulkan baris dulu (label, value, style) supaya tinggi halaman bisa
+    # dihitung SEBELUM canvas dibuat - reportlab butuh ukuran halaman di awal.
+    header_lines = []
+    if order.channel and order.channel.logo:
+        header_lines.append(("center-bold", order.channel.name))
+        header_lines.append(("center-muted", settings.shop_name))
+    else:
+        header_lines.append(("center-bold", settings.shop_name))
+        if settings.address:
+            header_lines.append(("center", settings.address))
+        if settings.phone:
+            header_lines.append(("center", _("Telp: %(phone)s", phone=settings.phone)))
+    header_lines.append(("center-muted", _("*** STRUK PEMBAYARAN ***")))
+
+    info_rows = [
+        (_("No. Struk"), f"#{order.id}"),
+        (_("Meja") if order.table else _("Jenis"), f"{order.display_label} ({order.display_sublabel})"),
+        (_("Tanggal"), (order.paid_at or order.created_at).strftime("%d/%m/%Y %H:%M")),
+    ]
+    if order.served_by:
+        info_rows.append((_("Kasir"), order.served_by))
+
+    item_lines = []
+    for item in order.items:
+        item_lines.append(("left", item.name_snapshot))
+        item_lines.append((
+            "row-muted",
+            f"{item.quantity} x {'{:,}'.format(item.price_snapshot).replace(',', '.')}",
+            "{:,}".format(item.subtotal).replace(",", "."),
+        ))
+
+    ppn_rows = []
+    if order.ppn_amount:
+        ppn_rows.append((_("Subtotal"), f"Rp {'{:,}'.format(order.total).replace(',', '.')}"))
+        ppn_rows.append((
+            _("PPN %(pct)s%%", pct=round(order.ppn_percentage, 1)),
+            f"Rp {'{:,}'.format(order.ppn_amount).replace(',', '.')}",
+        ))
+
+    payment_rows = [(_("Bayar"), "Cash" if order.payment_method == "cash" else "QRIS")]
+    if order.payment_method == "cash" and order.cash_received is not None:
+        payment_rows.append((_("Tunai"), f"Rp {'{:,}'.format(order.cash_received).replace(',', '.')}"))
+        payment_rows.append((_("Kembalian"), f"Rp {'{:,}'.format(order.change_amount).replace(',', '.')}"))
+
+    social_lines = []
+    if settings.instagram:
+        social_lines.append(_("IG: %(handle)s", handle=settings.instagram))
+    if settings.tiktok:
+        social_lines.append(_("TikTok: %(handle)s", handle=settings.tiktok))
+    if settings.whatsapp:
+        social_lines.append(_("WA: %(handle)s", handle=settings.whatsapp))
+    if settings.other_social:
+        social_lines.append(settings.other_social)
+
+    # Hitung tinggi total: tiap "blok" di atas + jarak antar-divider.
+    n_lines = (
+        len(header_lines) + len(info_rows) + len(item_lines)
+        + len(ppn_rows) + 1 + len(payment_rows) + len(social_lines)
+        + 4  # "Orulabs (c) 2026", "Terima kasih!", dan 2 baris jarak ekstra
+    )
+    n_dividers = 3 + (1 if ppn_rows else 0) + (1 if social_lines else 0)
+    page_h = (
+        margin * 2 + logo_h + (logo_h and 2 * mm)
+        + n_lines * line_h + n_dividers * 2.5 * mm + 4 * mm
+    )
+
+    buffer = io.BytesIO()
+    c = pdf_canvas.Canvas(buffer, pagesize=(page_w, page_h))
+    y = page_h - margin
+
+    def center(text, bold=False, muted=False, size=None):
+        nonlocal y
+        c.setFont("Courier-Bold" if bold else "Courier", size or font_size)
+        c.setFillGray(0.33 if muted else 0)
+        c.drawCentredString(page_w / 2, y - font_size * 0.8, text)
+        y -= line_h
+
+    def row(left, right, bold=False, muted=False):
+        nonlocal y
+        c.setFont("Courier-Bold" if bold else "Courier", font_size)
+        c.setFillGray(0.27 if muted else 0)
+        c.drawString(margin, y - font_size * 0.8, left)
+        c.drawRightString(page_w - margin, y - font_size * 0.8, right)
+        y -= line_h
+
+    def divider(dashed=True):
+        nonlocal y
+        y -= 1 * mm
+        c.setDash([1.5, 1.5] if dashed else [])
+        c.setLineWidth(0.6)
+        c.line(margin, y, page_w - margin, y)
+        c.setDash([])
+        y -= 2.5 * mm
+
+    if logo_reader:
+        logo_w = logo_h * (logo_reader.getSize()[0] / logo_reader.getSize()[1])
+        c.drawImage(
+            logo_reader, (page_w - logo_w) / 2, y - logo_h,
+            width=logo_w, height=logo_h, mask="auto",
+        )
+        y -= logo_h + 2 * mm
+
+    for kind, text in header_lines:
+        if kind == "center-bold":
+            center(text, bold=True)
+        elif kind == "center-muted":
+            center(text, muted=True)
+        else:
+            center(text)
+
+    divider()
+    for label, value in info_rows:
+        row(label, value)
+    divider()
+
+    for entry in item_lines:
+        if entry[0] == "left":
+            row(entry[1], "")
+        else:
+            row(entry[1], entry[2], muted=True)
+
+    if ppn_rows:
+        divider()
+        for label, value in ppn_rows:
+            row(label, value)
+
+    divider(dashed=False)
+    row(_("TOTAL"), f"Rp {'{:,}'.format(order.grand_total).replace(',', '.')}", bold=True)
+    divider(dashed=False)
+
+    for label, value in payment_rows:
+        row(label, value, muted=True)
+
+    if social_lines:
+        divider()
+        for line in social_lines:
+            center(line)
+
+    center("Orulabs © 2026", muted=True, size=max(6, font_size - 1))
+    divider(dashed=False)
+    center(_("Terima kasih!"), bold=True)
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+
+    filename = f"struk-{order.id}.pdf"
+    return send_file(
+        buffer, mimetype="application/pdf",
+        as_attachment=True, download_name=filename,
+    )
+
+
 # ============================================================
 # ADMIN - KATEGORI & MENU
 # ============================================================

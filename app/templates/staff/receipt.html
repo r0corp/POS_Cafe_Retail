@@ -66,23 +66,26 @@
 
     .btn-row {
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       justify-content: center;
     }
 
     .btn {
+      flex: 1 1 130px;
       font-family: Arial, sans-serif;
       font-size: 14px;
       font-weight: 700;
-      padding: 10px 18px;
+      padding: 10px 14px;
       border-radius: 10px;
       border: none;
       cursor: pointer;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
-      line-height: 1;
+      line-height: 1.2;
       transition: transform 0.12s ease, box-shadow 0.12s ease;
     }
 
@@ -158,9 +161,17 @@
       <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 8a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5H13v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11.5H2a.5.5 0 0 1-.5-.5zM12 12h-8v2h8zM3 3.5V6h10V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5"/><path d="M4 3V1.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V3z"/></svg>
       {{ _('Cetak Struk') }}
     </button>
+    <a class="btn btn-print" href="{{ url_for('staff.receipt_pdf', order_id=order.id) }}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V0H4a1 1 0 0 0-1 1v13.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/><path d="M4.5 12.5A.5.5 0 0 1 5 12h1a.5.5 0 0 1 0 1H5.5v1.5a.5.5 0 0 1-1 0zm3-2A1.5 1.5 0 0 1 9 9h.5a1.5 1.5 0 0 1 0 3H9v1.5a.5.5 0 0 1-1 0zM10 12a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H11v.5h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0z"/></svg>
+      {{ _('Cetak ke PDF') }}
+    </a>
     <a class="btn btn-back" href="{{ url_for('staff.cashier') }}">
       <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>
       {{ _('Kembali ke Kasir') }}
+    </a>
+    <a class="btn btn-back" href="{{ url_for('staff.dashboard') }}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354z"/></svg>
+      {{ _('Kembali ke Dasbor') }}
     </a>
   </div>
 </div>
