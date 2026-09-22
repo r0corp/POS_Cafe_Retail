@@ -470,7 +470,7 @@
             <div class="col-sm-6 col-lg-3">
               <div class="card h-100">
                 <div class="card-body">
-                  <form method="post" action="{{ url_for('staff.channel_update', channel_id=channel.id) }}" enctype="multipart/form-data">
+                  <form method="post" action="{{ url_for('staff.channel_update', channel_id=channel.id) }}" enctype="multipart/form-data" style="--form-field-label-width: 100px;">
                     <div class="d-flex align-items-center gap-2 mb-3">
                       {% if channel.logo %}
                         <img src="{{ url_for('static', filename='uploads/branding/' + channel.logo) }}" alt="{{ channel.name }}"
@@ -483,8 +483,8 @@
                       <input type="text" name="name" class="form-control form-control-sm" value="{{ channel.name }}" required>
                     </div>
 
-                    <div class="mb-2">
-                      <label class="form-label small">{{ _('Logo Platform') }}</label>
+                    <div class="mb-2 form-field-row">
+                      <label class="form-label form-field-label small">{{ _('Logo Platform') }}</label>
                       <input type="file" name="logo" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
                       {% if channel.logo %}
                         <div class="form-check mt-1">
@@ -494,16 +494,16 @@
                       {% endif %}
                     </div>
 
-                    <div class="mb-2">
-                      <label class="form-label small">{{ _('Mode Harga') }}</label>
+                    <div class="mb-2 form-field-row">
+                      <label class="form-label form-field-label small">{{ _('Mode Harga') }}</label>
                       <select name="pricing_mode" class="form-select form-select-sm" data-elegant-select onchange="this.form.querySelector('.markup-field').classList.toggle('d-none', this.value !== '{{ CHANNEL_PRICING_PERCENT }}')">
                         <option value="{{ CHANNEL_PRICING_PERCENT }}" {% if channel.pricing_mode == CHANNEL_PRICING_PERCENT %}selected{% endif %}>{{ _('Markup Persentase') }}</option>
                         <option value="{{ CHANNEL_PRICING_MANUAL }}" {% if channel.pricing_mode == CHANNEL_PRICING_MANUAL %}selected{% endif %}>{{ _('Harga Manual per Menu') }}</option>
                       </select>
                     </div>
 
-                    <div class="mb-2 markup-field {% if channel.pricing_mode != CHANNEL_PRICING_PERCENT %}d-none{% endif %}">
-                      <label class="form-label small">{{ _('Markup (%%)') }}</label>
+                    <div class="mb-2 markup-field form-field-row {% if channel.pricing_mode != CHANNEL_PRICING_PERCENT %}d-none{% endif %}">
+                      <label class="form-label form-field-label small">{{ _('Markup (%%)') }}</label>
                       <input type="number" name="markup_percent" class="form-control form-control-sm" min="0" step="0.5" value="{{ channel.markup_percent or 0 }}">
                     </div>
 
@@ -538,24 +538,24 @@
             <div class="card h-100">
               <div class="card-body">
                 <h6 class="mb-3">{{ _('+ Tambah Platform Baru') }}</h6>
-                <form method="post" action="{{ url_for('staff.channel_add') }}" enctype="multipart/form-data">
-                  <div class="mb-2">
-                    <label class="form-label small">{{ _('Nama Platform') }}</label>
+                <form method="post" action="{{ url_for('staff.channel_add') }}" enctype="multipart/form-data" style="--form-field-label-width: 100px;">
+                  <div class="mb-2 form-field-row">
+                    <label class="form-label form-field-label small">{{ _('Nama Platform') }}</label>
                     <input type="text" name="name" class="form-control form-control-sm" placeholder="GrabFood" required>
                   </div>
-                  <div class="mb-2">
-                    <label class="form-label small">{{ _('Logo Platform') }}</label>
+                  <div class="mb-2 form-field-row">
+                    <label class="form-label form-field-label small">{{ _('Logo Platform') }}</label>
                     <input type="file" name="logo" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
                   </div>
-                  <div class="mb-2">
-                    <label class="form-label small">{{ _('Mode Harga') }}</label>
+                  <div class="mb-2 form-field-row">
+                    <label class="form-label form-field-label small">{{ _('Mode Harga') }}</label>
                     <select name="pricing_mode" class="form-select form-select-sm" data-elegant-select onchange="this.form.querySelector('.markup-field').classList.toggle('d-none', this.value !== '{{ CHANNEL_PRICING_PERCENT }}')">
                       <option value="{{ CHANNEL_PRICING_PERCENT }}">{{ _('Markup Persentase') }}</option>
                       <option value="{{ CHANNEL_PRICING_MANUAL }}">{{ _('Harga Manual per Menu') }}</option>
                     </select>
                   </div>
-                  <div class="mb-3 markup-field">
-                    <label class="form-label small">{{ _('Markup (%%)') }}</label>
+                  <div class="mb-3 markup-field form-field-row">
+                    <label class="form-label form-field-label small">{{ _('Markup (%%)') }}</label>
                     <input type="number" name="markup_percent" class="form-control form-control-sm" min="0" step="0.5" value="15">
                   </div>
                   <button type="submit" class="btn btn-sm btn-accent w-100">
