@@ -21,6 +21,9 @@
         <div class="form-field-row mb-2">
           <label class="form-label form-field-label small">{{ _('Lantai') }}</label>
           <select name="floor" class="form-select" data-elegant-select required {% if not available_floors %}disabled{% endif %}>
+            {% if not available_floors %}
+              <option value="" selected disabled>{{ _('Tambah lantai dulu di Pengaturan') }}</option>
+            {% endif %}
             {% for floor in available_floors %}
               <option value="{{ floor.number }}">{{ floor_display_name(floor.number) }}</option>
             {% endfor %}

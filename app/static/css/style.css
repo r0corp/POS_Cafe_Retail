@@ -1223,6 +1223,14 @@ a.profile-dropdown-row-link:hover {
      biasa walau padding & font-size-nya sama persis. Disamakan supaya
      tingginya identik. */
   line-height: 1.5;
+  /* Kalau select-nya kosong tanpa opsi (mis. dropdown "Lantai" pas
+     belum ada lantai sama sekali), trigger.textContent jadi string
+     kosong - tanpa teks, tinggi baris jadi cuma setinggi panah
+     ::after-nya (~8px) doang, bukan setinggi field lain. Dikasih
+     min-height eksplisit (dihitung dari tinggi trigger yang ADA
+     isinya: line-height 1.5 * font-size 0.8rem + padding + border)
+     supaya tetap sama tinggi walau lagi kosong. */
+  min-height: 31px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
