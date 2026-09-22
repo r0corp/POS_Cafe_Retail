@@ -47,6 +47,10 @@
      --shadow-card, cuma lebih tipis karena ukurannya lebih kecil). */
   --shadow-btn: 0 2px 6px rgba(240, 120, 40, 0.18), 0 1px 2px rgba(219, 106, 29, 0.14);
   --shadow-btn-hover: 0 8px 18px rgba(240, 120, 40, 0.32), 0 3px 8px rgba(219, 106, 29, 0.22);
+  /* Versi biru, KHUSUS dipakai tombol "Pesan" di kartu meja
+     (.seat-btn-order:hover) - tombol lain semua tetap pakai
+     --shadow-btn-hover oranye di atas. */
+  --shadow-btn-blue-hover: 0 8px 18px rgba(27, 160, 248, 0.32), 0 3px 8px rgba(14, 76, 117, 0.22);
 
   --font-heading: "Poppins", "Segoe UI", sans-serif;
   --font-body: "Inter", "Segoe UI", sans-serif;
@@ -99,6 +103,7 @@
 
   --shadow-btn: 0 2px 6px rgba(240, 120, 40, 0.28), 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-btn-hover: 0 8px 18px rgba(240, 120, 40, 0.45), 0 3px 8px rgba(251, 146, 60, 0.3);
+  --shadow-btn-blue-hover: 0 8px 18px rgba(56, 189, 248, 0.45), 0 3px 8px rgba(27, 160, 248, 0.3);
 }
 
 html, body {
@@ -2615,9 +2620,15 @@ textarea.form-control {
   color: #fff;
 }
 
+/* Khusus tombol "Pesan" di kartu meja - shadow hover-nya di-override
+   ke biru (--shadow-btn-blue-hover), soalnya --shadow-btn-hover
+   bawaan (dipakai bareng semua tombol lain) selalu oranye, jadi kalau
+   dibiarkan bakal ada "halo" oranye ngambang di tombol yang sekarang
+   sudah biru ini. */
 .seat-btn-order:hover {
   background: var(--color-primary-dark);
   color: #fff;
+  box-shadow: var(--shadow-btn-blue-hover);
 }
 
 .seat-btn-cashier {
@@ -2626,7 +2637,7 @@ textarea.form-control {
 }
 
 .seat-btn-cashier:hover {
-  background: var(--color-primary);
+  background: var(--color-warning);
   color: #fff;
 }
 
