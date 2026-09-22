@@ -1304,9 +1304,13 @@ a.profile-dropdown-row-link:hover {
    pindah ke atas field lagi kalau ruangnya sempit, TANPA media query -
    cukup mengandalkan flex-wrap: begitu field (flex-basis 160px) tidak
    muat lagi sejajar dengan label di lebar container saat ini, field-nya
-   pindah baris sendiri dan otomatis melebar penuh karena flex-grow. Ini
-   masih versi coba-coba di satu form (Tambah User) dulu - kalau sudah
-   oke baru dipasang di form lain. */
+   pindah baris sendiri dan otomatis melebar penuh karena flex-grow.
+
+   Lebar labelnya FIXED (bukan mengikuti panjang teks per baris) supaya
+   semua field dalam 1 form mulai dari titik x yang sama persis (rata
+   vertikal) - beda form bisa beda lebar, atur lewat custom property
+   "--form-field-label-width" di elemen <form>/pembungkusnya (default
+   80px kalau tidak diisi, cukup buat label pendek semacam "Role"). */
 .form-field-row {
   display: flex;
   flex-wrap: wrap;
@@ -1316,8 +1320,7 @@ a.profile-dropdown-row-link:hover {
 }
 
 .form-field-row > .form-field-label {
-  flex: 0 0 auto;
-  min-width: 80px;
+  flex: 0 0 var(--form-field-label-width, 80px);
   margin-bottom: 0;
 }
 
