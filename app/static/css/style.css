@@ -2592,22 +2592,22 @@ textarea.form-control {
 }
 
 .seat-btn-order {
-  background: var(--color-accent);
+  background: var(--color-primary);
   color: #fff;
 }
 
 .seat-btn-order:hover {
-  background: var(--color-primary);
+  background: var(--color-primary-dark);
   color: #fff;
 }
 
 .seat-btn-cashier {
-  background: var(--color-primary);
+  background: var(--color-accent);
   color: #fff;
 }
 
 .seat-btn-cashier:hover {
-  background: var(--color-primary-dark);
+  background: var(--color-primary);
   color: #fff;
 }
 
