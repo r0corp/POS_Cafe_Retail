@@ -2594,13 +2594,15 @@ textarea.form-control {
 .seat-qr-btn {
   flex-shrink: 0;
   border: none;
-  /* Sengaja warna tetap (bukan var(--color-bg)/var(--color-heading)) -
-     latar & icon tombol ini pernah kebalap desync waktu ganti mode
-     gelap/terang (icon ikut jadi terang tapi latar tidak), jadi icon-nya
-     hilang (putih di atas putih). Dikunci putih+navy di kedua mode
-     supaya kontrasnya terjamin. */
+  /* Latar sengaja tetap putih di kedua mode gelap/terang (bukan
+     var(--color-bg)/var(--color-heading)) - latarnya pernah kebalap
+     desync waktu ganti tema (icon ikut jadi terang tapi latar tidak),
+     jadi icon-nya hilang (putih di atas putih). Warna icon-nya sendiri
+     ikut status meja (lihat .seat-available/.seat-occupied di bawah) -
+     sama seperti warna tombol aksi di kartu itu (Pesan/Ke Kasir),
+     supaya nyambung, tapi tetap warna solid (bukan var(--color-bg)
+     dkk) jadi kontrasnya tidak ikut goyah pas ganti tema. */
   background: #FFFFFF;
-  color: #0E4C75;
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -2612,6 +2614,14 @@ textarea.form-control {
 
 .seat-qr-btn:hover {
   background: #fff;
+}
+
+.seat-available .seat-qr-btn {
+  color: var(--color-accent);
+}
+
+.seat-occupied .seat-qr-btn {
+  color: var(--color-primary);
 }
 
 .legend-dot {
