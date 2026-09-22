@@ -2,30 +2,7 @@
 {% block title %}{{ _('Inventory') }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
-  <h4 class="mb-0"><span class="page-title-icon"><i class="bi bi-boxes"></i></span>{{ _('Inventory Bahan Baku') }}</h4>
-
-  <div class="export-groups-row">
-    <div class="dropdown">
-      <button class="export-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="bi bi-file-earmark-text"></i> {{ _('Semua Bahan') }} <i class="bi bi-chevron-down export-dropdown-caret"></i>
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-        <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_excel', scope='full') }}"><i class="bi bi-filetype-xlsx"></i> Excel</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_pdf', scope='full') }}"><i class="bi bi-filetype-pdf"></i> PDF</a></li>
-      </ul>
-    </div>
-    <div class="dropdown">
-      <button class="export-dropdown-btn export-dropdown-btn-danger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="bi bi-exclamation-triangle"></i> {{ _('Stok Menipis') }} <i class="bi bi-chevron-down export-dropdown-caret"></i>
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-        <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_excel', scope='low-stock') }}"><i class="bi bi-filetype-xlsx"></i> Excel</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_pdf', scope='low-stock') }}"><i class="bi bi-filetype-pdf"></i> PDF</a></li>
-      </ul>
-    </div>
-  </div>
-</div>
+<h4 class="mb-4"><span class="page-title-icon"><i class="bi bi-boxes"></i></span>{{ _('Inventory Bahan Baku') }}</h4>
 
 <div class="row g-4">
   <div class="col-sm-4">
@@ -59,7 +36,29 @@
   <div class="col-sm-8">
     <div class="card">
       <div class="card-body">
-        <h6 class="mb-3">{{ _('Daftar Bahan Baku') }}</h6>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <h6 class="mb-0">{{ _('Daftar Bahan Baku') }}</h6>
+          <div class="export-groups-row">
+            <div class="dropdown">
+              <button class="export-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-file-earmark-text"></i> {{ _('Semua Bahan') }} <i class="bi bi-chevron-down export-dropdown-caret"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_excel', scope='full') }}"><i class="bi bi-filetype-xlsx"></i> Excel</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_pdf', scope='full') }}"><i class="bi bi-filetype-pdf"></i> PDF</a></li>
+              </ul>
+            </div>
+            <div class="dropdown">
+              <button class="export-dropdown-btn export-dropdown-btn-danger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-exclamation-triangle"></i> {{ _('Stok Menipis') }} <i class="bi bi-chevron-down export-dropdown-caret"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_excel', scope='low-stock') }}"><i class="bi bi-filetype-xlsx"></i> Excel</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_pdf', scope='low-stock') }}"><i class="bi bi-filetype-pdf"></i> PDF</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
         {% if ingredients %}
           <div class="ingredient-list">
             {% for ingredient in ingredients %}
