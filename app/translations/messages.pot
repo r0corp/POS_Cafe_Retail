@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 13:45+0700\n"
+"POT-Creation-Date: 2026-09-22 14:11+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1800,7 +1800,7 @@ msgstr ""
 #: app/templates/staff/settings_admin.html:416
 #: app/templates/staff/settings_admin.html:427
 #: app/templates/staff/settings_admin.html:438
-#: app/templates/staff/settings_admin.html:1085
+#: app/templates/staff/settings_admin.html:1117
 msgid "Coba dengarkan"
 msgstr ""
 
@@ -1867,7 +1867,7 @@ msgid "Logo Platform"
 msgstr ""
 
 #: app/templates/staff/settings_admin.html:492
-msgid "Hapus logo"
+msgid "Hapus Logo"
 msgstr ""
 
 #: app/templates/staff/settings_admin.html:498

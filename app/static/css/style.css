@@ -1326,7 +1326,8 @@ a.profile-dropdown-row-link:hover {
 
 .form-field-row > .form-control,
 .form-field-row > .form-select,
-.form-field-row > .elegant-select {
+.form-field-row > .elegant-select,
+.form-field-row > .btn {
   flex: 1 1 160px;
   min-width: 160px;
 }

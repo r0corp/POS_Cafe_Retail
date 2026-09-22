@@ -485,12 +485,12 @@
 
                     <div class="mb-2 form-field-row">
                       <label class="form-label form-field-label small">{{ _('Logo Platform') }}</label>
-                      <input type="file" name="logo" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                      <input type="file" name="logo" id="logoFile{{ channel.id }}" class="form-control form-control-sm logo-file-input {{ 'd-none' if channel.logo }}" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                      <input type="checkbox" name="remove_logo" id="removeLogo{{ channel.id }}" class="d-none logo-remove-flag" value="1">
                       {% if channel.logo %}
-                        <div class="form-check mt-1">
-                          <input class="form-check-input" type="checkbox" value="1" name="remove_logo" id="removeLogo{{ channel.id }}">
-                          <label class="form-check-label small text-muted" for="removeLogo{{ channel.id }}">{{ _('Hapus logo') }}</label>
-                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger logo-delete-btn" data-file-input="logoFile{{ channel.id }}" data-remove-input="removeLogo{{ channel.id }}">
+                          <i class="bi bi-trash"></i> {{ _('Hapus Logo') }}
+                        </button>
                       {% endif %}
                     </div>
 
@@ -846,6 +846,38 @@
 
 {% block scripts %}
 <script>
+  // Tombol "Hapus Logo" di tiap kartu Platform Delivery - begitu diklik,
+  // centang checkbox remove_logo (tersembunyi) lalu tukar tampilannya
+  // balik ke input file kosong (supaya bisa langsung pilih logo baru
+  // kalau mau), tanpa baris checkbox terpisah yang bikin kartu jadi
+  // lebih tinggi dari kartu lain. Penghapusannya baru beneran kejadian
+  // pas tombol "Simpan" kartu itu ditekan (checkbox-nya bagian dari form
+  // yang sama), sama seperti perilaku checkbox sebelumnya.
+  document.querySelectorAll(".logo-delete-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const fileInput = document.getElementById(btn.dataset.fileInput);
+      const removeInput = document.getElementById(btn.dataset.removeInput);
+      if (removeInput) removeInput.checked = true;
+      if (fileInput) {
+        fileInput.value = "";
+        fileInput.classList.remove("d-none");
+      }
+      btn.classList.add("d-none");
+    });
+  });
+
+  // Kalau user pilih file baru lagi setelah sempat klik "Hapus Logo",
+  // batalkan tanda hapusnya - _save_logo() di server jalan duluan
+  // sebelum cek remove_logo, jadi kalau keduanya kekirim bareng, logo
+  // baru yang baru saja diupload malah ikut langsung terhapus lagi.
+  document.querySelectorAll(".logo-file-input").forEach(function (input) {
+    input.addEventListener("change", function () {
+      const row = input.closest(".form-field-row");
+      const removeInput = row ? row.querySelector(".logo-remove-flag") : null;
+      if (removeInput) removeInput.checked = false;
+    });
+  });
+
   // Pratinjau navbar (kartu "Tampilan Navbar Aplikasi") - ikut berubah
   // langsung begitu dropdown diganti, tanpa perlu simpan dulu. Tanggal
   // & jamnya cuma contoh statis (dibuat sekali saat halaman dimuat,
