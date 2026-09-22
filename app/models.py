@@ -146,8 +146,9 @@ class Settings(db.Model):
     navbar_display = db.Column(db.String(10), nullable=False, default="both")
 
     # Lebar kertas printer thermal ("58" atau "80" mm) - menentukan
-    # ukuran halaman cetak struk.
-    receipt_paper_width = db.Column(db.String(5), nullable=False, default="80")
+    # ukuran halaman cetak struk. 58mm dipakai sebagai default karena
+    # printer thermal ukuran itu yang paling umum dipakai UMKM/warkop.
+    receipt_paper_width = db.Column(db.String(5), nullable=False, default="58")
 
     # Sistem PPN (Pajak Pertambahan Nilai) - kalau aktif, dihitung dari
     # persentase ini dan ditambahkan otomatis ke total tagihan saat bayar

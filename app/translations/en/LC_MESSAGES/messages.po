@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 14:11+0700\n"
+"POT-Creation-Date: 2026-09-22 14:31+0700\n"
 "PO-Revision-Date: 2026-09-14 19:34+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -63,20 +63,20 @@ msgstr "Ready to Serve"
 msgid "Sudah Diantar"
 msgstr "Served"
 
-#: app/models.py:306
+#: app/models.py:307
 #, python-format
 msgid "Lantai %(number)s"
 msgstr "Floor %(number)s"
 
-#: app/models.py:345 app/templates/staff/order_new.html:22
+#: app/models.py:346 app/templates/staff/order_new.html:22
 msgid "Makan di Tempat"
 msgstr "Dine in"
 
-#: app/models.py:346 app/templates/staff/order_new.html:29
+#: app/models.py:347 app/templates/staff/order_new.html:29
 msgid "Bawa Pulang"
 msgstr "Takeaway"
 
-#: app/models.py:347
+#: app/models.py:348
 msgid "Ojek Online"
 msgstr "Ride-hailing delivery"
 
@@ -392,8 +392,8 @@ msgid "Batas Stok Menipis"
 msgstr "Low Stock Threshold"
 
 #: app/blueprints/staff.py:1185 app/blueprints/staff.py:1264
-#: app/templates/staff/settings_admin.html:677
-#: app/templates/staff/settings_admin.html:768
+#: app/templates/staff/settings_admin.html:681
+#: app/templates/staff/settings_admin.html:772
 msgid "Status"
 msgstr "Status"
 
@@ -1802,13 +1802,13 @@ msgstr "Example: 11 for 11%% VAT."
 msgid "Kertas Struk"
 msgstr "Receipt Paper"
 
-#: app/templates/staff/settings_admin.html:306
-msgid "80mm (umum)"
-msgstr "80mm (common)"
-
-#: app/templates/staff/settings_admin.html:309
+#: app/templates/staff/settings_admin.html:305
 msgid "Sesuaikan dengan ukuran kertas printer thermal Anda."
 msgstr "Match this to your thermal printer's paper size."
+
+#: app/templates/staff/settings_admin.html:307
+msgid "58mm (umum)"
+msgstr "58mm (common)"
 
 #: app/templates/staff/settings_admin.html:315
 msgid "QRIS Offline"
@@ -1872,7 +1872,7 @@ msgstr "Custom Ringtone (Upload)"
 #: app/templates/staff/settings_admin.html:416
 #: app/templates/staff/settings_admin.html:427
 #: app/templates/staff/settings_admin.html:438
-#: app/templates/staff/settings_admin.html:1117
+#: app/templates/staff/settings_admin.html:1121
 msgid "Coba dengarkan"
 msgstr "Preview"
 
@@ -1941,136 +1941,136 @@ msgstr ""
 "Manage the delivery platforms your store uses - cashiers can create an "
 "order straight through an active platform here without picking a table."
 
-#: app/templates/staff/settings_admin.html:487
-#: app/templates/staff/settings_admin.html:547
+#: app/templates/staff/settings_admin.html:489
+#: app/templates/staff/settings_admin.html:550
 msgid "Logo Platform"
 msgstr "Platform logo"
 
-#: app/templates/staff/settings_admin.html:492
+#: app/templates/staff/settings_admin.html:494
 msgid "Hapus Logo"
 msgstr "Remove Logo"
 
-#: app/templates/staff/settings_admin.html:498
-#: app/templates/staff/settings_admin.html:551
+#: app/templates/staff/settings_admin.html:500
+#: app/templates/staff/settings_admin.html:554
 msgid "Mode Harga"
 msgstr "Pricing mode"
 
-#: app/templates/staff/settings_admin.html:500
-#: app/templates/staff/settings_admin.html:553
+#: app/templates/staff/settings_admin.html:502
+#: app/templates/staff/settings_admin.html:556
 msgid "Markup Persentase"
 msgstr "Percentage markup"
 
-#: app/templates/staff/settings_admin.html:501
-#: app/templates/staff/settings_admin.html:554
+#: app/templates/staff/settings_admin.html:503
+#: app/templates/staff/settings_admin.html:557
 msgid "Harga Manual per Menu"
 msgstr "Manual price per item"
 
-#: app/templates/staff/settings_admin.html:506
-#: app/templates/staff/settings_admin.html:558
+#: app/templates/staff/settings_admin.html:508
+#: app/templates/staff/settings_admin.html:561
 #, python-format
 msgid "Markup (%%)"
 msgstr "Markup (%%)"
 
-#: app/templates/staff/settings_admin.html:512
-#: app/templates/staff/settings_admin.html:679
+#: app/templates/staff/settings_admin.html:514
+#: app/templates/staff/settings_admin.html:683
 msgid "Aktif"
 msgstr "Active"
 
-#: app/templates/staff/settings_admin.html:517
+#: app/templates/staff/settings_admin.html:519
 msgid "Simpan"
 msgstr "Save"
 
-#: app/templates/staff/settings_admin.html:527
+#: app/templates/staff/settings_admin.html:529
 #, python-format
 msgid "Hapus platform %(name)s?"
 msgstr "Delete platform %(name)s?"
 
-#: app/templates/staff/settings_admin.html:529
+#: app/templates/staff/settings_admin.html:531
 msgid "Hapus Platform"
 msgstr "Delete platform"
 
-#: app/templates/staff/settings_admin.html:540
+#: app/templates/staff/settings_admin.html:542
 msgid "+ Tambah Platform Baru"
 msgstr "+ Add new platform"
 
-#: app/templates/staff/settings_admin.html:543
+#: app/templates/staff/settings_admin.html:546
 msgid "Nama Platform"
 msgstr "Platform name"
 
-#: app/templates/staff/settings_admin.html:562
+#: app/templates/staff/settings_admin.html:566
 msgid "Tambah Platform"
 msgstr "Add platform"
 
-#: app/templates/staff/settings_admin.html:577
+#: app/templates/staff/settings_admin.html:581
 msgid "Bersihkan Cache Aplikasi"
 msgstr "Clear App Cache"
 
-#: app/templates/staff/settings_admin.html:582
+#: app/templates/staff/settings_admin.html:586
 msgid "Paksa semua device ambil gambar (logo, foto, QR) versi terbaru."
 msgstr "Force all devices to fetch the latest images (logo, photos, QR codes)."
 
-#: app/templates/staff/settings_admin.html:587
+#: app/templates/staff/settings_admin.html:591
 msgid "Ukuran Cache Gambar"
 msgstr "Image Cache Size"
 
-#: app/templates/staff/settings_admin.html:605
+#: app/templates/staff/settings_admin.html:609
 msgid "Belum ada gambar yang diupload."
 msgstr "No images uploaded yet."
 
-#: app/templates/staff/settings_admin.html:611
+#: app/templates/staff/settings_admin.html:615
 msgid "Bersihkan Cache"
 msgstr "Clear Cache"
 
-#: app/templates/staff/settings_admin.html:620
+#: app/templates/staff/settings_admin.html:624
 msgid "Backup Database"
 msgstr "Database Backup"
 
-#: app/templates/staff/settings_admin.html:625
+#: app/templates/staff/settings_admin.html:629
 msgid "Backup database & semua gambar dalam 1 file .zip."
 msgstr "Backup the database & all images into 1 .zip file."
 
-#: app/templates/staff/settings_admin.html:632
+#: app/templates/staff/settings_admin.html:636
 msgid "Belum ada backup. Klik \"Buat Backup Baru\" untuk membuat yang pertama."
 msgstr "No backups yet. Click \"Create New Backup\" to make your first one."
 
-#: app/templates/staff/settings_admin.html:649
+#: app/templates/staff/settings_admin.html:653
 #, python-format
 msgid "Hapus backup %(name)s? Tidak bisa dibatalkan."
 msgstr "Delete backup %(name)s? This can't be undone."
 
-#: app/templates/staff/settings_admin.html:663
+#: app/templates/staff/settings_admin.html:667
 msgid "Buat Backup Baru"
 msgstr "Create New Backup"
 
-#: app/templates/staff/settings_admin.html:672
+#: app/templates/staff/settings_admin.html:676
 msgid "Mode Demo"
 msgstr "Demo Mode"
 
-#: app/templates/staff/settings_admin.html:681
-#: app/templates/staff/settings_admin.html:772
+#: app/templates/staff/settings_admin.html:685
+#: app/templates/staff/settings_admin.html:776
 #: app/templates/staff/users_admin.html:72
 msgid "Nonaktif"
 msgstr "Inactive"
 
-#: app/templates/staff/settings_admin.html:686
+#: app/templates/staff/settings_admin.html:690
 msgid "PIN Mode Demo"
 msgstr "Demo Mode PIN"
 
-#: app/templates/staff/settings_admin.html:688
-#: app/templates/staff/settings_admin.html:806
+#: app/templates/staff/settings_admin.html:692
+#: app/templates/staff/settings_admin.html:810
 msgid "Buka Kunci"
 msgstr "Unlock"
 
-#: app/templates/staff/settings_admin.html:692
-#: app/templates/staff/settings_admin.html:810
+#: app/templates/staff/settings_admin.html:696
+#: app/templates/staff/settings_admin.html:814
 msgid "PIN salah."
 msgstr "Incorrect PIN."
 
-#: app/templates/staff/settings_admin.html:695
+#: app/templates/staff/settings_admin.html:699
 msgid "Kunci Demo"
 msgstr "Lock Demo"
 
-#: app/templates/staff/settings_admin.html:700
+#: app/templates/staff/settings_admin.html:704
 msgid ""
 "Isi menu & inventory contoh untuk demo - aman, tidak menyentuh data asli "
 "toko."
@@ -2078,64 +2078,64 @@ msgstr ""
 "Load sample menu & inventory for demos - safe, does not touch your "
 "store's real data."
 
-#: app/templates/staff/settings_admin.html:706
+#: app/templates/staff/settings_admin.html:710
 msgid "Data contoh yang sedang dimuat"
 msgstr "Sample data currently loaded"
 
-#: app/templates/staff/settings_admin.html:708
+#: app/templates/staff/settings_admin.html:712
 msgid "Isi data contoh kalau dinyalakan"
 msgstr "Sample data if turned on"
 
-#: app/templates/staff/settings_admin.html:714
+#: app/templates/staff/settings_admin.html:718
 #, python-format
 msgid "%(count)s kategori"
 msgstr "%(count)s categories"
 
-#: app/templates/staff/settings_admin.html:718
+#: app/templates/staff/settings_admin.html:722
 #, python-format
 msgid "%(count)s menu (dengan foto)"
 msgstr "%(count)s menu items (with photos)"
 
-#: app/templates/staff/settings_admin.html:722
+#: app/templates/staff/settings_admin.html:726
 #, python-format
 msgid "%(count)s bahan baku"
 msgstr "%(count)s ingredients"
 
-#: app/templates/staff/settings_admin.html:726
+#: app/templates/staff/settings_admin.html:730
 #, python-format
 msgid "%(count)s meja (Lantai 1)"
 msgstr "%(count)s tables (Floor 1)"
 
-#: app/templates/staff/settings_admin.html:730
+#: app/templates/staff/settings_admin.html:734
 #, python-format
 msgid "%(count)s platform delivery"
 msgstr "%(count)s delivery platforms"
 
-#: app/templates/staff/settings_admin.html:734
+#: app/templates/staff/settings_admin.html:738
 msgid "Identitas & logo toko (sementara)"
 msgstr "Store identity & logo (temporary)"
 
-#: app/templates/staff/settings_admin.html:740
+#: app/templates/staff/settings_admin.html:744
 msgid "Matikan Mode Demo? Semua data contoh akan dihapus."
 msgstr "Turn off Demo Mode? All sample data will be deleted."
 
-#: app/templates/staff/settings_admin.html:743
+#: app/templates/staff/settings_admin.html:747
 msgid "Matikan Mode Demo"
 msgstr "Turn Off Demo Mode"
 
-#: app/templates/staff/settings_admin.html:747
+#: app/templates/staff/settings_admin.html:751
 msgid "Aktifkan Mode Demo"
 msgstr "Turn On Demo Mode"
 
-#: app/templates/staff/settings_admin.html:760
+#: app/templates/staff/settings_admin.html:764
 msgid "Mode Perbaikan (Maintenance)"
 msgstr "Maintenance Mode"
 
-#: app/templates/staff/settings_admin.html:770
+#: app/templates/staff/settings_admin.html:774
 msgid "Aktif - hanya Owner yang bisa akses"
 msgstr "Active - only the Owner can access it"
 
-#: app/templates/staff/settings_admin.html:777
+#: app/templates/staff/settings_admin.html:781
 msgid ""
 "Aktifkan Mode Perbaikan? Kasir, dapur, dan pelayan tidak akan bisa "
 "memakai aplikasi sampai kamu matikan lagi."
@@ -2143,15 +2143,15 @@ msgstr ""
 "Turn on Maintenance Mode? Kasir, dapur, and pelayan accounts won't be "
 "able to use the app until you turn it off again."
 
-#: app/templates/staff/settings_admin.html:780
+#: app/templates/staff/settings_admin.html:784
 msgid "Matikan Mode Perbaikan"
 msgstr "Turn Off Maintenance Mode"
 
-#: app/templates/staff/settings_admin.html:784
+#: app/templates/staff/settings_admin.html:788
 msgid "Aktifkan Mode Perbaikan"
 msgstr "Turn On Maintenance Mode"
 
-#: app/templates/staff/settings_admin.html:791
+#: app/templates/staff/settings_admin.html:795
 msgid ""
 "Aktifkan saat sedang ada perbaikan kode di server produksi. Selama aktif,"
 " semua pengguna lain (kasir, dapur, pelayan, dan siapa pun yang belum "
@@ -2165,20 +2165,20 @@ msgstr ""
 "account can keep using the app as usual to test the changes before "
 "turning it back on for everyone."
 
-#: app/templates/staff/settings_admin.html:799
-#: app/templates/staff/settings_admin.html:825
+#: app/templates/staff/settings_admin.html:803
+#: app/templates/staff/settings_admin.html:829
 msgid "Reset ke Mode Pabrik"
 msgstr "Factory Reset"
 
-#: app/templates/staff/settings_admin.html:804
+#: app/templates/staff/settings_admin.html:808
 msgid "PIN Reset Pabrik"
 msgstr "Factory Reset PIN"
 
-#: app/templates/staff/settings_admin.html:813
+#: app/templates/staff/settings_admin.html:817
 msgid "Kunci Reset"
 msgstr "Lock Reset"
 
-#: app/templates/staff/settings_admin.html:819
+#: app/templates/staff/settings_admin.html:823
 msgid ""
 "Kosongkan kategori, menu, bahan baku, meja, lantai, riwayat pesanan, dan "
 "kembalikan Pengaturan Toko ke kondisi kosong - KECUALI menu Pengguna, "
@@ -2190,7 +2190,7 @@ msgstr ""
 " all staff accounts along with their role & permissions stay intact. This"
 " action is permanent and cannot be undone."
 
-#: app/templates/staff/settings_admin.html:823
+#: app/templates/staff/settings_admin.html:827
 msgid ""
 "YAKIN reset ke mode pabrik? Semua data toko akan hilang permanen, kecuali"
 " daftar pengguna. Tindakan ini TIDAK BISA dibatalkan."
@@ -2198,7 +2198,7 @@ msgstr ""
 "Are you SURE you want to factory reset? All store data will be lost "
 "permanently, except the user list. This action CANNOT be undone."
 
-#: app/templates/staff/settings_admin.html:840
+#: app/templates/staff/settings_admin.html:844
 msgid "Simpan Pengaturan"
 msgstr "Save Settings"
 

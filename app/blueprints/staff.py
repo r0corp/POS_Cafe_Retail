@@ -1891,8 +1891,8 @@ def admin_settings():
             ppn_percentage = 0.0
         settings.ppn_percentage = max(0.0, min(100.0, ppn_percentage))
 
-        paper_width = request.form.get("receipt_paper_width", "80")
-        settings.receipt_paper_width = paper_width if paper_width in ("58", "80") else "80"
+        paper_width = request.form.get("receipt_paper_width", "58")
+        settings.receipt_paper_width = paper_width if paper_width in ("58", "80") else "58"
         settings.address = request.form.get("address", "").strip() or None
         settings.phone = request.form.get("phone", "").strip() or None
         settings.instagram = request.form.get("instagram", "").strip() or None
@@ -2668,7 +2668,7 @@ def _factory_reset():
     settings.login_logo_choice = "square"
     settings.receipt_logo_choice = "wide"
     settings.navbar_display = "both"
-    settings.receipt_paper_width = "80"
+    settings.receipt_paper_width = "58"
     settings.ppn_enabled = False
     settings.ppn_percentage = 11.0
     settings.demo_settings_backup = None

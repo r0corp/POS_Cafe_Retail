@@ -302,11 +302,11 @@
                     <span class="settings-section-num">2</span> {{ _('Kertas Struk') }}
                   </div>
                   <div class="mb-1" style="max-width: 260px;">
+                    <div class="form-text mt-0 mb-2">{{ _('Sesuaikan dengan ukuran kertas printer thermal Anda.') }}</div>
                     <select name="receipt_paper_width" class="form-select" data-elegant-select>
-                      <option value="80" {% if settings.receipt_paper_width == '80' %}selected{% endif %}>{{ _('80mm (umum)') }}</option>
-                      <option value="58" {% if settings.receipt_paper_width == '58' %}selected{% endif %}>58mm</option>
+                      <option value="58" {% if settings.receipt_paper_width == '58' %}selected{% endif %}>{{ _('58mm (umum)') }}</option>
+                      <option value="80" {% if settings.receipt_paper_width == '80' %}selected{% endif %}>80mm</option>
                     </select>
-                    <div class="form-text">{{ _('Sesuaikan dengan ukuran kertas printer thermal Anda.') }}</div>
                   </div>
                 </div>
 
