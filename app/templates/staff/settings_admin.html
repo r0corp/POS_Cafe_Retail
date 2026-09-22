@@ -191,29 +191,35 @@
                     <span class="settings-section-num">2</span> {{ _('Logo di Setiap Halaman') }}
                   </div>
                   <div class="card flex-grow-1">
-                    <div class="card-body system-card-body">
+                    <div class="card-body system-card-body" style="--form-field-label-width: 140px;">
                       <div class="mb-3">
-                        <label class="form-label small fw-semibold">{{ _('Logo Halaman Login') }}</label>
-                        <select name="login_logo_choice" class="form-select" data-elegant-select>
-                          <option value="square" {% if settings.login_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
-                          <option value="wide" {% if settings.login_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
-                        </select>
+                        <div class="form-field-row">
+                          <label class="form-label form-field-label small fw-semibold">{{ _('Logo Halaman Login') }}</label>
+                          <select name="login_logo_choice" class="form-select" data-elegant-select>
+                            <option value="square" {% if settings.login_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
+                            <option value="wide" {% if settings.login_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
+                          </select>
+                        </div>
                         <div class="form-text">{{ _('Ditampilkan di kartu login sebelum masuk.') }}</div>
                       </div>
                       <div class="mb-3">
-                        <label class="form-label small fw-semibold">{{ _('Logo Aplikasi') }}</label>
-                        <select name="app_logo_choice" class="form-select" data-elegant-select>
-                          <option value="square" {% if settings.app_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
-                          <option value="wide" {% if settings.app_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
-                        </select>
+                        <div class="form-field-row">
+                          <label class="form-label form-field-label small fw-semibold">{{ _('Logo Aplikasi') }}</label>
+                          <select name="app_logo_choice" class="form-select" data-elegant-select>
+                            <option value="square" {% if settings.app_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
+                            <option value="wide" {% if settings.app_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
+                          </select>
+                        </div>
                         <div class="form-text">{{ _('Navbar aplikasi & menu tamu.') }}</div>
                       </div>
                       <div>
-                        <label class="form-label small fw-semibold">{{ _('Logo untuk Struk') }}</label>
-                        <select name="receipt_logo_choice" class="form-select" data-elegant-select>
-                          <option value="square" {% if settings.receipt_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
-                          <option value="wide" {% if settings.receipt_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
-                        </select>
+                        <div class="form-field-row">
+                          <label class="form-label form-field-label small fw-semibold">{{ _('Logo untuk Struk') }}</label>
+                          <select name="receipt_logo_choice" class="form-select" data-elegant-select>
+                            <option value="square" {% if settings.receipt_logo_choice == 'square' %}selected{% endif %}>{{ _('Logo Persegi') }}</option>
+                            <option value="wide" {% if settings.receipt_logo_choice == 'wide' %}selected{% endif %}>{{ _('Logo Panjang') }}</option>
+                          </select>
+                        </div>
                         <div class="form-text">{{ _('Kop struk penjualan.') }}</div>
                       </div>
                     </div>
