@@ -307,6 +307,9 @@
                       <option value="58" {% if settings.receipt_paper_width == '58' %}selected{% endif %}>{{ _('58mm (umum)') }}</option>
                       <option value="80" {% if settings.receipt_paper_width == '80' %}selected{% endif %}>80mm</option>
                     </select>
+                    <div class="form-text mt-2">
+                      {{ _('58mm - printer thermal kecil/portable, struk lebih ringkas. 80mm - printer kasir standar, muat lebih banyak kolom per baris.') }}
+                    </div>
                   </div>
                 </div>
 
