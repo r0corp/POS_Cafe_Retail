@@ -475,10 +475,10 @@
                       <div class="form-field-label">
                         {% if channel.logo %}
                           <img src="{{ url_for('static', filename='uploads/branding/' + channel.logo) }}" alt="{{ channel.name }}"
-                               style="width: 40px; height: 40px; object-fit: contain; border-radius: 8px; border: 1px solid var(--color-border);">
+                               style="width: 64px; height: 64px; object-fit: contain; border-radius: 10px; border: 1px solid var(--color-border);">
                         {% else %}
-                          <div style="width: 40px; height: 40px; border-radius: 8px; border: 1px dashed var(--color-border); display: flex; align-items: center; justify-content: center;">
-                            <i class="bi bi-image text-muted"></i>
+                          <div style="width: 64px; height: 64px; border-radius: 10px; border: 1px dashed var(--color-border); display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-image text-muted" style="font-size: 1.3rem;"></i>
                           </div>
                         {% endif %}
                       </div>
