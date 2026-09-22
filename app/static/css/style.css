@@ -2472,7 +2472,16 @@ textarea.form-control {
   gap: 6px;
 }
 
+/* Dot-nya dilepas dari alur .seat-status-row (position:absolute,
+   nempel ke .seat yang position:relative), sama seperti .seat-qr-btn -
+   biar dot tetap nempel pojok kiri-atas dan QR tetap nempel pojok
+   kanan-atas ("balance" kiri-kanan), sementara teks Kosong/Terisi
+   sendirian jadi satu-satunya isi .seat-top-row yang masih ikut alur
+   flex-nya, otomatis rata tengah lewat justify-content:center di situ. */
 .seat-status-dot {
+  position: absolute;
+  top: 14px;
+  left: 12px;
   width: 20px;
   height: 20px;
   flex-shrink: 0;
