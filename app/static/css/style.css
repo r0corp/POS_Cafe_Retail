@@ -1310,6 +1310,30 @@ textarea.form-control {
   padding: 0.55rem 0.65rem;
 }
 
+/* Bootstrap kasih radius kecil sendiri (4px) buat field di dalam
+   .input-group/.input-group-sm (misal field persentase PPN) - beda
+   dari radius field biasa (--radius-sm, 10px) di atas, jadi kelihatan
+   lebih "kotak" sebelah. Samakan supaya konsisten di semua field. */
+.input-group .form-control,
+.input-group .form-select,
+.input-group-text {
+  border-radius: var(--radius-sm) !important;
+}
+
+.input-group > .form-control:not(:last-child),
+.input-group > .form-select:not(:last-child),
+.input-group > .input-group-text:not(:last-child) {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.input-group > .form-control:not(:first-child),
+.input-group > .form-select:not(:first-child),
+.input-group > .input-group-text:not(:first-child) {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
 .form-control:focus,
 .form-select:focus {
   border-color: var(--color-border);
