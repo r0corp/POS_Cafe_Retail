@@ -81,39 +81,9 @@
                   </div>
                 </div>
 
-                <div class="col-12 col-lg-3 settings-col-divider">
-                  <div class="settings-section-title">
-                    <span class="settings-section-num">2</span> {{ _('Lantai Toko') }}
-                  </div>
-                  <p class="text-muted small mb-3">
-                    {{ _('Atur jumlah lantai toko Anda dan beri nama masing-masing - dipakai di halaman Meja dan saat menambah meja baru.') }}
-                  </p>
-
-                  {% if not floors %}
-                    <p class="text-muted small mb-3">{{ _('Belum ada lantai. Tambahkan minimal 1 lantai dulu.') }}</p>
-                  {% else %}
-                    <div class="floor-list mb-3">
-                      {% for floor in floors %}
-                        <div class="floor-row">
-                          <input type="text" name="floor_name_{{ floor.id }}" class="form-control form-control-sm" value="{{ floor.name }}" placeholder="{{ floor_display_name(floor.number) }}" maxlength="50">
-                          <button type="submit" formaction="{{ url_for('staff.delete_floor', floor_id=floor.id) }}" formmethod="post"
-                                  class="icon-btn-danger" title="{{ _('Hapus Lantai') }}"
-                                  onclick="return confirm('{{ _('Hapus %(name)s? Meja yang sudah ada di lantai ini tidak ikut terhapus.', name=floor_display_name(floor.number)) }}');">
-                            <i class="bi bi-trash"></i>
-                          </button>
-                        </div>
-                      {% endfor %}
-                    </div>
-                  {% endif %}
-
-                  <button type="submit" formaction="{{ url_for('staff.add_floor') }}" formmethod="post" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-plus-circle"></i> {{ _('Tambah Lantai') }}
-                  </button>
-                </div>
-
                 <div class="col-12 col-lg-3 settings-col-divider" style="--form-field-label-width: 90px;">
                   <div class="settings-section-title">
-                    <span class="settings-section-num">3</span> {{ _('Kontak & Sosial') }}
+                    <span class="settings-section-num">2</span> {{ _('Kontak & Sosial') }}
                   </div>
 
                   <div class="mb-3 form-field-row">
@@ -139,7 +109,7 @@
 
                 <div class="col-12 col-lg-3 settings-col-divider" style="--form-field-label-width: 90px;">
                   <div class="settings-section-title">
-                    <span class="settings-section-num">4</span> {{ _('Info WiFi') }}
+                    <span class="settings-section-num">3</span> {{ _('Info WiFi') }}
                   </div>
                   <p class="text-muted small mb-3">
                     {{ _('Aplikasi ini dipakai lewat jaringan lokal, bukan internet - tamu wajib nyambung ke WiFi toko dulu sebelum bisa scan QR meja. Diisi supaya info WiFi ikut tercetak di kartu QR.') }}
@@ -154,6 +124,36 @@
                     <label class="form-label form-field-label small fw-semibold">{{ _('Password WiFi') }}</label>
                     <input type="text" name="wifi_password" class="form-control" value="{{ settings.wifi_password or '' }}" placeholder="{{ _('Kosongkan kalau WiFi tanpa password') }}">
                   </div>
+                </div>
+
+                <div class="col-12 col-lg-3 settings-col-divider">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">4</span> {{ _('Lantai Toko') }}
+                  </div>
+                  <p class="text-muted small mb-3">
+                    {{ _('Atur jumlah lantai toko Anda dan beri nama masing-masing - dipakai di halaman Meja dan saat menambah meja baru.') }}
+                  </p>
+
+                  {% if not floors %}
+                    <p class="text-muted small mb-3">{{ _('Belum ada lantai. Tambahkan minimal 1 lantai dulu.') }}</p>
+                  {% else %}
+                    <div class="floor-list mb-3">
+                      {% for floor in floors %}
+                        <div class="floor-row">
+                          <input type="text" name="floor_name_{{ floor.id }}" class="form-control form-control-sm" value="{{ floor.name }}" placeholder="{{ floor_display_name(floor.number) }}" maxlength="50">
+                          <button type="submit" formaction="{{ url_for('staff.delete_floor', floor_id=floor.id) }}" formmethod="post"
+                                  class="icon-btn-danger" title="{{ _('Hapus Lantai') }}"
+                                  onclick="return confirm('{{ _('Hapus %(name)s? Meja yang sudah ada di lantai ini tidak ikut terhapus.', name=floor_display_name(floor.number)) }}');">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+
+                  <button type="submit" formaction="{{ url_for('staff.add_floor') }}" formmethod="post" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-plus-circle"></i> {{ _('Tambah Lantai') }}
+                  </button>
                 </div>
 
               </div>
