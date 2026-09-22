@@ -61,6 +61,14 @@
   --color-border: #334155;
 
   --color-primary: #38BDF8;
+  /* --color-primary-dark TIDAK ikut di-override di mode terang
+     sebelumnya - jadi hover tombol biru (mis. tombol "Pesan" di kartu
+     meja, .btn-primary) pakai #0E4C75 punya mode terang, navy gelap
+     yang nyaris ketutup sama latar gelap aplikasi sendiri pas di-hover
+     di mode gelap. Dikasih versi sendiri di sini - biru medium yang
+     masih jelas beda dari --color-primary tapi tidak segelap navy
+     mode terang, supaya efek hover-nya tetap kelihatan. */
+  --color-primary-dark: #1BA0F8;
   --color-primary-dot: rgba(56, 189, 248, 0.28);
   --color-heading: #E2E8F0;
   --color-accent: #F07828;
