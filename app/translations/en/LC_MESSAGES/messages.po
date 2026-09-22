@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 13:26+0700\n"
+"POT-Creation-Date: 2026-09-22 13:45+0700\n"
 "PO-Revision-Date: 2026-09-14 19:34+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -368,15 +368,17 @@ msgid "Bahan Baku Menipis / Habis"
 msgstr "Low / Out of Stock Ingredients"
 
 #: app/blueprints/staff.py:1159 app/blueprints/staff.py:1249
-#: app/templates/staff/inventory.html:63
+#: app/templates/staff/inventory.html:65
 msgid "Daftar Bahan Baku"
 msgstr "Ingredient List"
 
 #: app/blueprints/staff.py:1185 app/blueprints/staff.py:1264
+#: app/templates/staff/inventory.html:40
 msgid "Nama Bahan"
 msgstr "Ingredient Name"
 
 #: app/blueprints/staff.py:1185 app/blueprints/staff.py:1264
+#: app/templates/staff/inventory.html:44
 msgid "Satuan"
 msgstr "Unit"
 
@@ -385,7 +387,7 @@ msgid "Stok Saat Ini"
 msgstr "Current Stock"
 
 #: app/blueprints/staff.py:1185 app/blueprints/staff.py:1264
-#: app/templates/staff/inventory.html:50
+#: app/templates/staff/inventory.html:52
 msgid "Batas Stok Menipis"
 msgstr "Low Stock Threshold"
 
@@ -396,7 +398,7 @@ msgid "Status"
 msgstr "Status"
 
 #: app/blueprints/staff.py:1199 app/blueprints/staff.py:1268
-#: app/templates/staff/inventory.html:75
+#: app/templates/staff/inventory.html:77
 msgid "Menipis"
 msgstr "Low Stock"
 
@@ -1301,53 +1303,53 @@ msgstr "Low Stock"
 msgid "Tambah Bahan Baku"
 msgstr "Add Ingredient"
 
-#: app/templates/staff/inventory.html:40
-msgid "Nama bahan (misal: Kopi Bubuk)"
-msgstr "Ingredient name (e.g. Ground Coffee)"
+#: app/templates/staff/inventory.html:41
+msgid "Misal: Kopi Bubuk"
+msgstr "E.g. Ground Coffee"
 
-#: app/templates/staff/inventory.html:43
-msgid "Satuan (gram, ml, pcs)"
-msgstr "Unit (gram, ml, pcs)"
+#: app/templates/staff/inventory.html:45
+msgid "Gram, ml, pcs"
+msgstr "Gram, ml, pcs"
 
-#: app/templates/staff/inventory.html:46
+#: app/templates/staff/inventory.html:48
 msgid "Stok Awal"
 msgstr "Starting Stock"
 
-#: app/templates/staff/inventory.html:52
+#: app/templates/staff/inventory.html:55
 msgid "Diberi peringatan kalau stok sudah di bawah atau sama dengan angka ini."
 msgstr "You'll get a warning once stock drops to or below this number."
 
-#: app/templates/staff/inventory.html:54
+#: app/templates/staff/inventory.html:56
 msgid "Tambah Bahan"
 msgstr "Add Ingredient"
 
-#: app/templates/staff/inventory.html:79
+#: app/templates/staff/inventory.html:81
 msgid "Stok"
 msgstr "Stock"
 
-#: app/templates/staff/inventory.html:80
+#: app/templates/staff/inventory.html:82
 msgid "Batas menipis"
 msgstr "Low stock threshold"
 
-#: app/templates/staff/inventory.html:85
+#: app/templates/staff/inventory.html:87
 msgid "Tambah stok"
 msgstr "Add stock"
 
-#: app/templates/staff/inventory.html:89
+#: app/templates/staff/inventory.html:91
 #: app/templates/staff/menu_admin.html:188
 #, python-format
 msgid "Hapus %(name)s? Tidak bisa dibatalkan."
 msgstr "Delete %(name)s? This can't be undone."
 
-#: app/templates/staff/inventory.html:90
+#: app/templates/staff/inventory.html:92
 msgid "Hapus Bahan"
 msgstr "Delete Ingredient"
 
-#: app/templates/staff/inventory.html:99
+#: app/templates/staff/inventory.html:101
 msgid "Belum ada bahan baku. Tambahkan lewat form di samping."
 msgstr "No ingredients yet. Add one using the form on the side."
 
-#: app/templates/staff/inventory.html:106
+#: app/templates/staff/inventory.html:108
 msgid ""
 "Untuk mengatur resep (bahan baku apa saja & berapa jumlahnya untuk 1 "
 "porsi menu), buka menu Kelola Menu lalu klik foto item menunya."

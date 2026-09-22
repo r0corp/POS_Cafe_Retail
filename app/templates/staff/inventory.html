@@ -36,21 +36,23 @@
       <div class="card-body">
         <h6 class="mb-3">{{ _('Tambah Bahan Baku') }}</h6>
         <form method="post">
-          <div class="mb-2">
-            <input type="text" name="name" class="form-control" placeholder="{{ _('Nama bahan (misal: Kopi Bubuk)') }}" required>
+          <div class="mb-2 form-field-row">
+            <label class="form-label form-field-label small">{{ _('Nama Bahan') }}</label>
+            <input type="text" name="name" class="form-control" placeholder="{{ _('Misal: Kopi Bubuk') }}" required>
           </div>
-          <div class="mb-2">
-            <input type="text" name="unit" class="form-control" placeholder="{{ _('Satuan (gram, ml, pcs)') }}" required>
+          <div class="mb-2 form-field-row">
+            <label class="form-label form-field-label small">{{ _('Satuan') }}</label>
+            <input type="text" name="unit" class="form-control" placeholder="{{ _('Gram, ml, pcs') }}" required>
           </div>
-          <div class="mb-2">
-            <label class="form-label small">{{ _('Stok Awal') }}</label>
+          <div class="mb-2 form-field-row">
+            <label class="form-label form-field-label small">{{ _('Stok Awal') }}</label>
             <input type="number" step="0.01" min="0" name="stock_quantity" class="form-control" required>
           </div>
-          <div class="mb-3">
-            <label class="form-label small">{{ _('Batas Stok Menipis') }}</label>
+          <div class="mb-1 form-field-row">
+            <label class="form-label form-field-label small">{{ _('Batas Stok Menipis') }}</label>
             <input type="number" step="0.01" min="0" name="low_stock_threshold" class="form-control" placeholder="0">
-            <div class="form-text">{{ _('Diberi peringatan kalau stok sudah di bawah atau sama dengan angka ini.') }}</div>
           </div>
+          <div class="form-text mb-3">{{ _('Diberi peringatan kalau stok sudah di bawah atau sama dengan angka ini.') }}</div>
           <button class="btn btn-accent w-100" type="submit"><i class="bi bi-plus-circle"></i> {{ _('Tambah Bahan') }}</button>
         </form>
       </div>
