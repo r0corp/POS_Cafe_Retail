@@ -146,10 +146,10 @@
                   <div class="card flex-grow-1">
                     <div class="card-body system-card-body">
                       <div class="mb-3">
-                        <label class="form-label small fw-semibold">{{ _('Logo Persegi') }}</label>
-                        <div class="d-flex align-items-start gap-3 mb-2">
-                          <div class="flex-grow-1">
-                            <input type="file" name="logo_square" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                        <div class="form-field-row mb-2" style="--form-field-label-width: 100px;">
+                          <label class="form-label form-field-label small fw-semibold">{{ _('Logo Persegi') }}</label>
+                          <div style="flex: 1 1 100px; min-width: 0;">
+                            <input type="file" name="logo_square" class="form-control form-control-sm" style="width: 100%; min-width: 0;" accept="image/png,image/jpeg,image/webp,image/svg+xml">
                             {% if settings.logo_square %}
                               <input type="checkbox" class="btn-check" name="remove_logo_square" value="1" id="removeSquare" autocomplete="off">
                               <label class="btn btn-sm btn-outline-danger mt-2" for="removeSquare">{{ _('Reset') }}</label>
@@ -168,10 +168,10 @@
                       </div>
 
                       <div>
-                        <label class="form-label small fw-semibold">{{ _('Logo Panjang') }}</label>
-                        <div class="d-flex align-items-start gap-3 mb-2">
-                          <div class="flex-grow-1">
-                            <input type="file" name="logo_wide" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                        <div class="form-field-row mb-2" style="--form-field-label-width: 100px;">
+                          <label class="form-label form-field-label small fw-semibold">{{ _('Logo Panjang') }}</label>
+                          <div style="flex: 1 1 100px; min-width: 0;">
+                            <input type="file" name="logo_wide" class="form-control form-control-sm" style="width: 100%; min-width: 0;" accept="image/png,image/jpeg,image/webp,image/svg+xml">
                             {% if settings.logo_wide %}
                               <input type="checkbox" class="btn-check" name="remove_logo_wide" value="1" id="removeWide" autocomplete="off">
                               <label class="btn btn-sm btn-outline-danger mt-2" for="removeWide">{{ _('Reset') }}</label>
