@@ -2642,6 +2642,15 @@ textarea.form-control {
   background: transparent;
 }
 
+/* Ikon "QR bulat" custom (bukan bi-qr-code yang kotak) - lingkaran +
+   3 titik cincin ala sudut penanda QR + beberapa blok kecil, semuanya
+   pakai currentColor jadi warnanya ikut status meja (sama seperti
+   .seat-qr-btn). */
+.seat-qr-icon {
+  width: 15px;
+  height: 15px;
+}
+
 .seat-available .seat-qr-btn {
   color: var(--color-accent);
 }
