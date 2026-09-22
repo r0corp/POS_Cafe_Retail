@@ -2620,6 +2620,15 @@ textarea.form-control {
   margin-right: 5px;
 }
 
+/* Garis pemisah tipis antara nama lantai dan legend Kosong/Terisi di
+   sebelahnya (kartu "Lantai X"). */
+.floor-legend-sep {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: var(--color-border);
+}
+
 /* ============================================================
    Order status stepper
    ============================================================ */

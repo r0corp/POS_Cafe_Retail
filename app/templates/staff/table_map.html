@@ -73,18 +73,20 @@
       {% if is_owner %}&middot; <i class="bi bi-qr-code"></i> {{ _('lihat QR / hapus meja') }}{% endif %}
     </p>
   </div>
-{% else %}
-  <p class="text-muted small mb-3">
-    <span class="legend-dot" style="background: var(--color-primary);"></span>{{ _('Kosong') }} &middot;
-    <span class="legend-dot" style="background: var(--color-warning);"></span>{{ _('Terisi') }}
-    {% if is_owner %}&middot; <i class="bi bi-qr-code"></i> {{ _('lihat QR / hapus meja') }}{% endif %}
-  </p>
 {% endif %}
 
 {% for floor_number, items in floors %}
   <div class="card mb-4">
     <div class="card-body">
-      <h6 class="mb-3">{{ floor_display_name(floor_number) }}</h6>
+      <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+        <h6 class="mb-0">{{ floor_display_name(floor_number) }}</h6>
+        <span class="floor-legend-sep" aria-hidden="true"></span>
+        <span class="text-muted small">
+          <span class="legend-dot" style="background: var(--color-primary);"></span>{{ _('Kosong') }} &middot;
+          <span class="legend-dot" style="background: var(--color-warning);"></span>{{ _('Terisi') }}
+          {% if is_owner %}&middot; <i class="bi bi-qr-code"></i> {{ _('lihat QR / hapus meja') }}{% endif %}
+        </span>
+      </div>
       <div class="seat-grid">
         {% for entry in items %}
           {% set table = entry.table %}
