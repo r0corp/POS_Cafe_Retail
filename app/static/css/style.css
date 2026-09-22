@@ -2618,23 +2618,24 @@ textarea.form-control {
 /* Tombol QR/detail meja (khusus Owner) - dilepas dari alur .seat-top-row
    (position:absolute, nempel ke .seat yang position:relative) supaya
    baris status di sebelahnya bisa rata tengah penuh tanpa kepentok
-   tombol ini. Cuma outline bulat (bukan latar solid) supaya tidak
-   terlalu "nge-block" - garisnya pakai currentColor, jadi otomatis
-   senada dengan warna icon-nya sendiri (ikut status meja, lihat
-   .seat-available/.seat-occupied di bawah). */
+   tombol ini. Tanpa border/latar (cuma icon polos) supaya tidak
+   terlalu "nge-block" - warnanya ikut status meja lewat currentColor
+   (lihat .seat-available/.seat-occupied di bawah). */
 .seat-qr-btn {
   position: absolute;
   top: 14px;
   right: 12px;
   background: transparent;
-  border: 1.5px solid currentColor;
-  width: 34px;
-  height: 34px;
+  border: none;
+  /* Disamakan persis sama ukuran .seat-status-dot (20px) supaya kedua
+     "indikator" di pojok kiri-kanan kartu terasa seimbang. */
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.85rem;
 }
 
 .seat-qr-btn:hover {
