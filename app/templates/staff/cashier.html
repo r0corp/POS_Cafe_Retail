@@ -2,13 +2,12 @@
 {% block title %}{{ _('Kasir') }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-1">
-  <h4 class="mb-0"><i class="bi bi-cash-coin"></i> {{ _('Pembayaran') }}</h4>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0"><span class="page-title-icon"><i class="bi bi-cash-coin"></i></span>{{ _('Pembayaran') }}</h4>
   <button type="button" id="muteToggleCashier" class="sound-toggle-btn">
     <i id="muteIconCashier" class="bi bi-volume-up-fill"></i>
   </button>
 </div>
-<p class="text-muted small mb-3">{{ _('Proses pembayaran pesanan yang menunggu dan cetak ulang struk transaksi lunas.') }}</p>
 
 {% if not site_settings.qris_image %}
   <p class="text-muted small mb-3">

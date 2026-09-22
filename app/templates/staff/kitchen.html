@@ -2,13 +2,12 @@
 {% block title %}{{ _('Dapur') }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-1">
-  <h4 class="mb-0"><i class="bi bi-egg-fried"></i> {{ _('Antrian Dapur') }}</h4>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0"><span class="page-title-icon"><i class="bi bi-egg-fried"></i></span>{{ _('Antrian Dapur') }}</h4>
   <button type="button" id="muteToggleKitchen" class="sound-toggle-btn">
     <i id="muteIconKitchen" class="bi bi-volume-up-fill"></i>
   </button>
 </div>
-<p class="text-muted small mb-3">{{ _('Pesanan yang perlu diproses, urut dari yang paling lama menunggu.') }}</p>
 
 <div id="kitchenOrdersContainer">
   {% include "staff/_kitchen_orders.html" %}
