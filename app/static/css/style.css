@@ -2618,45 +2618,31 @@ textarea.form-control {
 /* Tombol QR/detail meja (khusus Owner) - dilepas dari alur .seat-top-row
    (position:absolute, nempel ke .seat yang position:relative) supaya
    baris status di sebelahnya bisa rata tengah penuh tanpa kepentok
-   tombol ini. Tanpa border/latar (cuma icon polos) supaya tidak
-   terlalu "nge-block" - warnanya ikut status meja lewat currentColor
-   (lihat .seat-available/.seat-occupied di bawah). */
+   tombol ini. Sengaja dibuat lingkaran solid polos - sama persis
+   ukuran & bentuknya dengan .seat-status-dot di pojok satunya, cuma
+   warnanya ikut status meja lewat currentColor (lihat
+   .seat-available/.seat-occupied di bawah), bukan ikon kotak/QR. */
 .seat-qr-btn {
   position: absolute;
   top: 14px;
   right: 12px;
-  background: transparent;
+  background: currentColor;
   border: none;
-  /* Disamakan persis sama ukuran .seat-status-dot (20px) supaya kedua
-     "indikator" di pojok kiri-kanan kartu terasa seimbang. */
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
+  padding: 0;
 }
 
-.seat-qr-btn:hover {
-  background: transparent;
-}
-
-/* Ikon "QR bulat" custom (bukan bi-qr-code yang kotak) - lingkaran +
-   3 titik cincin ala sudut penanda QR + beberapa blok kecil, semuanya
-   pakai currentColor jadi warnanya ikut status meja (sama seperti
-   .seat-qr-btn). */
-.seat-qr-icon {
-  width: 15px;
-  height: 15px;
-}
-
+/* Warna disamakan persis dengan .seat-status-dot di pojok satunya
+   (bukan warna tombol aksi Pesan/Ke Kasir lagi) - biar kedua "dot" di
+   kartu ini benar-benar kembar. */
 .seat-available .seat-qr-btn {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .seat-occupied .seat-qr-btn {
-  color: var(--color-primary);
+  color: var(--color-warning);
 }
 
 .legend-dot {

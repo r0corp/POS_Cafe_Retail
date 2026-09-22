@@ -98,18 +98,7 @@
                 <span class="seat-status-text">{{ _('Terisi') if order else _('Kosong') }}</span>
               </div>
               {% if is_owner %}
-                <button type="button" class="seat-qr-btn" data-bs-toggle="modal" data-bs-target="#qrModal{{ table.id }}" title="{{ _('Detail meja') }}">
-                  <svg class="seat-qr-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.3"></circle>
-                    <circle cx="8" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"></circle>
-                    <circle cx="16" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"></circle>
-                    <circle cx="8" cy="16" r="2.2" stroke="currentColor" stroke-width="1.3"></circle>
-                    <rect x="14.3" y="14.3" width="1.7" height="1.7" fill="currentColor"></rect>
-                    <rect x="17" y="14.3" width="1.7" height="1.7" fill="currentColor"></rect>
-                    <rect x="14.3" y="17" width="1.7" height="1.7" fill="currentColor"></rect>
-                    <rect x="11.3" y="11.3" width="1.7" height="1.7" fill="currentColor"></rect>
-                  </svg>
-                </button>
+                <button type="button" class="seat-qr-btn" data-bs-toggle="modal" data-bs-target="#qrModal{{ table.id }}" title="{{ _('Detail meja') }}" aria-label="{{ _('Detail meja') }}"></button>
               {% endif %}
             </div>
 
