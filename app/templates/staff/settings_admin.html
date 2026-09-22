@@ -280,8 +280,8 @@
                   <p class="text-muted small mb-3">
                     {{ _('Kalau ada ketentuan PPN dari pemerintah, aktifkan dan masukkan persentasenya di sini - otomatis dihitung & ditambahkan ke total tagihan mulai dari Kasir sampai struk cetak dan laporan penjualan.') }}
                   </p>
-                  <label class="small fw-semibold d-block mb-2" for="ppnEnabled">{{ _('Aktifkan PPN') }}</label>
                   <div class="d-flex align-items-center gap-3 mb-1">
+                    <label class="small fw-semibold mb-0" for="ppnEnabled">{{ _('Aktifkan PPN') }}</label>
                     <div class="form-check form-switch mb-0">
                       <input class="form-check-input" type="checkbox" role="switch" name="ppn_enabled" value="1" id="ppnEnabled"
                              {% if settings.ppn_enabled %}checked{% endif %}>
