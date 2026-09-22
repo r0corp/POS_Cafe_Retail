@@ -6,8 +6,15 @@ from flask_login import current_user, login_required, login_user, logout_user
 
 from .. import db
 from ..models import User, LoginLog
+from ..rate_limit import is_rate_limited
 
 auth_bp = Blueprint("auth", __name__)
+
+# Maks 10 percobaan login gagal / 5 menit per (IP, username) - cukup
+# longgar buat staf yang salah ketik password berkali-kali, tapi
+# menghambat script brute-force nebak password.
+LOGIN_RATE_LIMIT = 10
+LOGIN_RATE_WINDOW_SECONDS = 5 * 60
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -18,6 +25,11 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
+
+        rate_key = f"{request.remote_addr}:{username.lower()}"
+        if is_rate_limited(rate_key, LOGIN_RATE_LIMIT, LOGIN_RATE_WINDOW_SECONDS):
+            flash(_("Terlalu banyak percobaan login gagal. Coba lagi beberapa menit lagi."), "danger")
+            return render_template("auth/login.html")
 
         user = User.query.filter_by(username=username).first()
 

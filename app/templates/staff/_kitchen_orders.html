@@ -28,6 +28,7 @@
           </ul>
 
           <form method="post" action="{{ url_for('staff.advance_status', order_id=order.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-accent w-100">
               {% if order.status == 'pending' %}
                 <i class="bi bi-play-fill"></i> {{ _('Mulai Proses') }}

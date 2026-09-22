@@ -9,6 +9,7 @@
 </a>
 
 <form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   {% for category in categories %}
     {% if category.items %}
       <div class="card mb-3">

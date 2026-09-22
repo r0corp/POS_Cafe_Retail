@@ -72,3 +72,34 @@ def check_and_deduct_stock(order):
         db.session.refresh(ingredient)
 
     return None
+
+
+def restore_stock_for_order(order):
+    """Kebalikan dari check_and_deduct_stock() - balikin stok bahan baku
+    yang sudah dipotong buat order ini. Dipakai saat order yang belum
+    lunas dibatalkan (lihat staff.cancel_order) supaya stok yang
+    kadung terpotong tidak hilang permanen cuma karena pesanannya
+    salah input/batal, dan tidak perlu di-restock manual satu-satu.
+
+    Tidak ada pengecekan "cukup atau tidak" di sini (beda dengan
+    deduct) - nambah balik selalu boleh. Tetap lewat UPDATE atomic
+    (bukan baca-lalu-tulis) supaya pembatalan yang nyaris bersamaan
+    tetap terjumlah benar."""
+
+    required = {}
+
+    for item in order.items:
+        if not item.menu_item_id:
+            continue
+
+        recipe_rows = MenuItemIngredient.query.filter_by(menu_item_id=item.menu_item_id).all()
+
+        for row in recipe_rows:
+            required[row.ingredient_id] = required.get(row.ingredient_id, 0.0) + row.quantity_used * item.quantity
+
+    for ingredient_id, qty in required.items():
+        db.session.execute(
+            Ingredient.__table__.update()
+            .where(Ingredient.id == ingredient_id)
+            .values(stock_quantity=Ingredient.stock_quantity + qty)
+        )

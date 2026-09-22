@@ -33,6 +33,7 @@
 </div>
 
 <form method="post" action="{{ url_for('public.add_to_order', code=table.code, order_id=editing_order.id) if editing_order else url_for('public.submit_order', code=table.code) }}" id="orderForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   {% for category in categories %}
     {% set available_items = category.items | selectattr('is_orderable') | list %}
     {% if available_items %}

@@ -506,6 +506,22 @@ class Order(db.Model):
 
         return self.total
 
+    @classmethod
+    def occupying_table_query(cls):
+        """Pesanan yang masih "menempati" mejanya - belum lunas, ATAU
+        sudah lunas tapi makanan/minumannya belum full diantar (status
+        belum "served"). Sengaja BUKAN cuma is_paid=False - kalau kasir
+        terima bayar duluan sementara dapur belum selesai masak/antar,
+        meja itu tidak boleh langsung dianggap kosong buat tamu baru,
+        supaya dapur/pelayan tidak bingung pesanan lama vs baru numpuk
+        di meja yang sama. Dipakai bareng oleh staff.table_map(),
+        staff.tables_status(), staff.new_order(), dan
+        public._active_order_for_table()."""
+
+        return cls.query.filter(
+            db.or_(cls.is_paid.is_(False), cls.status != "served")
+        )
+
     @property
     def status_label(self):
         return ORDER_STATUS_LABELS.get(self.status, self.status)

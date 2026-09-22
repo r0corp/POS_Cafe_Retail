@@ -8,10 +8,18 @@ from sqlalchemy.exc import IntegrityError
 from .. import db
 from ..inventory import check_and_deduct_stock
 from ..models import Category, MenuItem, Table, Order, OrderItem, generate_order_pin
+from ..rate_limit import is_rate_limited
 
 public_bp = Blueprint("public", __name__)
 
 PIN_COOKIE_MAX_AGE = 12 * 60 * 60  # 12 jam - cukup buat satu sesi makan.
+
+# PIN cuma 4 digit (10.000 kombinasi) - batasi percobaan per pesanan
+# (bukan per IP, supaya tidak bisa dihindari dengan ganti-ganti IP di
+# jaringan yang sama) supaya tidak bisa di-brute-force dalam waktu
+# wajar selama 1 sesi makan.
+PIN_RATE_LIMIT = 8
+PIN_RATE_WINDOW_SECONDS = 10 * 60
 
 
 def _pin_cookie_name(order_id):
@@ -32,11 +40,13 @@ def _is_unlocked(order):
 
 
 def _active_order_for_table(table_id):
-    """Pesanan yang belum lunas di meja ini (kalau ada) - dipakai untuk
-    nentuin meja itu masih "terisi" atau sudah kosong buat tamu baru."""
+    """Pesanan yang masih menempati meja ini (kalau ada - lihat
+    Order.occupying_table_query) - dipakai untuk nentuin meja itu masih
+    "terisi" atau sudah kosong buat tamu baru."""
 
     return (
-        Order.query.filter_by(table_id=table_id, is_paid=False)
+        Order.occupying_table_query()
+        .filter(Order.table_id == table_id)
         .order_by(Order.created_at.desc())
         .first()
     )
@@ -73,6 +83,12 @@ def _collect_ordered_items(form):
         menu_item = MenuItem.query.get(int(key.replace("qty_", "")))
 
         if not menu_item:
+            # Item ini sudah dihapus permanen (bukan cuma dinonaktifkan)
+            # oleh Owner persis selagi tamu masih milih-milih di halaman
+            # menu yang lama. Perlakukan sama seperti dinonaktifkan -
+            # kasih tahu tamu lewat flash, jangan diam-diam hilang dari
+            # pesanan tanpa penjelasan.
+            skipped_names.append(_("Menu #%(id)s", id=key.replace("qty_", "")))
             continue
 
         if not menu_item.is_orderable:
@@ -221,7 +237,24 @@ def add_to_order(code, order_id):
         # notice ada tambahan. Balikin ke "pending" supaya muncul lagi
         # sebagai perlu diproses, dan endpoint status poll di bawah
         # bakal bunyikan notifikasi baru buat dapur/kasir.
-        order.status = "pending"
+        #
+        # UPDATE ... WHERE is_paid = 0 (bukan andalkan cek order.is_paid
+        # di awal fungsi ini, yang sudah basi) - jaga-jaga kasir baru
+        # saja proses bayar order ini persis di antara cek awal tadi
+        # dengan baris ini. Kalau rowcount 0, batalkan semuanya (item
+        # yang barusan ditambah & stok yang barusan dipotong di atas)
+        # supaya tidak ada item nyelip masuk ke pesanan yang sudah
+        # ditutup/ditagih tanpa pernah ikut tertagih.
+        result = db.session.execute(
+            Order.__table__.update()
+            .where(Order.id == order.id, Order.is_paid.is_(False))
+            .values(status="pending")
+        )
+
+        if result.rowcount == 0:
+            db.session.rollback()
+            flash(_("Pesanan ini sudah dibayar, tidak bisa ditambah lagi."), "warning")
+            return redirect(url_for("public.order_status", code=code, order_id=order.id))
 
         db.session.commit()
 
@@ -249,6 +282,10 @@ def unlock_order(code, order_id):
 
     if order.table_id != table.id:
         abort(404)
+
+    if is_rate_limited(f"pin-unlock:{order.id}", PIN_RATE_LIMIT, PIN_RATE_WINDOW_SECONDS):
+        flash(_("Terlalu banyak percobaan PIN salah. Tunggu beberapa menit lalu coba lagi, atau panggil pelayan."), "danger")
+        return redirect(url_for("public.add_to_order", code=code, order_id=order.id))
 
     pin_input = request.form.get("pin", "").strip()
 

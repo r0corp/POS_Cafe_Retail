@@ -5,6 +5,7 @@
 <h4 class="mb-4"><span class="page-title-icon"><i class="bi bi-plus-circle"></i></span>{{ _('Input Pesanan Manual') }}</h4>
 
 <form method="post" id="orderForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="order_type" id="orderTypeInput" value="{{ ORDER_TYPE_DINE_IN }}">
   <input type="hidden" name="channel_id" id="channelIdInput" value="">
 

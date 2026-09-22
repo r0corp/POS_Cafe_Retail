@@ -29,7 +29,7 @@ from sqlalchemy.exc import IntegrityError
 
 from .. import db
 from ..decorators import roles_required
-from ..inventory import check_and_deduct_stock
+from ..inventory import check_and_deduct_stock, restore_stock_for_order
 from ..models import (
     Category,
     Floor,
@@ -216,7 +216,10 @@ def dashboard():
     ).all()
 
     unpaid_orders = Order.query.filter_by(is_paid=False).all()
-    occupied_table_count = len({order.table_id for order in unpaid_orders if order.table_id is not None})
+    occupied_table_count = len({
+        order.table_id for order in Order.occupying_table_query().all()
+        if order.table_id is not None
+    })
     kitchen_pending_count = Order.query.filter(
         Order.status.in_(["pending", "processing"])
     ).count()
@@ -310,11 +313,12 @@ def table_map():
 
     tables = Table.query.order_by(Table.floor, Table.label).all()
 
-    # Meja dianggap "terisi" selama masih ada pesanan yang belum lunas
-    # di meja itu - begitu dibayar lunas, meja otomatis kembali kosong.
+    # Meja dianggap "terisi" selama masih ada pesanan yang menempatinya
+    # (lihat Order.occupying_table_query - belum lunas, atau sudah
+    # lunas tapi belum "served").
     active_order_by_table = {}
     for order in (
-        Order.query.filter_by(is_paid=False)
+        Order.occupying_table_query()
         .order_by(Order.created_at.asc())
         .all()
     ):
@@ -350,7 +354,7 @@ def tables_status():
     tanpa perlu reload manual."""
 
     active_order_by_table = {}
-    for order in Order.query.filter_by(is_paid=False).all():
+    for order in Order.occupying_table_query().all():
         active_order_by_table.setdefault(order.table_id, order.id)
 
     tables = [
@@ -584,13 +588,14 @@ def floor_qr_pdf(floor_number):
 @staff_bp.route("/orders/new", methods=["GET", "POST"])
 @roles_required(ROLE_OWNER, ROLE_KASIR, ROLE_PELAYAN)
 def new_order():
-    # Meja yang masih punya pesanan belum lunas dianggap "terisi" - tidak
-    # ditawarkan di sini supaya pelayan tidak numpuk pesanan baru di meja
-    # yang sudah dipakai tamu lain (harus tunggu meja itu lunas/kosong dulu).
-    # Cuma pesanan Makan di Tempat yang punya table_id, jadi ini otomatis
-    # tidak kena pengaruh oleh pesanan Bawa Pulang/Ojek Online.
+    # Meja yang masih ditempati pesanan lain (lihat Order.occupying_table_query
+    # - belum lunas, atau lunas tapi belum "served") dianggap "terisi" -
+    # tidak ditawarkan di sini supaya pelayan tidak numpuk pesanan baru
+    # di meja yang sudah dipakai tamu lain. Cuma pesanan Makan di Tempat
+    # yang punya table_id, jadi ini otomatis tidak kena pengaruh oleh
+    # pesanan Bawa Pulang/Ojek Online.
     occupied_table_ids = {
-        order.table_id for order in Order.query.filter_by(is_paid=False).all()
+        order.table_id for order in Order.occupying_table_query().all()
         if order.table_id is not None
     }
     tables = (
@@ -871,15 +876,40 @@ def paid_order_status():
     return {"order_ids": signatures}
 
 
+@staff_bp.route("/orders/<int:order_id>/cancel", methods=["POST"])
+@roles_required(ROLE_OWNER, ROLE_KASIR)
+def cancel_order(order_id):
+    """Batalkan pesanan yang belum lunas (salah input, tamu batal, dst)
+    dan kembalikan stok bahan baku yang sudah kadung terpotong untuknya.
+    Order yang SUDAH lunas sengaja tidak bisa dibatalkan lewat sini -
+    pembatalan pesanan yang sudah dibayar butuh alur refund tersendiri
+    di luar cakupan tombol ini."""
+
+    order = Order.query.get_or_404(order_id)
+
+    if order.is_paid:
+        flash(_("Pesanan #%(id)s sudah dibayar, tidak bisa dibatalkan lewat sini.", id=order.id), "danger")
+        return redirect(url_for("staff.cashier"))
+
+    restore_stock_for_order(order)
+    db.session.delete(order)
+    db.session.commit()
+
+    flash(_("Pesanan #%(id)s dibatalkan, stok bahan baku yang terpakai sudah dikembalikan.", id=order_id), "success")
+    return redirect(url_for("staff.cashier"))
+
+
 @staff_bp.route("/orders/<int:order_id>/pay", methods=["POST"])
 @roles_required(ROLE_OWNER, ROLE_KASIR)
 def pay_order(order_id):
     order = Order.query.get_or_404(order_id)
 
     if order.is_paid:
-        # Submit dobel (klik 2x, tombol back lalu resubmit, atau 2 kasir
-        # buka order yang sama) - tanpa guard ini, data kasir/metode bayar
-        # yang sudah tercatat bisa ketiban timpa oleh submit kedua.
+        # Jalan cepat - hindarkan tamu/kasir dari isi form bayar buat
+        # pesanan yang jelas-jelas sudah lunas. Penjaga SUNGGUHAN ada di
+        # UPDATE ... WHERE is_paid = 0 di bawah (atomic di level DB),
+        # bukan cek ini - cek Python biasa ini masih race-able kalau 2
+        # submit datang nyaris bersamaan.
         flash(_("Pesanan #%(id)s sudah dibayar sebelumnya.", id=order.id), "warning")
         return redirect(url_for("staff.receipt", order_id=order.id))
 
@@ -891,13 +921,13 @@ def pay_order(order_id):
 
     settings = get_settings()
     if settings.ppn_enabled and settings.ppn_percentage:
-        order.ppn_percentage = settings.ppn_percentage
-        order.ppn_amount = round(order.total * settings.ppn_percentage / 100)
+        ppn_percentage = settings.ppn_percentage
+        ppn_amount = round(order.total * settings.ppn_percentage / 100)
     else:
-        order.ppn_percentage = None
-        order.ppn_amount = None
+        ppn_percentage = None
+        ppn_amount = None
 
-    grand_total = order.total + (order.ppn_amount or 0)
+    grand_total = order.total + (ppn_amount or 0)
 
     cash_received = None
     change_amount = None
@@ -911,12 +941,32 @@ def pay_order(order_id):
 
         change_amount = cash_received - grand_total
 
-    order.is_paid = True
-    order.payment_method = method
-    order.paid_at = datetime.now()
-    order.served_by = current_user.username
-    order.cash_received = cash_received
-    order.change_amount = change_amount
+    # UPDATE ... WHERE is_paid = 0 (bukan baca-lalu-tulis lewat ORM) -
+    # supaya 2 submit pembayaran yang nyaris bersamaan untuk order yang
+    # sama (klik 2x, 2 kasir buka order yang sama) tidak bisa berdua
+    # lolos dan saling timpa payment_method/cash_received/served_by.
+    # Submit kedua akan dapat rowcount 0 dan ditolak dengan pesan
+    # "sudah dibayar", sama seperti pola di app/inventory.py.
+    result = db.session.execute(
+        Order.__table__.update()
+        .where(Order.id == order.id, Order.is_paid.is_(False))
+        .values(
+            is_paid=True,
+            payment_method=method,
+            paid_at=datetime.now(),
+            served_by=current_user.username,
+            cash_received=cash_received,
+            change_amount=change_amount,
+            ppn_percentage=ppn_percentage,
+            ppn_amount=ppn_amount,
+        )
+    )
+
+    if result.rowcount == 0:
+        db.session.rollback()
+        flash(_("Pesanan #%(id)s sudah dibayar sebelumnya.", id=order.id), "warning")
+        return redirect(url_for("staff.receipt", order_id=order.id))
+
     db.session.commit()
 
     flash(_("Pesanan #%(id)s ditandai sudah dibayar.", id=order.id), "success")
@@ -1309,8 +1359,18 @@ def restock_ingredient(ingredient_id):
         flash(_("Jumlah restock tidak valid."), "warning")
         return redirect(url_for("staff.admin_inventory"))
 
-    ingredient.stock_quantity += amount
+    # UPDATE ... SET stock_quantity = stock_quantity + amount (bukan
+    # baca-lalu-tulis lewat ORM) - dua restock yang nyaris bersamaan
+    # (2 device, atau submit dobel) tetap terjumlah dengan benar, tidak
+    # ada yang ketiban timpa. Pola sama seperti pengurangan stok di
+    # app/inventory.py.
+    db.session.execute(
+        Ingredient.__table__.update()
+        .where(Ingredient.id == ingredient.id)
+        .values(stock_quantity=Ingredient.stock_quantity + amount)
+    )
     db.session.commit()
+    db.session.refresh(ingredient)
     flash(
         _("Stok %(name)s ditambah %(amount)s %(unit)s.", name=ingredient.name, amount=amount, unit=ingredient.unit),
         "success",

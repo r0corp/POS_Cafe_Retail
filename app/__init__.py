@@ -6,11 +6,13 @@ from flask_migrate import Migrate
 from flask_login import LoginManager, current_user, logout_user
 from flask_babel import Babel
 from flask_babel import lazy_gettext as _l
+from flask_wtf import CSRFProtect
 
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 babel = Babel()
+csrf = CSRFProtect()
 
 SUPPORTED_LANGUAGES = ["id", "en"]
 DEFAULT_LANGUAGE = "id"
@@ -29,6 +31,7 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     babel.init_app(app, locale_selector=get_locale)
+    csrf.init_app(app)
 
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"

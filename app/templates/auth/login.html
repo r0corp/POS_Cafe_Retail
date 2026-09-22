@@ -23,6 +23,7 @@
     <p class="login-subtitle">{{ _('Masuk untuk melanjutkan ke sistem POS') }}</p>
 
     <form method="post" class="login-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="login-field">
         <input type="text" id="loginUsername" name="username" class="login-input" required autofocus autocomplete="username" placeholder="{{ _('Username') }}">
       </div>

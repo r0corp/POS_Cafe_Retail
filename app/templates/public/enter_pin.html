@@ -11,6 +11,7 @@
       {{ _('%(label)s sudah ada pesanan berjalan. Minta PIN 4 digit ke teman semeja Anda yang tadi pesan pertama kali untuk ikut menambah menu.', label=table.label) }}
     </p>
     <form method="post" action="{{ url_for('public.unlock_order', code=table.code, order_id=order.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="text" name="pin" class="form-control form-control-lg text-center mb-3" style="letter-spacing: 0.5em; font-weight: 700;"
              inputmode="numeric" pattern="[0-9]*" maxlength="4" autofocus required>
       <button type="submit" class="btn btn-accent w-100">

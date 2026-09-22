@@ -13,6 +13,7 @@
           <div class="order-setup-col-table" style="flex-basis: 320px;">
             <h6 class="mb-2">{{ _('Tambah Kategori') }}</h6>
             <form method="post">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="form_type" value="category">
               <div class="input-group">
                 <input type="text" name="name" class="form-control" placeholder="{{ _('Nama kategori') }}" required>
@@ -26,6 +27,7 @@
           <div class="order-setup-col-filter">
             <h6 class="mb-2">{{ _('Tambah Menu') }}</h6>
             <form method="post" class="add-menu-inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="form_type" value="menu_item">
               <select name="category_id" class="form-select" data-elegant-select required>
                 <option value="">{{ _('-- Kategori --') }}</option>
@@ -118,6 +120,7 @@
 
                       <form method="post" action="{{ url_for('staff.update_menu_item_photo', item_id=item.id) }}"
                             enctype="multipart/form-data" id="menuUploadPhotoForm{{ item.id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="file" name="photo" id="menuPhotoFile{{ item.id }}" class="d-none"
                                accept="image/png,image/jpeg,image/webp,image/svg+xml"
                                onchange="document.getElementById('menuUploadPhotoForm{{ item.id }}').submit()">
@@ -125,6 +128,7 @@
                       {% if item.photo %}
                         <form method="post" action="{{ url_for('staff.update_menu_item_photo', item_id=item.id) }}"
                               id="menuRemovePhotoForm{{ item.id }}">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                           <input type="hidden" name="remove_photo" value="1">
                         </form>
                       {% endif %}
@@ -150,6 +154,7 @@
                                   {% endif %}
                                 </span>
                                 <form method="post" action="{{ url_for('staff.remove_recipe_item', item_id=item.id, ingredient_id=row.ingredient.id) }}">
+                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                   <button type="submit" class="icon-btn-danger" title="{{ _('Hapus dari resep') }}">
                                     <i class="bi bi-x"></i>
                                   </button>
@@ -161,6 +166,7 @@
                           <p class="text-muted small mb-2">{{ _('Belum ada resep - item ini dianggap selalu tersedia (tidak dibatasi stok).') }}</p>
                         {% endif %}
                         <form method="post" action="{{ url_for('staff.add_recipe_item', item_id=item.id) }}" class="d-flex gap-2">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                           <select name="ingredient_id" class="form-select form-select-sm" data-elegant-select required>
                             <option value="">{{ _('-- Bahan --') }}</option>
                             {% for ingredient in ingredients %}
@@ -174,6 +180,7 @@
                     </div>
                     <div class="modal-footer d-flex align-items-center justify-content-center flex-wrap gap-2">
                       <form method="post" action="{{ url_for('staff.toggle_menu_item', item_id=item.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button class="btn btn-sm badge-soft border-0 {{ 'badge-status-ready' if item.is_available else 'badge-status-served' }}" type="submit">
                           {{ _('Tersedia') if item.is_available else _('Habis') }}
                         </button>
@@ -185,6 +192,7 @@
                       {% else %}
                         <form method="post" action="{{ url_for('staff.delete_menu_item', item_id=item.id) }}"
                               onsubmit="return confirm('{{ _('Hapus %(name)s? Tidak bisa dibatalkan.', name=item.name) }}');">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                           <button type="submit" class="btn btn-sm btn-outline-danger">
                             <i class="bi bi-trash"></i> {{ _('Hapus Menu') }}
                           </button>
