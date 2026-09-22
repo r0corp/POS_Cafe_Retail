@@ -1973,6 +1973,24 @@ textarea.form-control {
   transform: translateY(-2px);
 }
 
+/* Ikon judul halaman (di sebelah h4, mis. "Meja") - versi kecil dari
+   .menu-launcher-icon supaya ikonnya sama persis dan senada dengan
+   kartu menu di Dashboard, bukan ikon polos kecil yang kurang kelihatan. */
+.page-title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 1rem;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+  margin-top: -0.3rem;
+}
+
 .menu-launcher-label {
   color: var(--color-text);
   font-weight: 600;
