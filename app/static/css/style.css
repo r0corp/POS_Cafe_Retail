@@ -3292,7 +3292,10 @@ textarea.form-control {
    pojok kanan-atas supaya tidak mendorong konten di bawahnya. */
 .toast-stack {
   position: fixed;
-  top: 20px;
+  /* --toast-top diisi JS (posisi tepi bawah .app-navbar + jarak) supaya
+     toast selalu muncul di BAWAH navbar, tidak menutupi jam/tanggal -
+     nilai 96px cuma fallback sebelum JS-nya sempat jalan. */
+  top: var(--toast-top, 96px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 2100;
@@ -3300,6 +3303,7 @@ textarea.form-control {
   flex-direction: column;
   width: min(380px, calc(100vw - 24px));
   pointer-events: none;
+  transition: top 0.2s ease;
 }
 
 .toast-item {

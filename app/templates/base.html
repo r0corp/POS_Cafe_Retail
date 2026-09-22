@@ -325,6 +325,24 @@
 {% endif %}
 {% endblock %}
 
+<script>
+  // Posisi toast selalu di BAWAH navbar (bukan angka tetap) - navbar-nya
+  // "sticky" dan tingginya beda-beda tergantung lebar layar (brand +
+  // jam kadang jadi 1 baris, kadang 2). Dihitung SEBELUM markup toast
+  // di bawah ini di-render, supaya tidak ada "lompatan" posisi begitu
+  // toast pertama kali muncul.
+  (function () {
+    function positionToastStack() {
+      var navbar = document.querySelector(".app-navbar");
+      if (!navbar) return;
+      var rect = navbar.getBoundingClientRect();
+      document.documentElement.style.setProperty("--toast-top", (rect.bottom + 12) + "px");
+    }
+    positionToastStack();
+    window.addEventListener("resize", positionToastStack);
+  })();
+</script>
+
 <div class="container-fluid pb-5 has-fixed-footer">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
