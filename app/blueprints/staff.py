@@ -373,6 +373,96 @@ def table_qr_print(table_id):
     return render_template("staff/table_qr_print.html", table=table, settings=settings)
 
 
+@staff_bp.route("/tables/<int:table_id>/qr-print.pdf")
+@roles_required(ROLE_OWNER)
+def table_qr_pdf(table_id):
+    """Versi PDF dari kartu QR meja (tombol "Cetak ke PDF") - kartu kecil
+    ukuran tetap (bukan mengikuti panjang isi kayak struk), jadi cukup
+    ditata langsung tanpa hitung tinggi dulu."""
+    import io
+
+    from reportlab.lib.units import mm
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas as pdf_canvas
+
+    table = Table.query.get_or_404(table_id)
+    settings = get_settings()
+
+    page_w = 90 * mm
+    page_h = 130 * mm
+    margin = 8 * mm
+    content_w = page_w - 2 * margin
+
+    buffer = io.BytesIO()
+    c = pdf_canvas.Canvas(buffer, pagesize=(page_w, page_h))
+
+    def center_text(text, y, size=10, bold=False, color=(0.05, 0.3, 0.46)):
+        c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+        c.setFillColorRGB(*color)
+        c.drawCentredString(page_w / 2, y, text)
+
+    y = page_h - margin
+
+    logo_filename = settings.app_logo_filename
+    if logo_filename:
+        logo_path = os.path.join(current_app.static_folder, "uploads", "branding", logo_filename)
+        if os.path.exists(logo_path):
+            logo_reader = ImageReader(logo_path)
+            iw, ih = logo_reader.getSize()
+            logo_h = min(14 * mm, content_w * 0.5 * ih / iw)
+            logo_w = logo_h * (iw / ih)
+            c.drawImage(
+                logo_reader, (page_w - logo_w) / 2, y - logo_h,
+                width=logo_w, height=logo_h, mask="auto",
+            )
+            y -= logo_h + 3 * mm
+        else:
+            center_text(settings.shop_name, y, size=13, bold=True)
+            y -= 7 * mm
+    else:
+        center_text(settings.shop_name, y, size=13, bold=True)
+        y -= 7 * mm
+
+    c.setDash([1.5, 1.5])
+    c.setLineWidth(0.6)
+    c.setStrokeColorRGB(0.8, 0.8, 0.8)
+    c.line(margin, y, page_w - margin, y)
+    c.setDash([])
+    y -= 8 * mm
+
+    center_text(table.label, y, size=22, bold=True)
+    y -= 6 * mm
+    center_text(table.floor_label, y, size=9, color=(0.53, 0.53, 0.53))
+    y -= 8 * mm
+
+    qr_path = os.path.join(current_app.static_folder, "qrcodes", f"{table.code}.png")
+    qr_size = 55 * mm
+    qr_x = (page_w - qr_size) / 2
+    if os.path.exists(qr_path):
+        qr_reader = ImageReader(qr_path)
+        c.setStrokeColorRGB(0.9, 0.9, 0.9)
+        c.setLineWidth(0.6)
+        c.rect(qr_x - 2 * mm, y - qr_size - 2 * mm, qr_size + 4 * mm, qr_size + 4 * mm)
+        c.drawImage(qr_reader, qr_x, y - qr_size, width=qr_size, height=qr_size, mask="auto")
+    y -= qr_size + 8 * mm
+
+    center_text(_("SCAN UNTUK PESAN"), y, size=9.5, bold=True, color=(0.94, 0.47, 0.16))
+    y -= 5 * mm
+    center_text(_("Lihat menu & pesan langsung dari HP Anda"), y, size=7.5, color=(0.53, 0.53, 0.53))
+
+    center_text("Orulabs © 2026", margin, size=7, color=(0.6, 0.6, 0.6))
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+
+    filename = f"qr-{table.code}.pdf"
+    return send_file(
+        buffer, mimetype="application/pdf",
+        as_attachment=True, download_name=filename,
+    )
+
+
 # ============================================================
 # INPUT PESANAN MANUAL (oleh pelayan, untuk tamu tanpa HP)
 # ============================================================

@@ -3,6 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    // Baca preferensi Mode Gelap yang sama dipakai base.html (localStorage
+    // "theme") - dijalankan paling awal, sebelum CSS dibaca, supaya latar
+    // langsung gelap tanpa kedip. Halaman ini sengaja berdiri sendiri
+    // (lihat catatan di bawah), tapi baca localStorage tidak butuh jaringan
+    // jadi aman tetap dijalankan walau offline.
+    (function () {
+      var theme = "dark";
+      try {
+        theme = localStorage.getItem("theme") || "dark";
+      } catch (e) {}
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
   <title>QR {{ table.label }}</title>
   <style>
     /* Halaman berdiri sendiri (tidak pakai base.html/CDN luar) supaya
@@ -11,9 +25,20 @@
 
     body {
       margin: 0;
-      background: #ddd;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #B5591C 0%, #F6F9FC 260px);
       font-family: Arial, sans-serif;
       color: #111;
+      padding-bottom: 40px;
+    }
+
+    /* Mode Gelap - baca localStorage "theme" yang sama dipakai base.html
+       (lihat <script> kecil sebelum </head>). Bentuk gradiennya disamakan
+       dengan mode terang di atas (oranye di atas, turun ke warna dasar di
+       260px), sama persis dengan halaman struk (receipt.html), supaya
+       kedua halaman cetak ini konsisten temanya. */
+    :root[data-theme="dark"] body {
+      background: linear-gradient(180deg, #B5591C 0%, #0F172A 260px);
     }
 
     .toolbar {
@@ -24,34 +49,58 @@
     }
 
     .toolbar-title {
-      color: #333;
+      color: #fff;
       font-weight: 700;
-      font-size: 14px;
-      margin-bottom: 12px;
+      font-size: 15px;
+      margin-bottom: 14px;
+      opacity: 0.9;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
     }
 
     .btn {
+      flex: 1 1 130px;
       font-size: 14px;
       font-weight: 700;
-      padding: 10px 18px;
+      padding: 10px 14px;
       border-radius: 10px;
       border: none;
       cursor: pointer;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
-      background: #F07828;
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(240, 120, 40, 0.35);
+      line-height: 1.2;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
     }
 
-    .btn:hover { background: #D9601A; }
+    .btn:active { transform: translateY(1px); }
+
+    .btn-print {
+      background: #F07828;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(240, 120, 40, 0.4);
+    }
+
+    .btn-print:hover { background: #D9601A; }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+    }
+
+    .btn-back:hover { background: rgba(255, 255, 255, 0.26); }
 
     .card-wrap {
       display: flex;
       justify-content: center;
-      padding: 10px 16px 40px;
+      padding: 18px 16px 40px;
     }
 
     .table-card {
@@ -125,7 +174,7 @@
     }
 
     @media print {
-      body { background: #fff; }
+      body { background: #fff; padding-bottom: 0; }
       .toolbar { display: none; }
       .card-wrap { padding: 0; }
       .table-card { box-shadow: none; margin: 0 auto; }
@@ -136,10 +185,24 @@
 
 <div class="toolbar">
   <div class="toolbar-title">{{ _('QR Meja - %(label)s', label=table.label) }}</div>
-  <button class="btn" onclick="window.print()">
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 8a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5H13v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11.5H2a.5.5 0 0 1-.5-.5zM12 12h-8v2h8zM3 3.5V6h10V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5"/><path d="M4 3V1.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V3z"/></svg>
-    {{ _('Cetak') }}
-  </button>
+  <div class="btn-row">
+    <button class="btn btn-print" onclick="window.print()">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 8a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5H13v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11.5H2a.5.5 0 0 1-.5-.5zM12 12h-8v2h8zM3 3.5V6h10V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5"/><path d="M4 3V1.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V3z"/></svg>
+      {{ _('Cetak') }}
+    </button>
+    <a class="btn btn-print" href="{{ url_for('staff.table_qr_pdf', table_id=table.id) }}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V0H4a1 1 0 0 0-1 1v13.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/><path d="M4.5 12.5A.5.5 0 0 1 5 12h1a.5.5 0 0 1 0 1H5.5v1.5a.5.5 0 0 1-1 0zm3-2A1.5 1.5 0 0 1 9 9h.5a1.5 1.5 0 0 1 0 3H9v1.5a.5.5 0 0 1-1 0zM10 12a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H11v.5h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0z"/></svg>
+      {{ _('Cetak ke PDF') }}
+    </a>
+    <a class="btn btn-back" href="{{ url_for('staff.table_map') }}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg>
+      {{ _('Kembali ke Meja') }}
+    </a>
+    <a class="btn btn-back" href="{{ url_for('staff.dashboard') }}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354z"/></svg>
+      {{ _('Kembali ke Dasbor') }}
+    </a>
+  </div>
 </div>
 
 <div class="card-wrap">
@@ -168,7 +231,7 @@
      Settings/database) supaya tidak bisa diubah/dihapus lewat menu
      Pengaturan oleh toko mana pun yang memakai aplikasi ini. -->
 <div class="toolbar" style="padding-top: 0;">
-  <div style="font-size: 12px; color: #999;">Orulabs &copy; 2026</div>
+  <div style="font-size: 12px; color: rgba(255,255,255,0.7);">Orulabs &copy; 2026</div>
 </div>
 
 </body>
