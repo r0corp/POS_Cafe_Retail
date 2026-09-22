@@ -233,11 +233,14 @@
                   <div class="card flex-grow-1">
                     <div class="card-body system-card-body">
                       <div>
-                        <select name="navbar_display" class="form-select" data-elegant-select>
-                          <option value="both" {% if settings.navbar_display == 'both' %}selected{% endif %}>{{ _('Logo dan Nama Aplikasi') }}</option>
-                          <option value="logo" {% if settings.navbar_display == 'logo' %}selected{% endif %}>{{ _('Hanya Logo') }}</option>
-                          <option value="name" {% if settings.navbar_display == 'name' %}selected{% endif %}>{{ _('Hanya Nama Aplikasi') }}</option>
-                        </select>
+                        <div class="form-field-row" style="--form-field-label-width: 120px;">
+                          <label class="form-label form-field-label small fw-semibold">{{ _('Tampilan Navbar') }}</label>
+                          <select name="navbar_display" class="form-select" data-elegant-select>
+                            <option value="both" {% if settings.navbar_display == 'both' %}selected{% endif %}>{{ _('Logo dan Nama Aplikasi') }}</option>
+                            <option value="logo" {% if settings.navbar_display == 'logo' %}selected{% endif %}>{{ _('Hanya Logo') }}</option>
+                            <option value="name" {% if settings.navbar_display == 'name' %}selected{% endif %}>{{ _('Hanya Nama Aplikasi') }}</option>
+                          </select>
+                        </div>
                         <div class="form-text">{{ _('Bagian kiri navbar (setelah login), tidak berlaku di halaman login.') }}</div>
                       </div>
 
