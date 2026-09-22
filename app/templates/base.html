@@ -592,8 +592,33 @@
 
       function dismiss() {
         if (!toast.isConnected) return;
+        // Kunci dulu tinggi aslinya (px persis, bukan "auto") supaya
+        // max-height bisa dianimasikan turun ke 0 secara mulus - toast
+        // lain di bawahnya otomatis ikut naik pelan mengikuti collapse
+        // ini, tanpa perlu hitung posisi manual per-toast.
+        var rect = toast.getBoundingClientRect();
+        toast.style.maxHeight = rect.height + "px";
+        void toast.offsetHeight; // paksa reflow biar nilai di atas kepakai dulu
         toast.classList.add("toast-out");
-        toast.addEventListener("animationend", function () { toast.remove(); }, { once: true });
+        requestAnimationFrame(function () {
+          toast.style.maxHeight = "0px";
+          toast.style.marginBottom = "0px";
+          toast.style.paddingTop = "0px";
+          toast.style.paddingBottom = "0px";
+        });
+        var removed = false;
+        function remove() {
+          if (removed) return;
+          removed = true;
+          toast.remove();
+        }
+        toast.addEventListener("transitionend", function onEnd(e) {
+          if (e.propertyName === "max-height") {
+            toast.removeEventListener("transitionend", onEnd);
+            remove();
+          }
+        });
+        setTimeout(remove, 500); // jaga-jaga kalau transitionend tidak jalan
       }
 
       function startTimer() {

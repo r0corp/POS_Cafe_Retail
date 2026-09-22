@@ -3297,7 +3297,6 @@ textarea.form-control {
   z-index: 2100;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
   width: min(380px, calc(100vw - 24px));
   pointer-events: none;
 }
@@ -3312,13 +3311,20 @@ textarea.form-control {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-hover);
   padding: 0.85rem 2.2rem 0.95rem 0.9rem;
+  margin-bottom: 0.6rem;
   overflow: hidden;
   pointer-events: auto;
   animation: toastIn 0.25s ease-out;
+  /* max-height/margin/padding dianimasikan lewat inline style dari JS
+     (bukan lewat kelas) supaya nilai awalnya persis tinggi asli toast -
+     lihat komentar "collapse" di script toast base.html. */
+  transition: max-height 0.3s ease, margin-bottom 0.3s ease,
+              padding-top 0.3s ease, padding-bottom 0.3s ease;
 }
 
 .toast-item.toast-out {
   animation: toastOut 0.2s ease-in forwards;
+  pointer-events: none;
 }
 
 .toast-icon {
