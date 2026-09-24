@@ -170,14 +170,50 @@
   }
   .discover-dot-on { background: var(--ok); }
   .discover-dot-off { background: var(--muted); }
-  .rollback-panel {
-    max-height: 260px;
+  .rollback-panel, .logs-panel, .backups-panel {
+    max-height: 320px;
     overflow-y: auto;
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid var(--card-border);
   }
   .rollback-item { cursor: pointer; }
+  .log-tail {
+    background: #0A0F1A;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+  }
+  .log-tail-label { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+  .backup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .backup-verify-btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .backup-verify-result { font-size: 11px; margin-top: 4px; }
+  .backup-verify-ok { color: var(--ok); }
+  .backup-verify-bad { color: var(--danger); }
   .empty-state {
     color: var(--muted);
     font-size: 13px;
@@ -340,6 +376,20 @@ function shortHash(h) {
   return (h || "").slice(0, 7);
 }
 
+function deployTimeWarning() {
+  // Update/rollback me-restart aplikasi POS sebentar - pengingat jam
+  // sekarang supaya tidak ke-klik tanpa sadar pas lagi jam ramai.
+  // 10:00-21:00 dipakai sebagai perkiraan umum jam operasional café
+  // (bukan jadwal pasti tiap cabang), jadi ini pengingat, bukan larangan.
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  const hour = now.getHours();
+  const likelyBusy = hour >= 10 && hour < 21;
+  return likelyBusy
+    ? `Sekarang jam ${timeStr} - kemungkinan masih jam operasional café. Pastikan tidak ada transaksi yang sedang berjalan sebelum lanjut.\n\n`
+    : `Sekarang jam ${timeStr}.\n\n`;
+}
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -366,7 +416,7 @@ async function fetchStatus(agent, attempt = 1) {
 }
 
 async function triggerUpdate(agent, logEl, btnEl) {
-  if (!confirm(`Update aplikasi POS di "${agent.name}" sekarang? Aplikasi akan restart sebentar (beberapa detik) selama proses ini.`)) return;
+  if (!confirm(`${deployTimeWarning()}Update aplikasi POS di "${agent.name}" sekarang? Aplikasi akan restart sebentar (beberapa detik) selama proses ini.`)) return;
 
   btnEl.disabled = true;
   btnEl.textContent = "Memproses...";
@@ -440,7 +490,7 @@ async function toggleRollbackPanel(agent, card) {
 }
 
 async function triggerRollback(agent, commitHash, logEl, btnEl, panel) {
-  if (!confirm(`Rollback aplikasi POS di "${agent.name}" ke commit ${shortHash(commitHash)}? Aplikasi akan restart sebentar, dan versi setelah commit ini akan DITINGGALKAN sampai Anda update lagi nanti.`)) return;
+  if (!confirm(`${deployTimeWarning()}Rollback aplikasi POS di "${agent.name}" ke commit ${shortHash(commitHash)}? Aplikasi akan restart sebentar, dan versi setelah commit ini akan DITINGGALKAN sampai Anda update lagi nanti.`)) return;
 
   panel.style.display = "none";
   btnEl.disabled = true;
@@ -467,6 +517,108 @@ async function triggerRollback(agent, commitHash, logEl, btnEl, panel) {
 
   btnEl.disabled = false;
   await refreshOne(agent.id);
+}
+
+async function toggleLogsPanel(agent, card) {
+  const panel = card.querySelector(".logs-panel");
+
+  if (panel.style.display !== "none") {
+    panel.style.display = "none";
+    return;
+  }
+
+  panel.style.display = "block";
+  panel.innerHTML = `<div class="empty-state">Memuat log...</div>`;
+
+  try {
+    const res = await fetch(agentUrl(agent, "/logs?lines=150"), {
+      headers: { "X-Agent-Token": agent.token },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    if (!data.configured) {
+      panel.innerHTML = `<div class="empty-state" style="white-space:pre-wrap; text-align:left;">${data.message}</div>`;
+      return;
+    }
+
+    panel.innerHTML = `
+      <div class="log-tail-label">stderr (${data.stderr_path || "-"})</div>
+      <div class="log-tail">${(data.stderr || "").replace(/</g, "&lt;")}</div>
+      <div class="log-tail-label">stdout (${data.stdout_path || "-"})</div>
+      <div class="log-tail">${(data.stdout || "").replace(/</g, "&lt;")}</div>
+    `;
+  } catch (e) {
+    panel.innerHTML = `<div class="empty-state">Gagal ambil log: ${e.message}</div>`;
+  }
+}
+
+async function toggleBackupsPanel(agent, card) {
+  const panel = card.querySelector(".backups-panel");
+
+  if (panel.style.display !== "none") {
+    panel.style.display = "none";
+    return;
+  }
+
+  panel.style.display = "block";
+  panel.innerHTML = `<div class="empty-state">Memuat daftar backup...</div>`;
+
+  try {
+    const res = await fetch(agentUrl(agent, "/backups"), {
+      headers: { "X-Agent-Token": agent.token },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    if (!data.backups.length) {
+      panel.innerHTML = `<div class="empty-state">Belum ada file backup di ${data.folder}.</div>`;
+      return;
+    }
+
+    panel.innerHTML = data.backups.map((b, i) => `
+      <div class="backup-item" data-name="${b.name}" id="backup-${card.id}-${i}">
+        <span>${b.name}<br><span class="discover-item-ip">${b.size_mb} MB &middot; ${fmtDate(b.modified)}</span></span>
+        <button class="backup-verify-btn">Verifikasi</button>
+      </div>
+    `).join("");
+
+    panel.querySelectorAll(".backup-item").forEach(el => {
+      const btn = el.querySelector(".backup-verify-btn");
+      btn.addEventListener("click", () => verifyBackup(agent, el.dataset.name, el, btn));
+    });
+  } catch (e) {
+    panel.innerHTML = `<div class="empty-state">Gagal ambil daftar backup: ${e.message}</div>`;
+  }
+}
+
+async function verifyBackup(agent, name, itemEl, btnEl) {
+  btnEl.disabled = true;
+  btnEl.textContent = "Memeriksa...";
+
+  let existing = itemEl.querySelector(".backup-verify-result");
+  if (existing) existing.remove();
+
+  try {
+    const res = await fetch(agentUrl(agent, "/backups/verify"), {
+      method: "POST",
+      headers: { "X-Agent-Token": agent.token, "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+    const resultEl = document.createElement("div");
+    resultEl.className = `backup-verify-result ${data.ok ? "backup-verify-ok" : "backup-verify-bad"}`;
+    resultEl.textContent = data.ok ? `✓ ${data.message}` : `✗ ${data.message || data.error}`;
+    itemEl.appendChild(resultEl);
+  } catch (e) {
+    const resultEl = document.createElement("div");
+    resultEl.className = "backup-verify-result backup-verify-bad";
+    resultEl.textContent = `Gagal: ${e.message}`;
+    itemEl.appendChild(resultEl);
+  }
+
+  btnEl.disabled = false;
+  btnEl.textContent = "Verifikasi";
 }
 
 function statusBadge(cardEl, state) {
@@ -505,10 +657,14 @@ function renderAgentCard(agent) {
     <div class="actions">
       <button class="btn-primary update-btn">Update Sekarang</button>
       <button class="btn-secondary rollback-toggle-btn">Rollback</button>
+      <button class="btn-secondary logs-toggle-btn">Log</button>
+      <button class="btn-secondary backups-toggle-btn">Backup</button>
       <button class="btn-secondary refresh-btn">Refresh</button>
       <button class="btn-danger remove-btn">Hapus</button>
     </div>
     <div class="rollback-panel" style="display:none;"></div>
+    <div class="logs-panel" style="display:none;"></div>
+    <div class="backups-panel" style="display:none;"></div>
     <div class="log-box"></div>
   `;
 
@@ -521,6 +677,12 @@ function renderAgentCard(agent) {
   });
   card.querySelector(".rollback-toggle-btn").addEventListener("click", () => {
     toggleRollbackPanel(agent, card);
+  });
+  card.querySelector(".logs-toggle-btn").addEventListener("click", () => {
+    toggleLogsPanel(agent, card);
+  });
+  card.querySelector(".backups-toggle-btn").addEventListener("click", () => {
+    toggleBackupsPanel(agent, card);
   });
 
   return card;
