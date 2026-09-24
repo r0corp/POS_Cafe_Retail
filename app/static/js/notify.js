@@ -228,7 +228,10 @@ function startOrderPoller(options) {
 
   function poll() {
     fetch(options.statusUrl)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok || res.redirected) throw new Error("poll failed");
+        return res.json();
+      })
       .then((data) => {
         const ids = data.order_ids || [];
 
@@ -238,13 +241,18 @@ function startOrderPoller(options) {
         }
 
         const newOnes = ids.filter((id) => !knownIds.has(id));
+        const removedAny = Array.from(knownIds).some((id) => !ids.includes(id));
         knownIds = new Set(ids);
 
-        if (newOnes.length > 0) {
-          if (options.enabled !== false && !isMuted()) {
-            playOrderChime(options.soundKey, options.volume, options.customSoundUrl);
-          }
-          if (options.onNewOrder) options.onNewOrder(newOnes);
+        // Bunyi cuma untuk yang BARU, tapi daftar tetap di-refresh juga
+        // kalau ada yang hilang (dibayar/dibatalkan/diantar dari device
+        // lain) - supaya layar ini tidak menampilkan pesanan yang sudah
+        // tidak ada.
+        if (newOnes.length > 0 && options.enabled !== false && !isMuted()) {
+          playOrderChime(options.soundKey, options.volume, options.customSoundUrl);
+        }
+        if ((newOnes.length > 0 || removedAny) && options.onNewOrder) {
+          options.onNewOrder(newOnes);
         }
       })
       .catch(() => {});

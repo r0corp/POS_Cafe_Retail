@@ -1,10 +1,10 @@
 from flask_babel import gettext as _
 
 from . import db
-from .models import Ingredient, MenuItemIngredient
+from .models import Ingredient, MenuItemIngredient, OrderStockDeduction
 
 
-def check_and_deduct_stock(order):
+def check_and_deduct_stock(order, items=None):
     """Cek stok bahan baku cukup untuk semua item di satu order (belum
     di-commit), lalu kurangi stoknya kalau cukup. Dipanggil bareng oleh
     staff.new_order() dan public.submit_order() sebelum order disimpan.
@@ -19,11 +19,17 @@ def check_and_deduct_stock(order):
     bersamaan (mis. tamu double-tap tombol submit di koneksi lambat) tidak
     bisa berdua lolos cek stok berdasarkan angka lama yang sama - baris
     kedua yang UPDATE-nya tidak match (rowcount 0) dianggap gagal dan
-    seluruh transaksi di-rollback oleh pemanggil."""
+    seluruh transaksi di-rollback oleh pemanggil.
+
+    `items` diisi kalau yang dipotong cuma sebagian item (mis. tambahan
+    menu ke order yang sudah ada - lihat public.add_to_order); default-nya
+    semua order.items. Jumlah yang dipotong dicatat ke
+    order.stock_deductions supaya restore_stock_for_order() bisa balikin
+    persis angka yang sama."""
 
     required = {}
 
-    for item in order.items:
+    for item in (order.items if items is None else items):
         if not item.menu_item_id:
             continue
 
@@ -71,6 +77,11 @@ def check_and_deduct_stock(order):
         # (mis. flash/tampilan sisa stok) melihat angka yang sudah baru.
         db.session.refresh(ingredient)
 
+    for ingredient_id, entry in required.items():
+        order.stock_deductions.append(
+            OrderStockDeduction(ingredient_id=ingredient_id, quantity=entry["qty"])
+        )
+
     return None
 
 
@@ -81,6 +92,12 @@ def restore_stock_for_order(order):
     kadung terpotong tidak hilang permanen cuma karena pesanannya
     salah input/batal, dan tidak perlu di-restock manual satu-satu.
 
+    Angkanya dibaca ulang dari tabel order_stock_deductions (bukan dari
+    objek di session yang bisa basi) supaya item yang baru saja ditambah
+    tamu di detik yang sama ikut terhitung. Order lama yang dibuat
+    sebelum pencatatan ini ada (tidak punya baris deduksi sama sekali)
+    jatuh ke hitungan ulang dari resep saat ini.
+
     Tidak ada pengecekan "cukup atau tidak" di sini (beda dengan
     deduct) - nambah balik selalu boleh. Tetap lewat UPDATE atomic
     (bukan baca-lalu-tulis) supaya pembatalan yang nyaris bersamaan
@@ -88,14 +105,23 @@ def restore_stock_for_order(order):
 
     required = {}
 
-    for item in order.items:
-        if not item.menu_item_id:
-            continue
+    rows = db.session.execute(
+        db.select(OrderStockDeduction.ingredient_id, OrderStockDeduction.quantity)
+        .where(OrderStockDeduction.order_id == order.id)
+    ).all()
 
-        recipe_rows = MenuItemIngredient.query.filter_by(menu_item_id=item.menu_item_id).all()
+    if rows:
+        for ingredient_id, qty in rows:
+            required[ingredient_id] = required.get(ingredient_id, 0.0) + qty
+    else:
+        for item in order.items:
+            if not item.menu_item_id:
+                continue
 
-        for row in recipe_rows:
-            required[row.ingredient_id] = required.get(row.ingredient_id, 0.0) + row.quantity_used * item.quantity
+            recipe_rows = MenuItemIngredient.query.filter_by(menu_item_id=item.menu_item_id).all()
+
+            for row in recipe_rows:
+                required[row.ingredient_id] = required.get(row.ingredient_id, 0.0) + row.quantity_used * item.quantity
 
     for ingredient_id, qty in required.items():
         db.session.execute(

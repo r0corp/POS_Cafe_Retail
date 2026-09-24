@@ -15,10 +15,10 @@ membengkak tanpa batas kalau dijadwalkan harian terus-menerus.
 
 import os
 import time
-import zipfile
 from datetime import datetime
 
-from app import create_app
+from app import create_app, db
+from app.backup import write_backup_zip
 
 BACKUP_RETENTION_DAYS = 30
 
@@ -34,27 +34,7 @@ def run_backup():
         filename = f"cafepos_backup_{timestamp}.zip"
         zip_path = os.path.join(backup_folder, filename)
 
-        db_path = app.config["SQLALCHEMY_DATABASE_URI"].replace("sqlite:///", "")
-
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-            if os.path.exists(db_path):
-                zf.write(db_path, arcname=os.path.join("instance", os.path.basename(db_path)))
-
-            uploads_dir = os.path.join(app.static_folder, "uploads")
-            for root, _dirs, files in os.walk(uploads_dir):
-                for name in files:
-                    full_path = os.path.join(root, name)
-                    arcname = os.path.join(
-                        "static", "uploads", os.path.relpath(full_path, uploads_dir)
-                    )
-                    zf.write(full_path, arcname=arcname)
-
-            qrcodes_dir = os.path.join(app.static_folder, "qrcodes")
-            if os.path.isdir(qrcodes_dir):
-                for name in os.listdir(qrcodes_dir):
-                    full_path = os.path.join(qrcodes_dir, name)
-                    if os.path.isfile(full_path):
-                        zf.write(full_path, arcname=os.path.join("static", "qrcodes", name))
+        write_backup_zip(zip_path, db.engine.url.database, app.static_folder)
 
         print(f"Backup dibuat: {zip_path}")
 

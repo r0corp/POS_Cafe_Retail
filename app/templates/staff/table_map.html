@@ -184,7 +184,7 @@
                       </span>
                     {% else %}
                       <form method="post" action="{{ url_for('staff.delete_table', table_id=table.id) }}"
-                            onsubmit="return confirm('{{ _('Hapus %(label)s? QR code-nya juga akan terhapus.', label=table.label) }}');">
+                            data-confirm="{{ _('Hapus %(label)s? QR code-nya juga akan terhapus.', label=table.label) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-sm btn-outline-danger">
                           <i class="bi bi-trash"></i> {{ _('Hapus Meja') }}

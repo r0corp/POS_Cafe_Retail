@@ -344,6 +344,41 @@ def generate_order_pin():
     return f"{random.randint(0, 9999):04d}"
 
 
+# Batas atas jumlah 1 item per pesanan - menangkal salah ketik (mis.
+# "1000" padahal maksudnya "10") dan input iseng yang bikin total
+# tagihan tidak masuk akal / overflow di database.
+MAX_ITEM_QUANTITY = 99
+
+
+def parse_quantity_fields(form):
+    """Baca semua field qty_<menu_item_id> dari form pesanan (staff & tamu),
+    balikin list (menu_item_id, quantity) yang valid saja. Field yang
+    rusak/iseng (id bukan angka, jumlah bukan angka, <= 0) di-skip diam-
+    diam, bukan bikin error 500; jumlah di atas MAX_ITEM_QUANTITY
+    dipotong ke batas itu."""
+
+    parsed = []
+
+    for key, value in form.items():
+        if not key.startswith("qty_"):
+            continue
+
+        raw_id = key[len("qty_"):]
+        raw_qty = (value or "").strip()
+        if not raw_id.isascii() or not raw_id.isdigit() or len(raw_id) > 9:
+            continue
+        if not raw_qty.isascii() or not raw_qty.isdigit():
+            continue
+
+        quantity = int(raw_qty[:6])
+        if quantity <= 0:
+            continue
+
+        parsed.append((int(raw_id), min(quantity, MAX_ITEM_QUANTITY)))
+
+    return parsed
+
+
 ORDER_TYPE_DINE_IN = "dine_in"
 ORDER_TYPE_TAKEAWAY = "takeaway"
 ORDER_TYPE_OJOL = "ojol"
@@ -441,6 +476,11 @@ class Order(db.Model):
             unique=True,
             sqlite_where=db.text("is_paid = 0 AND table_id IS NOT NULL"),
         ),
+        # AUTOINCREMENT supaya ID pesanan yang dibatalkan (dihapus) tidak
+        # pernah dipakai ulang - tanpa ini SQLite kasih pesanan berikutnya
+        # max(id)+1, dan HP tamu lama yang masih buka halaman status
+        # pesanan #N bisa tiba-tiba melihat pesanan tamu lain.
+        {"sqlite_autoincrement": True},
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -484,6 +524,9 @@ class Order(db.Model):
 
     items = db.relationship(
         "OrderItem", backref="order", cascade="all, delete-orphan"
+    )
+    stock_deductions = db.relationship(
+        "OrderStockDeduction", backref="order", cascade="all, delete-orphan"
     )
 
     @property
@@ -566,6 +609,21 @@ class OrderItem(db.Model):
     @property
     def subtotal(self):
         return self.price_snapshot * self.quantity
+
+
+class OrderStockDeduction(db.Model):
+    """Catatan berapa stok bahan baku yang BENAR-BENAR dipotong untuk 1
+    order (lihat inventory.check_and_deduct_stock). Dipakai saat order
+    dibatalkan supaya yang dikembalikan persis sama dengan yang dipotong -
+    bukan dihitung ulang dari resep saat ini, yang bisa saja sudah diubah
+    Owner di antara pesanan dibuat dan dibatalkan."""
+
+    __tablename__ = "order_stock_deductions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"), nullable=False, index=True)
+    ingredient_id = db.Column(db.Integer, db.ForeignKey("ingredients.id"), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
 
 
 class Ingredient(db.Model):

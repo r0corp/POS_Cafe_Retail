@@ -1,29 +1,41 @@
-from types import SimpleNamespace
-
-from flask import Blueprint, abort, flash, render_template, request, redirect, url_for
+from flask import Blueprint, abort, flash, render_template, request, redirect, session, url_for
 from flask_babel import gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 
 from .. import db
 from ..inventory import check_and_deduct_stock
-from ..models import Category, MenuItem, Table, Order, OrderItem, generate_order_pin
-from ..rate_limit import is_rate_limited
+from ..models import Category, MenuItem, Table, Order, OrderItem, generate_order_pin, parse_quantity_fields
+from ..rate_limit import is_blocked, record_failure
 
 public_bp = Blueprint("public", __name__)
 
-PIN_COOKIE_MAX_AGE = 12 * 60 * 60  # 12 jam - cukup buat satu sesi makan.
-
-# PIN cuma 4 digit (10.000 kombinasi) - batasi percobaan per pesanan
-# (bukan per IP, supaya tidak bisa dihindari dengan ganti-ganti IP di
-# jaringan yang sama) supaya tidak bisa di-brute-force dalam waktu
+# PIN cuma 4 digit (10.000 kombinasi) - batasi percobaan SALAH per
+# pesanan (bukan per IP, supaya tidak bisa dihindari dengan ganti-ganti
+# IP di jaringan yang sama) supaya tidak bisa di-brute-force dalam waktu
 # wajar selama 1 sesi makan.
 PIN_RATE_LIMIT = 8
 PIN_RATE_WINDOW_SECONDS = 10 * 60
 
+# Maksimal berapa pesanan yang diingat "sudah terbuka" per device -
+# cukup buat beberapa kali kunjungan, tanpa bikin cookie session bengkak.
+MAX_UNLOCKED_ORDERS = 20
 
-def _pin_cookie_name(order_id):
-    return f"cafepos_pin_ok_{order_id}"
+
+def _mark_unlocked(order):
+    """Tandai device ini "kenal" PIN pesanan ini. Disimpan di session
+    Flask (cookie yang DITANDATANGANI SECRET_KEY), bukan cookie mentah
+    berisi PIN - cookie mentah bisa diisi sendiri oleh siapa saja, jadi
+    PIN bisa ditebak 0000-9999 lewat cookie tanpa pernah kena batas
+    percobaan di unlock_order()."""
+
+    unlocked = dict(session.get("unlocked_orders") or {})
+    unlocked.pop(str(order.id), None)
+    unlocked[str(order.id)] = order.pin
+    while len(unlocked) > MAX_UNLOCKED_ORDERS:
+        unlocked.pop(next(iter(unlocked)))
+    session["unlocked_orders"] = unlocked
+    session.permanent = True
 
 
 def _is_unlocked(order):
@@ -36,7 +48,8 @@ def _is_unlocked(order):
 
     if not order.pin:
         return True
-    return request.cookies.get(_pin_cookie_name(order.id)) == order.pin
+    unlocked = session.get("unlocked_orders") or {}
+    return unlocked.get(str(order.id)) == order.pin
 
 
 def _active_order_for_table(table_id):
@@ -68,19 +81,8 @@ def _collect_ordered_items(form):
     items = []
     skipped_names = []
 
-    for key, value in form.items():
-        if not key.startswith("qty_"):
-            continue
-
-        try:
-            quantity = int(value)
-        except ValueError:
-            continue
-
-        if quantity <= 0:
-            continue
-
-        menu_item = MenuItem.query.get(int(key.replace("qty_", "")))
+    for menu_item_id, quantity in parse_quantity_fields(form):
+        menu_item = MenuItem.query.get(menu_item_id)
 
         if not menu_item:
             # Item ini sudah dihapus permanen (bukan cuma dinonaktifkan)
@@ -88,7 +90,7 @@ def _collect_ordered_items(form):
             # menu yang lama. Perlakukan sama seperti dinonaktifkan -
             # kasih tahu tamu lewat flash, jangan diam-diam hilang dari
             # pesanan tanpa penjelasan.
-            skipped_names.append(_("Menu #%(id)s", id=key.replace("qty_", "")))
+            skipped_names.append(_("Menu #%(id)s", id=menu_item_id))
             continue
 
         if not menu_item.is_orderable:
@@ -163,13 +165,13 @@ def submit_order(code):
     if not new_items:
         return redirect(url_for("public.menu", code=code))
 
-    stock_error = check_and_deduct_stock(SimpleNamespace(items=new_items))
+    order = Order(table_id=table.id, source="qr", status="pending", pin=generate_order_pin())
+    order.items.extend(new_items)
+
+    stock_error = check_and_deduct_stock(order)
     if stock_error:
         flash(stock_error, "danger")
         return redirect(url_for("public.menu", code=code))
-
-    order = Order(table_id=table.id, source="qr", status="pending", pin=generate_order_pin())
-    order.items.extend(new_items)
 
     db.session.add(order)
     try:
@@ -182,12 +184,11 @@ def submit_order(code):
         flash(_("Meja ini baru saja terisi pesanan lain. Silakan panggil pelayan."), "danger")
         return redirect(url_for("public.menu", code=code))
 
-    resp = redirect(url_for("public.order_status", code=code, order_id=order.id))
     # Device yang bikin pesanan ini otomatis "kenal" PIN-nya sendiri -
     # tidak perlu input ulang buat nambah menu ke pesanan yang baru saja
     # dia buat sendiri.
-    resp.set_cookie(_pin_cookie_name(order.id), order.pin, max_age=PIN_COOKIE_MAX_AGE, httponly=True, samesite="Lax")
-    return resp
+    _mark_unlocked(order)
+    return redirect(url_for("public.order_status", code=code, order_id=order.id))
 
 
 @public_bp.route("/t/<code>/order/<int:order_id>/add", methods=["GET", "POST"])
@@ -223,12 +224,14 @@ def add_to_order(code, order_id):
         if not new_items:
             return redirect(url_for("public.add_to_order", code=code, order_id=order.id))
 
-        stock_error = check_and_deduct_stock(SimpleNamespace(items=new_items))
-        if stock_error:
-            flash(stock_error, "danger")
-            return redirect(url_for("public.add_to_order", code=code, order_id=order.id))
-
+        order_id = order.id
         order.items.extend(new_items)
+
+        stock_error = check_and_deduct_stock(order, items=new_items)
+        if stock_error:
+            db.session.rollback()
+            flash(stock_error, "danger")
+            return redirect(url_for("public.add_to_order", code=code, order_id=order_id))
 
         # Kalau dapur/pelayan sudah mulai/selesai kerjain pesanan ini
         # (status sudah lewat "pending"), item baru ini tidak akan
@@ -253,8 +256,12 @@ def add_to_order(code, order_id):
 
         if result.rowcount == 0:
             db.session.rollback()
+            if Order.query.get(order_id) is None:
+                # Keburu dibatalkan kasir persis di detik yang sama.
+                flash(_("Pesanan ini sudah dibatalkan. Silakan panggil pelayan."), "warning")
+                return redirect(url_for("public.menu", code=code))
             flash(_("Pesanan ini sudah dibayar, tidak bisa ditambah lagi."), "warning")
-            return redirect(url_for("public.order_status", code=code, order_id=order.id))
+            return redirect(url_for("public.order_status", code=code, order_id=order_id))
 
         db.session.commit()
 
@@ -283,16 +290,18 @@ def unlock_order(code, order_id):
     if order.table_id != table.id:
         abort(404)
 
-    if is_rate_limited(f"pin-unlock:{order.id}", PIN_RATE_LIMIT, PIN_RATE_WINDOW_SECONDS):
+    rate_key = f"pin-unlock:{order.id}"
+    if is_blocked(rate_key, PIN_RATE_LIMIT, PIN_RATE_WINDOW_SECONDS):
         flash(_("Terlalu banyak percobaan PIN salah. Tunggu beberapa menit lalu coba lagi, atau panggil pelayan."), "danger")
         return redirect(url_for("public.add_to_order", code=code, order_id=order.id))
 
     pin_input = request.form.get("pin", "").strip()
 
     if order.pin and pin_input == order.pin:
-        resp = redirect(url_for("public.add_to_order", code=code, order_id=order.id))
-        resp.set_cookie(_pin_cookie_name(order.id), order.pin, max_age=PIN_COOKIE_MAX_AGE, httponly=True, samesite="Lax")
-        return resp
+        _mark_unlocked(order)
+        return redirect(url_for("public.add_to_order", code=code, order_id=order.id))
+
+    record_failure(rate_key, PIN_RATE_WINDOW_SECONDS)
 
     flash(_("PIN salah. Tanya teman semeja Anda yang tadi pesan pertama kali."), "danger")
     return redirect(url_for("public.add_to_order", code=code, order_id=order.id))
@@ -320,7 +329,6 @@ def order_status(code, order_id):
         # sama persis, supaya urutan antrian tetap deterministik/tidak ambigu.
         earlier_count = Order.query.filter(
             Order.status == "pending",
-            Order.is_paid.is_(False),
             or_(
                 Order.created_at < order.created_at,
                 and_(Order.created_at == order.created_at, Order.id < order.id),

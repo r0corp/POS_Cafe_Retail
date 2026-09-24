@@ -111,7 +111,7 @@
                           </button>
                           {% if item.photo %}
                             <button type="button" class="photo-action-btn photo-action-danger" title="{{ _('Hapus Foto') }}"
-                                    onclick="if(confirm('{{ _('Hapus foto ini?') }}')) document.getElementById('menuRemovePhotoForm{{ item.id }}').submit()">
+                                    data-confirm-message="{{ _('Hapus foto ini?') }}" onclick="if(confirm(this.dataset.confirmMessage)) document.getElementById('menuRemovePhotoForm{{ item.id }}').submit()">
                               <i class="bi bi-trash-fill"></i>
                             </button>
                           {% endif %}
@@ -122,7 +122,7 @@
                             enctype="multipart/form-data" id="menuUploadPhotoForm{{ item.id }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="file" name="photo" id="menuPhotoFile{{ item.id }}" class="d-none"
-                               accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                               accept="image/png,image/jpeg,image/webp"
                                onchange="document.getElementById('menuUploadPhotoForm{{ item.id }}').submit()">
                       </form>
                       {% if item.photo %}
@@ -191,7 +191,7 @@
                         </span>
                       {% else %}
                         <form method="post" action="{{ url_for('staff.delete_menu_item', item_id=item.id) }}"
-                              onsubmit="return confirm('{{ _('Hapus %(name)s? Tidak bisa dibatalkan.', name=item.name) }}');">
+                              data-confirm="{{ _('Hapus %(name)s? Tidak bisa dibatalkan.', name=item.name) }}">
                           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                           <button type="submit" class="btn btn-sm btn-outline-danger">
                             <i class="bi bi-trash"></i> {{ _('Hapus Menu') }}

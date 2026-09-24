@@ -92,7 +92,7 @@
                 </form>
                 {% if user.id != current_user.id %}
                   <form method="post" action="{{ url_for('staff.delete_user', user_id=user.id) }}"
-                        onsubmit="return confirm('{{ _('Hapus user %(username)s? Tidak bisa dibatalkan.', username=user.username) }}');">
+                        data-confirm="{{ _('Hapus user %(username)s? Tidak bisa dibatalkan.', username=user.username) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="icon-btn-danger" title="{{ _('Hapus User') }}">
                       <i class="bi bi-trash3"></i>
@@ -119,7 +119,7 @@
                     </div>
                     <form method="post" action="{{ url_for('staff.update_user_photo', user_id=user.id) }}" enctype="multipart/form-data">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <input type="file" name="photo" class="form-control form-control-sm mb-3" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                      <input type="file" name="photo" class="form-control form-control-sm mb-3" accept="image/png,image/jpeg,image/webp">
                       <button type="submit" class="btn btn-accent btn-sm w-100 mb-2"><i class="bi bi-upload"></i> {{ _('Upload Foto') }}</button>
                     </form>
                     {% if user.photo %}

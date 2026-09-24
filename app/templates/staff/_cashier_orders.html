@@ -54,6 +54,7 @@
 
           <form method="post" action="{{ url_for('staff.pay_order', order_id=order.id) }}" class="cash-pay-form" data-total="{{ order.grand_total }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="expected_total" value="{{ order.grand_total }}">
             <div class="d-flex gap-2 pay-method-row">
               <select name="payment_method" class="form-select form-select-sm pay-method-select" data-elegant-select required>
                 <option value="">{{ _('Metode') }}</option>
@@ -78,7 +79,7 @@
           </form>
 
           <form method="post" action="{{ url_for('staff.cancel_order', order_id=order.id) }}" class="mt-2"
-                onsubmit="return confirm('{{ _('Batalkan pesanan %(label)s? Stok bahan baku yang sudah terpakai akan dikembalikan.', label=order.display_label) }}');">
+                data-confirm="{{ _('Batalkan pesanan %(label)s? Stok bahan baku yang sudah terpakai akan dikembalikan.', label=order.display_label) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-sm btn-outline-danger w-100">
               <i class="bi bi-x-circle"></i> {{ _('Batalkan Pesanan') }}

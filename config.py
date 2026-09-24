@@ -32,6 +32,10 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # Batas ukuran 1 request (upload logo/foto/nada) - tanpa ini siapa pun,
+    # termasuk dari halaman publik tamu, bisa kirim body raksasa.
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+
     # Tamu bisa buka halaman menu lewat QR lalu baru submit pesanan lama
     # kemudian (ngobrol dulu, dsb) - token CSRF default WTForms kedaluwarsa
     # 1 jam, jangan sampai submit pesanan gagal cuma gara-gara kelamaan

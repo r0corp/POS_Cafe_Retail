@@ -23,7 +23,12 @@
   // pasang tombol mute ke poller global tsb.
   function refreshKitchenList() {
     fetch("{{ url_for('staff.kitchen_list') }}")
-      .then(function (res) { return res.text(); })
+      .then(function (res) {
+        // Sesi habis (redirect ke login), 403/500, Mode Perbaikan -> jangan
+        // tempel halaman error itu ke dalam daftar pesanan.
+        if (!res.ok || res.redirected) throw new Error("refresh failed");
+        return res.text();
+      })
       .then(function (html) {
         document.getElementById("kitchenOrdersContainer").innerHTML = html;
       })

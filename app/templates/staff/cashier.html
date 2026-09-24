@@ -143,9 +143,35 @@
   // daftarkan fungsi refresh daftar (dipanggil poller lewat
   // window.refreshCashierList kalau halaman ini yang sedang dibuka) dan
   // pasang tombol mute ke poller global tsb.
+  let refreshPending = false;
+
+  // True kalau kasir sedang mengisi form bayar (pilih metode / ketik uang
+  // diterima) - refresh daftar saat itu akan mengganti seluruh isi daftar
+  // dan menghapus apa yang sedang diketik.
+  function isCashierEditing() {
+    const container = document.getElementById("cashierOrdersContainer");
+    if (!container) return false;
+    const active = document.activeElement;
+    if (active && container.contains(active) && active.closest(".cash-pay-form")) return true;
+    return Array.from(container.querySelectorAll(".cash-pay-form")).some(function (form) {
+      const method = form.querySelector(".pay-method-select");
+      const cash = form.querySelector(".cash-received-input");
+      return (method && method.value) || (cash && cash.value);
+    });
+  }
+
   function refreshCashierList() {
+    if (isCashierEditing()) {
+      // Ditunda - dicoba lagi begitu kasir selesai (fokus keluar dari form).
+      refreshPending = true;
+      return;
+    }
+    refreshPending = false;
     fetch("{{ url_for('staff.cashier_list') }}")
-      .then(function (res) { return res.text(); })
+      .then(function (res) {
+        if (!res.ok || res.redirected) throw new Error("refresh failed");
+        return res.text();
+      })
       .then(function (html) {
         const container = document.getElementById("cashierOrdersContainer");
         container.innerHTML = html;
@@ -155,6 +181,10 @@
       .catch(function () {});
   }
   window.refreshCashierList = refreshCashierList;
+
+  setInterval(function () {
+    if (refreshPending && !isCashierEditing()) refreshCashierList();
+  }, 2000);
 
   if (window.globalCashierPoller) {
     wireMuteToggle("muteToggleCashier", "muteIconCashier", window.globalCashierPoller);

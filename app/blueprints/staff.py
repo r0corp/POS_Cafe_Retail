@@ -1,17 +1,20 @@
 from datetime import datetime, time, timedelta
+from xml.sax.saxutils import escape as xml_escape
 
 import qrcode
 import json
+import math
 import os
 import re
 import shutil
-import zipfile
 
 from flask import (
     Blueprint,
     abort,
     current_app,
     flash,
+    g,
+    has_request_context,
     redirect,
     render_template,
     request,
@@ -25,11 +28,15 @@ from werkzeug.utils import secure_filename
 from flask_babel import gettext as _
 from flask_babel import lazy_gettext as _l
 from flask_login import current_user, login_required
+from sqlalchemy import event, func, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, selectinload
 
 from .. import db
+from ..backup import write_backup_zip
 from ..decorators import roles_required
 from ..inventory import check_and_deduct_stock, restore_stock_for_order
+from ..rate_limit import is_blocked, record_failure
 from ..models import (
     Category,
     Floor,
@@ -41,11 +48,13 @@ from ..models import (
     Table,
     Order,
     OrderItem,
+    OrderStockDeduction,
     Settings,
     User,
     LoginLog,
     floor_display_name,
     generate_order_pin,
+    parse_quantity_fields,
     ORDER_STATUSES,
     ORDER_TYPES,
     ORDER_TYPE_LABELS,
@@ -65,7 +74,9 @@ from ..models import (
 
 staff_bp = Blueprint("staff", __name__)
 
-ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".svg"}
+# SVG sengaja TIDAK diizinkan - file SVG bisa berisi <script> yang ikut
+# jalan di origin aplikasi ini kalau URL-nya dibuka langsung.
+ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 ALLOWED_SOUND_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a"}
 
 # Platform delivery contoh buat Mode Demo (lihat _seed_demo_data()) -
@@ -106,7 +117,81 @@ NOTIFICATION_SOUND_KEYS = {
 # fitur pakai PIN yang sama, tapi status "terbuka"-nya disimpan TERPISAH
 # di session (lihat demo_mode_unlock()/factory_reset_unlock()) - buka
 # kunci salah satu tidak otomatis membuka yang lain.
+# Status "terbuka" PIN developer cuma berlaku sebentar - supaya tidak
+# nempel terus di session tablet yang dipakai bareng.
+DEV_UNLOCK_TTL_SECONDS = 10 * 60
+DEV_PIN_RATE_LIMIT = 5
+DEV_PIN_RATE_WINDOW_SECONDS = 15 * 60
+
 DEV_PIN_HASH = "scrypt:32768:8:1$059iCzyBFMYlJpjk$6f23d3dfc930cbff3d0b7668f025d55838e79089776657a059b9d51a99451172040d211c0343e8a4c26a96fd4f10d4f457d6e9bbcb192949892d8222c0f5736d"
+
+
+def finite_float(value):
+    """Dipakai sebagai type= di request.form.get() - sama seperti float
+    biasa tapi menolak "nan"/"inf" (float() Python menerima keduanya),
+    yang kalau lolos bikin stok/harga/persentase jadi tidak masuk akal
+    atau error 500 di tempat lain."""
+
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(value)
+    return number
+
+
+def digits_int(value):
+    """type= untuk nominal Rupiah yang diketik bebas ("50.000", "Rp 50000")
+    - ambil digitnya saja. Kosong/tanpa digit -> ValueError (jadi None)."""
+
+    digits = re.sub(r"\D", "", value or "")
+    if not digits or len(digits) > 12:
+        raise ValueError(value)
+    return int(digits)
+
+
+def _excel_safe(value):
+    """Teks dari input user (nama bahan, nama meja, username, dst) yang
+    diawali = + - @ bakal dibaca Excel sebagai RUMUS - diberi prefix '
+    supaya selalu tampil sebagai teks biasa (cegah formula injection)."""
+
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
+def _delete_file_after_commit(path):
+    """Jadwalkan penghapusan file upload lama SETELAH transaksi database
+    berhasil di-commit, bukan langsung - kalau request-nya gagal di
+    tengah jalan (validasi lain gagal, error, rollback), baris di database
+    masih menunjuk ke file lama, jadi file itu tidak boleh sudah terhapus
+    duluan (logo/foto jadi rusak)."""
+
+    if not has_request_context():
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        return
+    g.setdefault("files_to_delete_after_commit", []).append(path)
+
+
+@event.listens_for(Session, "after_commit")
+def _run_pending_file_deletes(_session):
+    if not has_request_context():
+        return
+    paths = g.pop("files_to_delete_after_commit", None) or []
+    for path in paths:
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+
+@event.listens_for(Session, "after_rollback")
+def _drop_pending_file_deletes(_session):
+    if has_request_context():
+        g.pop("files_to_delete_after_commit", None)
 
 
 def get_settings():
@@ -155,20 +240,15 @@ def _save_logo(
     valid_extensions = allowed_extensions or ALLOWED_LOGO_EXTENSIONS
 
     if extension not in valid_extensions:
-        return invalid_format_message or _("Format gambar harus PNG, JPG, JPEG, WEBP, atau SVG.")
+        return invalid_format_message or _("Format gambar harus PNG, JPG, JPEG, atau WEBP.")
 
     upload_folder = _upload_folder(subfolder)
     old_filename = getattr(obj, model_field)
-
-    if old_filename:
-        old_path = os.path.join(upload_folder, old_filename)
-        if os.path.exists(old_path):
-            try:
-                os.remove(old_path)
-            except OSError:
-                pass
-
     new_filename = f"{filename_base or model_field}{extension}"
+
+    if old_filename and old_filename != new_filename:
+        _delete_file_after_commit(os.path.join(upload_folder, old_filename))
+
     logo_file.save(os.path.join(upload_folder, new_filename))
     setattr(obj, model_field, new_filename)
 
@@ -181,14 +261,7 @@ def _remove_logo(obj, model_field, subfolder="branding"):
     if not old_filename:
         return
 
-    old_path = os.path.join(_upload_folder(subfolder), old_filename)
-
-    if os.path.exists(old_path):
-        try:
-            os.remove(old_path)
-        except OSError:
-            pass
-
+    _delete_file_after_commit(os.path.join(_upload_folder(subfolder), old_filename))
     setattr(obj, model_field, None)
 
 
@@ -322,7 +395,10 @@ def table_map():
         .order_by(Order.created_at.asc())
         .all()
     ):
-        active_order_by_table.setdefault(order.table_id, order)
+        # Pesanan Bawa Pulang/Ojek Online (table_id kosong) tidak
+        # menempati meja - jangan ikut dihitung sebagai meja terisi.
+        if order.table_id is not None:
+            active_order_by_table.setdefault(order.table_id, order)
 
     floors = {}
     for table in tables:
@@ -355,7 +431,8 @@ def tables_status():
 
     active_order_by_table = {}
     for order in Order.occupying_table_query().all():
-        active_order_by_table.setdefault(order.table_id, order.id)
+        if order.table_id is not None:
+            active_order_by_table.setdefault(order.table_id, order.id)
 
     tables = [
         {"id": table.id, "order_id": active_order_by_table.get(table.id)}
@@ -645,16 +722,8 @@ def new_order():
         )
         added_any = False
 
-        for key, value in request.form.items():
-            if not key.startswith("qty_"):
-                continue
-
-            quantity = int(value or 0)
-
-            if quantity <= 0:
-                continue
-
-            menu_item = MenuItem.query.get(int(key.replace("qty_", "")))
+        for menu_item_id, quantity in parse_quantity_fields(request.form):
+            menu_item = MenuItem.query.get(menu_item_id)
 
             if not menu_item or not menu_item.is_orderable:
                 continue
@@ -688,7 +757,10 @@ def new_order():
             # keburu dapat pesanan lain persis di detik yang sama,
             # lolos dari pengecekan occupied_table_ids di atas.
             db.session.rollback()
-            flash(_("Meja baru saja terisi pesanan lain. Coba pilih meja lain."), "danger")
+            if table:
+                flash(_("Meja baru saja terisi pesanan lain. Coba pilih meja lain."), "danger")
+            else:
+                flash(_("Pesanan gagal disimpan. Coba lagi."), "danger")
             return redirect(url_for("staff.new_order"))
 
         flash(_("Pesanan untuk %(label)s berhasil dibuat.", label=order.display_label), "success")
@@ -782,13 +854,27 @@ def pelayan_ready_status():
 def advance_status(order_id):
     order = Order.query.get_or_404(order_id)
 
-    current_index = ORDER_STATUSES.index(order.status)
+    # Status yang TERLIHAT di layar waktu tombol ditekan (dikirim form) -
+    # dipakai sebagai syarat UPDATE supaya klik dobel / layar Dapur lain
+    # yang belum ter-refresh tidak bisa melompati tahap (mis. pending
+    # langsung ke ready/served dan meja keburu dianggap kosong).
+    from_status = request.form.get("from_status") or order.status
 
-    if current_index < len(ORDER_STATUSES) - 1:
-        order.status = ORDER_STATUSES[current_index + 1]
-        db.session.commit()
+    if from_status not in ORDER_STATUSES or from_status == ORDER_STATUSES[-1]:
+        return redirect(url_for("staff.kitchen"))
 
-    return redirect(request.referrer or url_for("staff.kitchen"))
+    next_status = ORDER_STATUSES[ORDER_STATUSES.index(from_status) + 1]
+    result = db.session.execute(
+        Order.__table__.update()
+        .where(Order.id == order.id, Order.status == from_status)
+        .values(status=next_status)
+    )
+    db.session.commit()
+
+    if result.rowcount == 0:
+        flash(_("Status pesanan %(label)s sudah diubah dari device lain.", label=order.display_label), "warning")
+
+    return redirect(url_for("staff.kitchen"))
 
 
 # ============================================================
@@ -891,11 +977,37 @@ def cancel_order(order_id):
         flash(_("Pesanan #%(id)s sudah dibayar, tidak bisa dibatalkan lewat sini.", id=order.id), "danger")
         return redirect(url_for("staff.cashier"))
 
-    restore_stock_for_order(order)
-    db.session.delete(order)
+    # Stok cuma dikembalikan kalau dapur BELUM mulai mengerjakan pesanan
+    # ini - kalau sudah diproses/siap/diantar, bahan bakunya memang sudah
+    # terpakai beneran, mengembalikannya bikin stok di sistem lebih
+    # banyak dari stok fisik.
+    restore_stock = order.status == "pending"
+    if restore_stock:
+        restore_stock_for_order(order)
+
+    # DELETE ... WHERE is_paid = 0 (bukan cek order.is_paid di atas yang
+    # sudah basi) - jaga-jaga kasir lain baru saja memproses bayar
+    # pesanan ini persis di antara cek tadi dan baris ini. Item & catatan
+    # stok dihapus lewat subquery ke order yang sama di transaksi yang
+    # sama, supaya item yang barusan ditambah tamu juga ikut terhapus.
+    unpaid_order = select(Order.id).where(Order.id == order.id, Order.is_paid.is_(False))
+    db.session.execute(OrderItem.__table__.delete().where(OrderItem.order_id.in_(unpaid_order)))
+    db.session.execute(OrderStockDeduction.__table__.delete().where(OrderStockDeduction.order_id.in_(unpaid_order)))
+    result = db.session.execute(
+        Order.__table__.delete().where(Order.id == order.id, Order.is_paid.is_(False))
+    )
+
+    if result.rowcount == 0:
+        db.session.rollback()
+        flash(_("Pesanan #%(id)s sudah dibayar, tidak bisa dibatalkan lewat sini.", id=order_id), "danger")
+        return redirect(url_for("staff.cashier"))
+
     db.session.commit()
 
-    flash(_("Pesanan #%(id)s dibatalkan, stok bahan baku yang terpakai sudah dikembalikan.", id=order_id), "success")
+    if restore_stock:
+        flash(_("Pesanan #%(id)s dibatalkan, stok bahan baku yang terpakai sudah dikembalikan.", id=order_id), "success")
+    else:
+        flash(_("Pesanan #%(id)s dibatalkan. Stok tidak dikembalikan karena pesanan sudah mulai diproses dapur.", id=order_id), "success")
     return redirect(url_for("staff.cashier"))
 
 
@@ -919,6 +1031,15 @@ def pay_order(order_id):
         flash(_("Metode pembayaran tidak valid."), "danger")
         return redirect(url_for("staff.cashier"))
 
+    # Total yang TERLIHAT kasir di layar waktu tombol Bayar ditekan. Kalau
+    # beda dengan total sekarang, berarti tamu baru saja nambah menu (atau
+    # PPN baru diubah) setelah halaman Kasir dimuat - tolak supaya kasir
+    # tidak menagih/menghitung kembalian pakai angka lama.
+    expected_total = request.form.get("expected_total", type=int)
+    if expected_total is not None and expected_total != order.grand_total:
+        flash(_("Tagihan pesanan %(label)s baru saja berubah. Cek lagi totalnya sebelum bayar.", label=order.display_label), "warning")
+        return redirect(url_for("staff.cashier"))
+
     settings = get_settings()
     if settings.ppn_enabled and settings.ppn_percentage:
         ppn_percentage = settings.ppn_percentage
@@ -933,7 +1054,7 @@ def pay_order(order_id):
     change_amount = None
 
     if method == "cash":
-        cash_received = request.form.get("cash_received", type=int)
+        cash_received = request.form.get("cash_received", type=digits_int)
 
         if not cash_received or cash_received < grand_total:
             flash(_("Uang diterima kurang dari total tagihan."), "danger")
@@ -947,9 +1068,23 @@ def pay_order(order_id):
     # lolos dan saling timpa payment_method/cash_received/served_by.
     # Submit kedua akan dapat rowcount 0 dan ditolak dengan pesan
     # "sudah dibayar", sama seperti pola di app/inventory.py.
+    #
+    # Syarat tambahan: total item di database masih sama persis dengan
+    # yang dipakai menghitung PPN/kembalian di atas - kalau tamu keburu
+    # nambah menu di antara hitungan tadi dan UPDATE ini, pembayaran
+    # ditolak (bukan tercatat lunas dengan total & kembalian yang salah).
+    current_items_total = (
+        select(func.coalesce(func.sum(OrderItem.price_snapshot * OrderItem.quantity), 0))
+        .where(OrderItem.order_id == order.id)
+        .scalar_subquery()
+    )
     result = db.session.execute(
         Order.__table__.update()
-        .where(Order.id == order.id, Order.is_paid.is_(False))
+        .where(
+            Order.id == order.id,
+            Order.is_paid.is_(False),
+            current_items_total == order.total,
+        )
         .values(
             is_paid=True,
             payment_method=method,
@@ -964,8 +1099,16 @@ def pay_order(order_id):
 
     if result.rowcount == 0:
         db.session.rollback()
-        flash(_("Pesanan #%(id)s sudah dibayar sebelumnya.", id=order.id), "warning")
-        return redirect(url_for("staff.receipt", order_id=order.id))
+        db.session.expire_all()
+        fresh = Order.query.get(order_id)
+        if fresh is None:
+            flash(_("Pesanan #%(id)s sudah dibatalkan.", id=order_id), "warning")
+            return redirect(url_for("staff.cashier"))
+        if not fresh.is_paid:
+            flash(_("Tagihan pesanan %(label)s baru saja berubah. Cek lagi totalnya sebelum bayar.", label=fresh.display_label), "warning")
+            return redirect(url_for("staff.cashier"))
+        flash(_("Pesanan #%(id)s sudah dibayar sebelumnya.", id=order_id), "warning")
+        return redirect(url_for("staff.receipt", order_id=order_id))
 
     db.session.commit()
 
@@ -977,6 +1120,9 @@ def pay_order(order_id):
 @roles_required(ROLE_OWNER, ROLE_KASIR)
 def receipt(order_id):
     order = Order.query.get_or_404(order_id)
+    if not order.is_paid:
+        flash(_("Pesanan #%(id)s belum dibayar - struk baru tersedia setelah lunas.", id=order.id), "warning")
+        return redirect(url_for("staff.cashier"))
     settings = get_settings()
     just_paid = request.args.get("just_paid") == "1"
 
@@ -999,6 +1145,8 @@ def receipt_pdf(order_id):
     from reportlab.pdfgen import canvas as pdf_canvas
 
     order = Order.query.get_or_404(order_id)
+    if not order.is_paid:
+        abort(404)
     settings = get_settings()
 
     page_w = (58 if settings.receipt_paper_width == "58" else 80) * mm
@@ -1193,15 +1341,18 @@ def admin_menu():
 
         elif form_type == "menu_item":
             name = request.form.get("name", "").strip()
-            price = request.form.get("price", type=int)
+            price = request.form.get("price", type=digits_int)
             category_id = request.form.get("category_id", type=int)
+            category = Category.query.get(category_id) if category_id else None
 
-            if name and price and category_id:
+            if name and price is not None and price > 0 and category:
                 db.session.add(
-                    MenuItem(name=name, price=price, category_id=category_id)
+                    MenuItem(name=name, price=price, category_id=category.id)
                 )
                 db.session.commit()
                 flash(_("Menu ditambahkan."), "success")
+            else:
+                flash(_("Isi nama, harga (lebih dari 0), dan kategori menu dengan benar."), "warning")
 
         return redirect(url_for("staff.admin_menu"))
 
@@ -1240,6 +1391,11 @@ def delete_menu_item(item_id):
 
     _remove_logo(item, "photo", subfolder="menu")
 
+    # Harga khusus platform ojol untuk menu ini ikut dihapus - kalau
+    # dibiarkan, menu BARU yang kebetulan dapat id yang sama akan diam-diam
+    # mewarisi harga lama itu.
+    MenuItemChannelPrice.query.filter_by(menu_item_id=item.id).delete()
+
     name = item.name
     db.session.delete(item)
     db.session.commit()
@@ -1277,7 +1433,7 @@ def update_menu_item_photo(item_id):
 def add_recipe_item(item_id):
     item = MenuItem.query.get_or_404(item_id)
     ingredient_id = request.form.get("ingredient_id", type=int)
-    quantity_used = request.form.get("quantity_used", type=float)
+    quantity_used = request.form.get("quantity_used", type=finite_float)
 
     ingredient = Ingredient.query.get(ingredient_id) if ingredient_id else None
 
@@ -1326,10 +1482,10 @@ def admin_inventory():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         unit = request.form.get("unit", "").strip()
-        stock_quantity = request.form.get("stock_quantity", type=float)
-        low_stock_threshold = request.form.get("low_stock_threshold", type=float)
+        stock_quantity = request.form.get("stock_quantity", type=finite_float)
+        low_stock_threshold = request.form.get("low_stock_threshold", type=finite_float)
 
-        if name and unit and stock_quantity is not None:
+        if name and unit and stock_quantity is not None and stock_quantity >= 0 and (low_stock_threshold or 0) >= 0:
             db.session.add(
                 Ingredient(
                     name=name,
@@ -1353,7 +1509,7 @@ def admin_inventory():
 @roles_required(ROLE_OWNER)
 def restock_ingredient(ingredient_id):
     ingredient = Ingredient.query.get_or_404(ingredient_id)
-    amount = request.form.get("amount", type=float)
+    amount = request.form.get("amount", type=finite_float)
 
     if not amount or amount <= 0:
         flash(_("Jumlah restock tidak valid."), "warning")
@@ -1445,7 +1601,7 @@ def export_inventory_excel(scope):
     thin_border = Border(bottom=Side(style="thin", color="E2E8F0"))
 
     ws.merge_cells("A1:E1")
-    ws["A1"] = settings.shop_name
+    ws["A1"] = _excel_safe(settings.shop_name)
     ws["A1"].font = title_font
 
     ws.merge_cells("A2:E2")
@@ -1470,7 +1626,7 @@ def export_inventory_excel(scope):
             str(_("Menipis")) if ingredient.is_low_stock else str(_("Aman")),
         ]
         for col, value in enumerate(values, start=1):
-            cell = ws.cell(row=row, column=col, value=value)
+            cell = ws.cell(row=row, column=col, value=_excel_safe(value))
             cell.border = thin_border
             if col == 5 and ingredient.is_low_stock:
                 cell.font = danger_font
@@ -1528,7 +1684,7 @@ def export_inventory_pdf(scope):
     styles = getSampleStyleSheet()
     story = []
 
-    story.append(Paragraph(settings.shop_name, styles["Title"]))
+    story.append(Paragraph(xml_escape(settings.shop_name), styles["Title"]))
     story.append(Paragraph(f"{title} &middot; {datetime.now().strftime('%d/%m/%Y %H:%M')}", styles["Normal"]))
     story.append(Spacer(1, 8 * mm))
 
@@ -1608,7 +1764,7 @@ def _period_report(start, end):
     """Rekap transaksi lunas dalam satu rentang waktu (dipakai untuk
     rekap harian/mingguan/bulanan/tahunan di halaman Laporan)."""
 
-    orders = Order.query.filter(
+    orders = Order.query.options(selectinload(Order.items)).filter(
         Order.is_paid.is_(True),
         Order.paid_at >= start,
         Order.paid_at <= end,
@@ -1720,7 +1876,7 @@ def reports():
 
 def _orders_in_period(start, end):
     return (
-        Order.query.filter(
+        Order.query.options(selectinload(Order.items)).filter(
             Order.is_paid.is_(True),
             Order.paid_at >= start,
             Order.paid_at <= end,
@@ -1813,7 +1969,7 @@ def export_report_excel(period_key):
             order.served_by or "",
         ]
         for col, value in enumerate(values, start=1):
-            cell = ws.cell(row=row, column=col, value=value)
+            cell = ws.cell(row=row, column=col, value=_excel_safe(value))
             cell.border = thin_border
             if col in (6, 7, 8, 9) and value is not None:
                 cell.number_format = rupiah_format
@@ -1892,7 +2048,7 @@ def export_report_pdf(period_key):
     styles = getSampleStyleSheet()
     story = []
 
-    story.append(Paragraph(settings.shop_name, styles["Title"]))
+    story.append(Paragraph(xml_escape(settings.shop_name), styles["Title"]))
     story.append(Paragraph(f"{PERIOD_LABELS[period_key]} &middot; {range_label}", styles["Normal"]))
     story.append(Spacer(1, 10 * mm))
 
@@ -1926,7 +2082,7 @@ def export_report_pdf(period_key):
             f"#{order.id}",
             order.paid_at.strftime("%d/%m/%Y %H:%M"),
             order.display_label,
-            Paragraph(items_desc, styles["Normal"]),
+            Paragraph(xml_escape(items_desc), styles["Normal"]),
             "Cash" if order.payment_method == "cash" else "QRIS",
             f"Rp {order.ppn_amount:,}".replace(",", ".") if order.ppn_amount else "-",
             f"Rp {order.grand_total:,}".replace(",", "."),
@@ -2157,7 +2313,7 @@ def admin_settings():
         settings.navbar_display = navbar_display if navbar_display in ("logo", "name", "both") else "both"
 
         settings.ppn_enabled = request.form.get("ppn_enabled") == "1"
-        ppn_percentage = request.form.get("ppn_percentage", type=float)
+        ppn_percentage = request.form.get("ppn_percentage", type=finite_float)
         if ppn_percentage is None:
             ppn_percentage = 0.0
         settings.ppn_percentage = max(0.0, min(100.0, ppn_percentage))
@@ -2207,8 +2363,8 @@ def admin_settings():
         "staff/settings_admin.html",
         settings=settings,
         floors=floors,
-        demo_mode_unlocked=session.get("demo_mode_unlocked", False),
-        factory_reset_unlocked=session.get("factory_reset_unlocked", False),
+        demo_mode_unlocked=_dev_unlock_valid("demo_mode_unlocked"),
+        factory_reset_unlocked=_dev_unlock_valid("factory_reset_unlocked"),
         **_system_tab_context(),
     )
 
@@ -2235,7 +2391,13 @@ def add_floor():
         if new_name:
             floor.name = new_name
 
-    last_number = db.session.query(db.func.max(Floor.number)).scalar() or 0
+    # Ikut perhitungkan nomor lantai yang masih dipakai meja - kalau lantai
+    # tertinggi sempat dihapus (mejanya tidak ikut terhapus), lantai baru
+    # tidak boleh dapat nomor yang sama dan diam-diam "mewarisi" meja lama.
+    last_number = max(
+        db.session.query(db.func.max(Floor.number)).scalar() or 0,
+        db.session.query(db.func.max(Table.floor)).scalar() or 0,
+    )
     new_number = last_number + 1
 
     floor = Floor(number=new_number, name="")
@@ -2255,10 +2417,11 @@ def delete_floor(floor_id):
     untuk meja baru."""
 
     floor = Floor.query.get_or_404(floor_id)
+    display_name = floor_display_name(floor.number)
     db.session.delete(floor)
     db.session.commit()
 
-    flash(_("Lantai %(name)s dihapus.", name=floor.name), "success")
+    flash(_("%(name)s dihapus.", name=display_name), "success")
     return redirect(url_for("staff.admin_settings"))
 
 
@@ -2273,9 +2436,9 @@ def _backup_folder():
 
 
 def _db_file_path():
-    uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
-    # "sqlite:///C:\...\cafe.db" -> "C:\...\cafe.db"
-    return uri.replace("sqlite:///", "", 1)
+    # Path absolut hasil resolusi Flask-SQLAlchemy (URI relatif sudah
+    # dipetakan ke folder instance/), bukan potongan string URI mentah.
+    return db.engine.url.database
 
 
 def _folder_size_bytes(path):
@@ -2405,7 +2568,7 @@ def channel_add():
     if pricing_mode not in (CHANNEL_PRICING_PERCENT, CHANNEL_PRICING_MANUAL):
         pricing_mode = CHANNEL_PRICING_PERCENT
 
-    markup_percent = request.form.get("markup_percent", type=float) or 0
+    markup_percent = min(request.form.get("markup_percent", type=finite_float) or 0, 1000.0)
 
     max_sort = db.session.query(db.func.max(OrderChannel.sort_order)).scalar() or 0
     channel = OrderChannel(
@@ -2442,7 +2605,7 @@ def channel_update(channel_id):
     if pricing_mode not in (CHANNEL_PRICING_PERCENT, CHANNEL_PRICING_MANUAL):
         pricing_mode = CHANNEL_PRICING_PERCENT
 
-    markup_percent = request.form.get("markup_percent", type=float) or 0
+    markup_percent = min(request.form.get("markup_percent", type=finite_float) or 0, 1000.0)
 
     error = _save_logo("logo", channel, "logo", filename_base=f"channel-logo-{channel.id}")
     if error:
@@ -2488,11 +2651,17 @@ def channel_prices(channel_id):
     channel = OrderChannel.query.get_or_404(channel_id)
 
     if request.method == "POST":
+        valid_menu_ids = {item_id for (item_id,) in db.session.query(MenuItem.id).all()}
+
         for key, value in request.form.items():
             if not key.startswith("price_"):
                 continue
 
-            menu_item_id = int(key.replace("price_", ""))
+            raw_id = key[len("price_"):]
+            if not raw_id.isdigit() or int(raw_id) not in valid_menu_ids:
+                continue
+
+            menu_item_id = int(raw_id)
             price_text = value.strip()
 
             row = MenuItemChannelPrice.query.filter_by(
@@ -2506,7 +2675,10 @@ def channel_prices(channel_id):
                     db.session.delete(row)
                 continue
 
-            price = int(float(price_text))
+            try:
+                price = digits_int(price_text)
+            except ValueError:
+                continue
             if row:
                 row.price = price
             else:
@@ -2603,9 +2775,7 @@ def _restore_real_settings():
     for field in ("logo_square", "logo_wide"):
         current_filename = getattr(settings, field)
         if current_filename and current_filename.startswith("demo-"):
-            path = os.path.join(branding_dir, current_filename)
-            if os.path.exists(path):
-                os.remove(path)
+            _delete_file_after_commit(os.path.join(branding_dir, current_filename))
 
     for field, value in backup.items():
         setattr(settings, field, value)
@@ -2723,6 +2893,34 @@ def _seed_demo_data():
     db.session.commit()
 
 
+def _demo_clear_blockers():
+    """Data ASLI (is_demo=False) yang masih nyangkut ke data demo - menu
+    asli yang ditaruh di kategori demo, atau resep menu asli yang pakai
+    bahan baku demo. Kalau ada, Mode Demo tidak boleh dimatikan dulu:
+    menghapus kategori/bahan demo akan gagal (NOT NULL) atau merusak
+    data asli itu. Balikin list nama yang perlu dipindah/diubah Owner."""
+
+    blockers = []
+
+    for item in (
+        MenuItem.query.join(Category, MenuItem.category_id == Category.id)
+        .filter(Category.is_demo.is_(True), MenuItem.is_demo.is_(False))
+        .all()
+    ):
+        blockers.append(item.name)
+
+    for row in (
+        MenuItemIngredient.query
+        .join(Ingredient, MenuItemIngredient.ingredient_id == Ingredient.id)
+        .join(MenuItem, MenuItemIngredient.menu_item_id == MenuItem.id)
+        .filter(Ingredient.is_demo.is_(True), MenuItem.is_demo.is_(False))
+        .all()
+    ):
+        blockers.append(row.menu_item.name)
+
+    return sorted(set(blockers))
+
+
 def _clear_demo_data():
     """Hapus semua baris is_demo=True (menu, kategori, bahan baku, meja)
     beserta file fotonya, dan kembalikan identitas toko (Settings) ke
@@ -2740,11 +2938,20 @@ def _clear_demo_data():
     order yang mengacu ke situ (foreign key)."""
 
     upload_dir = os.path.join(current_app.static_folder, "uploads", "menu")
-    for item in MenuItem.query.filter_by(is_demo=True).all():
+    demo_items = MenuItem.query.filter_by(is_demo=True).all()
+    demo_item_ids = [item.id for item in demo_items]
+
+    # Pesanan yang berisi menu demo (termasuk Bawa Pulang yang tidak punya
+    # meja/platform demo) ikut dihapus - kalau tidak, penjualan contoh ini
+    # nyangkut selamanya di Laporan penjualan asli.
+    if demo_item_ids:
+        demo_order_ids = select(OrderItem.order_id).where(OrderItem.menu_item_id.in_(demo_item_ids))
+        for order in Order.query.filter(Order.id.in_(demo_order_ids)).all():
+            db.session.delete(order)
+
+    for item in demo_items:
         if item.photo:
-            path = os.path.join(upload_dir, item.photo)
-            if os.path.exists(path):
-                os.remove(path)
+            _delete_file_after_commit(os.path.join(upload_dir, item.photo))
         db.session.delete(item)
 
     for cat in Category.query.filter_by(is_demo=True).all():
@@ -2760,9 +2967,7 @@ def _clear_demo_data():
 
     qr_dir = os.path.join(current_app.root_path, "static", "qrcodes")
     for table in demo_tables:
-        qr_path = os.path.join(qr_dir, f"{table.code}.png")
-        if os.path.exists(qr_path):
-            os.remove(qr_path)
+        _delete_file_after_commit(os.path.join(qr_dir, f"{table.code}.png"))
         db.session.delete(table)
 
     # Platform delivery demo (GoFood/GrabFood/ShopeeFood contoh) - order
@@ -2782,6 +2987,32 @@ def _clear_demo_data():
     db.session.commit()
 
 
+def _check_dev_pin():
+    """Cek PIN developer dengan batas percobaan salah per user - tanpa ini
+    Owner (yang justru mau dicegah) bisa nebak PIN pakai script."""
+
+    rate_key = f"dev-pin:{current_user.id}"
+    if is_blocked(rate_key, DEV_PIN_RATE_LIMIT, DEV_PIN_RATE_WINDOW_SECONDS):
+        return False
+
+    if check_password_hash(DEV_PIN_HASH, request.form.get("pin", "")):
+        return True
+
+    record_failure(rate_key, DEV_PIN_RATE_WINDOW_SECONDS)
+    return False
+
+
+def _dev_unlock_valid(session_key):
+    """True kalau PIN developer untuk fitur ini dibuka kurang dari
+    DEV_UNLOCK_TTL_SECONDS yang lalu. Nilai lama (True, dari sebelum ada
+    batas waktu) dianggap sudah kedaluwarsa."""
+
+    unlocked_at = session.get(session_key)
+    if isinstance(unlocked_at, bool) or not isinstance(unlocked_at, (int, float)):
+        return False
+    return datetime.now().timestamp() - unlocked_at < DEV_UNLOCK_TTL_SECONDS
+
+
 @staff_bp.route("/admin/system/demo-mode/unlock", methods=["POST"])
 @roles_required(ROLE_OWNER)
 def demo_mode_unlock():
@@ -2789,10 +3020,8 @@ def demo_mode_unlock():
     (server-side, bukan sekadar tampilan) supaya request langsung ke
     demo_mode_toggle() tanpa lewat tombol ini pun tetap kena tolak."""
 
-    pin = request.form.get("pin", "")
-
-    if check_password_hash(DEV_PIN_HASH, pin):
-        session["demo_mode_unlocked"] = True
+    if _check_dev_pin():
+        session["demo_mode_unlocked"] = datetime.now().timestamp()
         return {"ok": True}
 
     return {"ok": False}, 403
@@ -2813,12 +3042,23 @@ def demo_mode_lock():
 @staff_bp.route("/admin/system/demo-mode/toggle", methods=["POST"])
 @roles_required(ROLE_OWNER)
 def demo_mode_toggle():
-    if not session.get("demo_mode_unlocked"):
-        abort(403)
+    if not _dev_unlock_valid("demo_mode_unlocked"):
+        flash(_("Kunci PIN developer sudah kedaluwarsa. Buka kunci lagi dengan PIN."), "warning")
+        return redirect(url_for("staff.admin_settings"))
 
     is_active = Category.query.filter_by(is_demo=True).first() is not None
 
     if is_active:
+        blockers = _demo_clear_blockers()
+        if blockers:
+            flash(
+                _(
+                    "Mode Demo belum bisa dimatikan: menu asli berikut masih memakai kategori/bahan baku demo - pindahkan kategori atau ubah resepnya dulu: %(names)s.",
+                    names=", ".join(blockers),
+                ),
+                "danger",
+            )
+            return redirect(url_for("staff.admin_settings"))
         _clear_demo_data()
         flash(_("Mode Demo dimatikan - semua data dummy sudah dihapus."), "success")
     else:
@@ -2854,10 +3094,8 @@ def factory_reset_unlock():
     demo_mode_unlocked) supaya buka kunci Mode Demo tidak otomatis buka
     kunci Reset Pabrik juga, walau PIN-nya sama."""
 
-    pin = request.form.get("pin", "")
-
-    if check_password_hash(DEV_PIN_HASH, pin):
-        session["factory_reset_unlocked"] = True
+    if _check_dev_pin():
+        session["factory_reset_unlocked"] = datetime.now().timestamp()
         return {"ok": True}
 
     return {"ok": False}, 403
@@ -2873,8 +3111,9 @@ def factory_reset_lock():
 @staff_bp.route("/admin/system/factory-reset/execute", methods=["POST"])
 @roles_required(ROLE_OWNER)
 def factory_reset_execute():
-    if not session.get("factory_reset_unlocked"):
-        abort(403)
+    if not _dev_unlock_valid("factory_reset_unlocked"):
+        flash(_("Kunci PIN developer sudah kedaluwarsa. Buka kunci lagi dengan PIN."), "warning")
+        return redirect(url_for("staff.admin_settings"))
 
     _factory_reset()
     session.pop("factory_reset_unlocked", None)
@@ -2908,6 +3147,7 @@ def _factory_reset():
     for channel in OrderChannel.query.all():
         _remove_logo(channel, "logo")
     MenuItemChannelPrice.query.delete()
+    OrderStockDeduction.query.delete()
     OrderItem.query.delete()
     Order.query.delete()
     OrderChannel.query.delete()
@@ -2921,16 +3161,29 @@ def _factory_reset():
 
     # Foto menu yang filenya sudah yatim (baris MenuItem-nya baru dihapus
     # di atas) - dibersihkan dari disk juga, bukan cuma dari DB.
+    # QR code meja juga - semua meja sudah dihapus di atas.
     menu_upload_folder = _upload_folder("menu")
-    for filename in os.listdir(menu_upload_folder):
-        file_path = os.path.join(menu_upload_folder, filename)
-        if os.path.isfile(file_path):
-            try:
-                os.remove(file_path)
-            except OSError:
-                pass
+    qrcodes_folder = os.path.join(current_app.static_folder, "qrcodes")
+    for folder in (menu_upload_folder, qrcodes_folder):
+        if not os.path.isdir(folder):
+            continue
+        for filename in os.listdir(folder):
+            file_path = os.path.join(folder, filename)
+            if os.path.isfile(file_path):
+                _delete_file_after_commit(file_path)
 
     settings = get_settings()
+    # Kalau reset dilakukan saat Mode Demo aktif, logo ASLI dari sebelum
+    # demo (disimpan di demo_settings_backup) juga ikut dibersihkan.
+    if settings.demo_settings_backup:
+        try:
+            backup = json.loads(settings.demo_settings_backup)
+        except ValueError:
+            backup = {}
+        for field in ("logo_square", "logo_wide", "qris_image"):
+            filename = backup.get(field)
+            if filename:
+                _delete_file_after_commit(os.path.join(_branding_upload_folder(), filename))
     _remove_logo(settings, "logo_square")
     _remove_logo(settings, "logo_wide")
     _remove_logo(settings, "qris_image")
@@ -2985,26 +3238,12 @@ def backup_create():
     filename = f"cafepos_backup_{timestamp}.zip"
     zip_path = os.path.join(_backup_folder(), filename)
 
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        db_path = _db_file_path()
-        if os.path.exists(db_path):
-            zf.write(db_path, arcname=os.path.join("instance", os.path.basename(db_path)))
-
-        uploads_dir = os.path.join(current_app.static_folder, "uploads")
-        for root, _dirs, files in os.walk(uploads_dir):
-            for name in files:
-                full_path = os.path.join(root, name)
-                arcname = os.path.join(
-                    "static", "uploads", os.path.relpath(full_path, uploads_dir)
-                )
-                zf.write(full_path, arcname=arcname)
-
-        qrcodes_dir = os.path.join(current_app.static_folder, "qrcodes")
-        if os.path.isdir(qrcodes_dir):
-            for name in os.listdir(qrcodes_dir):
-                full_path = os.path.join(qrcodes_dir, name)
-                if os.path.isfile(full_path):
-                    zf.write(full_path, arcname=os.path.join("static", "qrcodes", name))
+    try:
+        write_backup_zip(zip_path, _db_file_path(), current_app.static_folder)
+    except Exception as exc:  # apa pun penyebabnya, jangan pernah bilang "berhasil"
+        current_app.logger.exception("Backup gagal")
+        flash(_("Backup GAGAL dibuat: %(error)s", error=str(exc)), "danger")
+        return redirect(url_for("staff.admin_settings"))
 
     flash(_("Backup berhasil dibuat: %(filename)s", filename=filename), "success")
     return redirect(url_for("staff.admin_settings"))

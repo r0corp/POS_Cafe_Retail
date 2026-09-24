@@ -7,6 +7,8 @@ from flask_login import LoginManager, current_user, logout_user
 from flask_babel import Babel
 from flask_babel import lazy_gettext as _l
 from flask_wtf import CSRFProtect
+from flask_wtf.csrf import CSRFError
+from sqlalchemy.exc import OperationalError
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -18,8 +20,111 @@ SUPPORTED_LANGUAGES = ["id", "en"]
 DEFAULT_LANGUAGE = "id"
 
 
+def _same_host_referrer():
+    """Referrer cuma dipakai sebagai tujuan redirect kalau masih di host
+    aplikasi ini sendiri - bukan situs luar (open redirect)."""
+
+    from urllib.parse import urlparse
+
+    referrer = request.referrer
+    if not referrer:
+        return None
+    parsed = urlparse(referrer)
+    if parsed.netloc and parsed.netloc != request.host:
+        return None
+    return referrer
+
+
 def get_locale():
     return session.get("lang", DEFAULT_LANGUAGE)
+
+
+def _ensure_schema():
+    """Aplikasi ini tidak pakai migration (lihat DEPLOYMENT.md), jadi
+    perubahan skema dirapikan di sini tiap start - aman dipanggil berkali-
+    kali, cuma bekerja kalau memang ada yang belum sesuai:
+
+    1. db.create_all() - bikin tabel yang BELUM ADA saja (mis. tabel baru
+       order_stock_deductions di database lama). Tabel yang sudah ada tidak
+       disentuh sama sekali.
+    2. Tabel orders di database lama dibangun ulang sesuai model kalau:
+       - kolom table_id masih NOT NULL (database dibuat sebelum fitur
+         Bawa Pulang/Ojek Online - semua pesanan tanpa meja gagal disimpan),
+         atau
+       - belum AUTOINCREMENT (ID pesanan yang dibatalkan bisa dipakai ulang
+         pesanan berikutnya).
+       SQLite tidak bisa ALTER COLUMN, jadi pakai prosedur "12 langkah"
+       resmi SQLite: tabel baru -> salin data -> hapus lama -> rename.
+    3. Index di model (mis. kunci 1 pesanan belum lunas per meja) dibuat
+       kalau belum ada."""
+
+    from sqlalchemy.schema import CreateIndex, CreateTable
+
+    from .models import Order
+
+    if db.engine.dialect.name != "sqlite":
+        db.create_all()
+        return
+
+    db.create_all()
+
+    raw = db.engine.raw_connection()
+    try:
+        cur = raw.cursor()
+        columns = cur.execute("PRAGMA table_info(orders)").fetchall()
+        if not columns:
+            return
+
+        create_sql = cur.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='orders'"
+        ).fetchone()[0] or ""
+        table_id_col = next((c for c in columns if c[1] == "table_id"), None)
+        needs_rebuild = (
+            (table_id_col is not None and table_id_col[3])  # c[3] = notnull
+            or "AUTOINCREMENT" not in create_sql.upper()
+        )
+
+        # Transaksi manual (bukan implicit BEGIN bawaan pysqlite yang tidak
+        # membungkus DDL) supaya rebuild-nya all-or-nothing.
+        driver_conn = raw.driver_connection
+        old_isolation = driver_conn.isolation_level
+        driver_conn.isolation_level = None
+        fk_was_on = cur.execute("PRAGMA foreign_keys").fetchone()[0]
+        cur.execute("PRAGMA foreign_keys=OFF")
+        try:
+            cur.execute("BEGIN")
+            try:
+                if needs_rebuild:
+                    model_columns = [c.name for c in Order.__table__.columns]
+                    db_columns = {c[1] for c in columns}
+                    shared = [name for name in model_columns if name in db_columns]
+                    column_list = ", ".join(f'"{name}"' for name in shared)
+                    select_list = ", ".join(
+                        'COALESCE("is_paid", 0)' if name == "is_paid" else f'"{name}"'
+                        for name in shared
+                    )
+
+                    new_sql = str(CreateTable(Order.__table__).compile(db.engine))
+                    new_sql = new_sql.replace("CREATE TABLE orders", "CREATE TABLE orders__new", 1)
+
+                    cur.execute("DROP TABLE IF EXISTS orders__new")
+                    cur.execute(new_sql)
+                    cur.execute(f"INSERT INTO orders__new ({column_list}) SELECT {select_list} FROM orders")
+                    cur.execute("DROP TABLE orders")
+                    cur.execute("ALTER TABLE orders__new RENAME TO orders")
+
+                for index in Order.__table__.indexes:
+                    cur.execute(str(CreateIndex(index, if_not_exists=True).compile(db.engine)))
+
+                cur.execute("COMMIT")
+            except Exception:
+                cur.execute("ROLLBACK")
+                raise
+        finally:
+            cur.execute(f"PRAGMA foreign_keys={'ON' if fk_was_on else 'OFF'}")
+            driver_conn.isolation_level = old_isolation
+    finally:
+        raw.close()
 
 
 def create_app():
@@ -44,6 +149,9 @@ def create_app():
     def load_user(user_id):
         return models.User.query.get(int(user_id))
 
+    with app.app_context():
+        _ensure_schema()
+
     from .blueprints.auth import auth_bp
     from .blueprints.public import public_bp
     from .blueprints.staff import staff_bp
@@ -59,6 +167,20 @@ def create_app():
     @app.errorhandler(404)
     def not_found(error):
         return render_template("404.html"), 404
+
+    @app.errorhandler(CSRFError)
+    def csrf_error(error):
+        # Token CSRF hilang/tidak cocok (umumnya session/cookie browser
+        # sudah terhapus, atau form dibuka dari tab yang sangat lama) -
+        # kasih pesan yang bisa dimengerti + balik ke halaman sebelumnya,
+        # bukan halaman "400 Bad Request" mentah berbahasa Inggris.
+        flash(_l("Sesi halaman ini sudah kedaluwarsa. Silakan muat ulang halaman lalu coba lagi."), "warning")
+        return redirect(_same_host_referrer() or url_for("auth.login"))
+
+    @app.errorhandler(413)
+    def too_large(error):
+        flash(_l("File yang diupload terlalu besar (maksimal 16 MB)."), "danger")
+        return redirect(_same_host_referrer() or url_for("staff.dashboard"))
 
     @app.errorhandler(500)
     def server_error(error):
@@ -83,8 +205,7 @@ def create_app():
         # muncul flash "Silakan login terlebih dahulu" yang membingungkan
         # padahal user cuma ganti bahasa di halaman login.
         default_url = url_for("staff.dashboard") if current_user.is_authenticated else url_for("auth.login")
-        next_url = request.referrer or default_url
-        return redirect(next_url)
+        return redirect(_same_host_referrer() or default_url)
 
     @app.route("/manifest.webmanifest")
     def web_manifest():
@@ -147,8 +268,10 @@ def create_app():
     @app.before_request
     def track_last_seen():
         # Ditulis paling banyak sekali per ~20 detik per user, supaya
-        # tidak membanjiri database dengan update di tiap request.
-        if not current_user.is_authenticated:
+        # tidak membanjiri database dengan update di tiap request. File
+        # statis (CSS/JS/gambar) dilewati - tidak perlu ikut rebutan kunci
+        # tulis SQLite.
+        if request.endpoint in (None, "static") or not current_user.is_authenticated:
             return
 
         now = datetime.now()
@@ -156,7 +279,13 @@ def create_app():
 
         if not last_seen or (now - last_seen).total_seconds() > 20:
             current_user.last_seen_at = now
-            db.session.commit()
+            try:
+                db.session.commit()
+            except OperationalError:
+                # "database is locked" sesaat (ada transaksi lain yang lagi
+                # nulis) - cuma penanda "terakhir aktif", jangan sampai
+                # bikin request yang sebenarnya jadi error 500.
+                db.session.rollback()
 
     @app.before_request
     def enforce_active_user():
