@@ -296,4 +296,9 @@ def rollback():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=AGENT_PORT)
+    # threaded=True - tanpa ini, server dev Flask cuma layani 1 request
+    # sekaligus: /update atau /rollback yang butuh puluhan detik (pip
+    # install, dst) bikin /ping & /status ikut macet tidak terjawab
+    # sampai proses itu selesai, padahal /ping/-status idealnya tetap
+    # bisa dicek kapan saja buat tahu agent-nya masih hidup atau tidak.
+    app.run(host="0.0.0.0", port=AGENT_PORT, threaded=True)
