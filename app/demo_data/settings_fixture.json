@@ -6,6 +6,11 @@
   "tiktok": "@r0corp",
   "whatsapp": "081388611977",
   "other_social": "@r0corp",
+  "wifi_name": "OrulabsCafeWifi",
+  "wifi_password": "Admin@123",
+  "notification_sound_dapur": "kitchen_alarm_urgent",
+  "notification_sound_kasir": "door_bell_loud",
+  "notification_sound_pelayan": "alarm_clock",
   "logo_files": {
     "logo_square": "logo_square_demo.png",
     "logo_wide": "logo_wide_demo.png"

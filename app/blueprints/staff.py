@@ -5,6 +5,7 @@ import qrcode
 import json
 import math
 import os
+import random
 import re
 import shutil
 
@@ -92,6 +93,18 @@ DEMO_CHANNELS = [
     ("GrabFood", 30, "grabfood_demo.png"),
     ("ShopeeFood", 20, "shopeefood_demo.png"),
 ]
+
+# Dipakai _seed_demo_orders() buat pisahkan menu jadi "minuman" vs
+# "makanan" waktu bikin kombinasi pesanan contoh - harus sinkron sama
+# nama kategori di app/demo_data/fixture.json.
+DEMO_DRINK_CATEGORIES = {"Kopi", "Non-Kopi"}
+DEMO_FOOD_CATEGORIES = {"Makanan Berat", "Snack", "Roti & Sandwich", "Dessert", "Pasta"}
+
+# Nama data (bukan teks UI) - sengaja BUKAN dibungkus _() gettext, sama
+# seperti nama channel di DEMO_CHANNELS & label meja "Meja {n}" di atas.
+DEMO_FLOOR_NAME = "Lantai 1"
+DEMO_PACKAGING_CUP_NAME = "Gelas Cup Minuman"
+DEMO_PACKAGING_BOX_NAME = "Kotak Makanan Styrofoam"
 
 # Harus sinkron dengan NOTIFICATION_SOUNDS di app/static/js/notify.js.
 # "custom" = nada upload sendiri (lihat notification_sound_file).
@@ -2787,6 +2800,11 @@ SETTINGS_DEMO_TEXT_FIELDS = (
     "tiktok",
     "whatsapp",
     "other_social",
+    "wifi_name",
+    "wifi_password",
+    "notification_sound_dapur",
+    "notification_sound_kasir",
+    "notification_sound_pelayan",
 )
 
 
@@ -2889,6 +2907,229 @@ def _restore_real_settings():
     settings.demo_settings_backup = None
 
 
+def _random_datetime_between(start, end):
+    delta = end - start
+    seconds = random.uniform(0, delta.total_seconds())
+    return start + timedelta(seconds=seconds)
+
+
+def _demo_combo_items(drinks, foods, target_min=100_000, target_max=300_000, tries=30):
+    """Pilih 2-3 item (minuman + makanan, kadang 1 tambahan) acak sampai
+    subtotalnya masuk rentang target - dipakai buat contoh "1 meja pesan
+    paket lengkap". Kalau 30x percobaan tidak ada yang pas, baris
+    terakhir yang dicoba tetap dipakai apa adanya (tidak penting-penting
+    amat presisi buat data contoh)."""
+
+    picks = []
+    for _ in range(tries):
+        picks = [
+            (random.choice(drinks), random.randint(1, 2)),
+            (random.choice(foods), random.randint(1, 2)),
+        ]
+        if random.random() < 0.4:
+            picks.append((random.choice(drinks + foods), 1))
+        subtotal = sum(item.price * qty for item, qty in picks)
+        if target_min <= subtotal <= target_max:
+            break
+    return picks
+
+
+def _demo_make_order(
+    order_type, items, table=None, channel=None, status="pending",
+    is_paid=False, paid_at=None, deduct_stock=True,
+):
+    """Helper bikin 1 order contoh (dipakai berulang oleh
+    _seed_demo_orders()) - urus item/snapshot harga/opsional potong
+    stok/opsional tandai lunas dalam satu tempat, supaya tiap skenario
+    demo (meja belum bayar, transaksi lunas, dst.) tidak menulis ulang
+    logika yang sama."""
+
+    order = Order(
+        table_id=table.id if table else None,
+        order_type=order_type,
+        channel_id=channel.id if channel else None,
+        source="staff",
+        status="served" if is_paid else status,
+        pin=generate_order_pin(),
+    )
+
+    total = 0
+    for menu_item, qty in items:
+        price = channel.price_for(menu_item) if channel else menu_item.price
+        order.items.append(OrderItem(
+            menu_item_id=menu_item.id,
+            name_snapshot=menu_item.name,
+            price_snapshot=price,
+            quantity=qty,
+        ))
+        total += price * qty
+
+    # PENTING: semua field lunas (is_paid/status/paid_at/dst.) HARUS
+    # sudah di-set SEBELUM db.session.add()/check_and_deduct_stock() -
+    # check_and_deduct_stock() memanggil query yang memicu autoflush
+    # SQLAlchemy, jadi kalau field-field ini di-set BELAKANGAN, order
+    # keburu tersimpan ke DB dalam keadaan belum-lunas (bisa tabrakan
+    # sama kunci "1 order belum lunas per meja" kalau meja itu sudah
+    # dipakai order lain yang sengaja dibiarkan belum bayar).
+    if is_paid:
+        order.is_paid = True
+        order.payment_method = random.choice(PAYMENT_METHODS)
+        order.served_by = "demo"
+        order.paid_at = paid_at or datetime.now()
+        order.created_at = order.paid_at
+        if order.payment_method == "cash":
+            order.cash_received = total
+            order.change_amount = 0
+
+    db.session.add(order)
+
+    if deduct_stock:
+        # Stok bahan baku demo sengaja dibuat cukup besar (lihat fixture.json
+        # & 2 bahan kemasan di _seed_demo_data()) supaya beberapa lusin
+        # pesanan contoh ini tidak sampai kehabisan stok di tengah proses
+        # seed - kalaupun ada yang gagal (mis. race jarak-jauh yang tidak
+        # relevan di sini), diabaikan saja, pesanan tetap dibuat tanpa
+        # potongan stok daripada seluruh Mode Demo gagal aktif gara-gara ini.
+        check_and_deduct_stock(order)
+
+    return order, total
+
+
+def _seed_demo_filler_orders(start_dt, end_dt, target_total, demo_items, demo_tables, demo_channels):
+    """Isi riwayat transaksi lunas acak dalam 1 rentang waktu sampai
+    totalnya kira-kira mencapai target_total - dipakai buat contoh
+    angka Laporan Penjualan (bulanan/tahunan) yang masuk akal besarnya,
+    bukan cuma beberapa transaksi kosong. Sengaja TIDAK lewat
+    check_and_deduct_stock (bisa ratusan baris, dan tujuannya cuma
+    angka laporan, bukan demo potong stok - itu sudah diwakili pesanan
+    lain di _seed_demo_orders())."""
+
+    running_total = 0
+    count = 0
+    max_orders = 10_000  # jaring pengaman - jangan sampai muter tanpa henti
+
+    while running_total < target_total and count < max_orders:
+        n_items = random.choices([1, 2, 3], weights=[5, 3, 2])[0]
+        picks = [(random.choice(demo_items), random.randint(1, 4)) for _ in range(n_items)]
+
+        order_type = random.choices(
+            [ORDER_TYPE_DINE_IN, ORDER_TYPE_TAKEAWAY, ORDER_TYPE_OJOL],
+            weights=[55, 35, 10],
+        )[0]
+        table = random.choice(demo_tables) if order_type == ORDER_TYPE_DINE_IN else None
+        channel = random.choice(demo_channels) if order_type == ORDER_TYPE_OJOL else None
+
+        _, total = _demo_make_order(
+            order_type, picks, table=table, channel=channel,
+            is_paid=True, paid_at=_random_datetime_between(start_dt, end_dt),
+            deduct_stock=False,
+        )
+        running_total += total
+        count += 1
+
+    return running_total, count
+
+
+def _seed_demo_orders():
+    """Isi contoh riwayat pesanan buat Mode Demo - dipanggil di akhir
+    _seed_demo_data() setelah menu/meja/channel/bahan kemasan demo
+    selesai dibuat. Tidak ada kolom is_demo di Order/OrderItem - tetap
+    bisa dibersihkan otomatis oleh _clear_demo_data() karena SEMUA order
+    di sini memakai menu_item_id yang menunjuk ke MenuItem is_demo=True,
+    dan pembersihan yang sudah ada menghapus tiap order yang mengandung
+    item demo (lihat _clear_demo_data(), bagian demo_item_ids)."""
+
+    demo_tables = Table.query.filter_by(is_demo=True).order_by(Table.label).all()
+    demo_channels = OrderChannel.query.filter_by(is_demo=True).all()
+    demo_items = MenuItem.query.filter_by(is_demo=True).all()
+    drinks = [m for m in demo_items if m.category.name in DEMO_DRINK_CATEGORIES]
+    foods = [m for m in demo_items if m.category.name in DEMO_FOOD_CATEGORIES]
+
+    packaged_items = (
+        MenuItem.query.join(MenuItemIngredient, MenuItemIngredient.menu_item_id == MenuItem.id)
+        .join(Ingredient, MenuItemIngredient.ingredient_id == Ingredient.id)
+        .filter(MenuItem.is_demo.is_(True), Ingredient.name.in_(
+            [DEMO_PACKAGING_CUP_NAME, DEMO_PACKAGING_BOX_NAME]
+        ))
+        .distinct()
+        .all()
+    ) or demo_items[:6]
+
+    today = datetime.now()
+    today_start = datetime.combine(today.date(), time.min)
+
+    # 1) 5 meja "Makan di Tempat" BELUM BAYAR - masih menunggu di kasir.
+    #    3 di antaranya statusnya "ready" (dapur sudah selesai, tinggal
+    #    diantar pelayan), 2 sisanya masih "pending" (baru diterima).
+    unpaid_tables = demo_tables[:5]
+    for i, table in enumerate(unpaid_tables):
+        items = _demo_combo_items(drinks, foods)
+        status = "ready" if i < 3 else "pending"
+        _demo_make_order(ORDER_TYPE_DINE_IN, items, table=table, status=status)
+
+    # 2) 5 pesanan "Bawa Pulang" LUNAS hari ini - paket minum+makan.
+    for _ in range(5):
+        items = _demo_combo_items(drinks, foods)
+        _demo_make_order(ORDER_TYPE_TAKEAWAY, items, is_paid=True, paid_at=_random_datetime_between(today_start, today))
+
+    # 3) 5 pesanan contoh yang menu-nya memakai bahan kemasan (gelas cup/
+    #    kotak styrofoam) - diacak jenis pesanannya (dine-in/bawa pulang/
+    #    ojol) supaya potongan stok kemasan kelihatan kepakai lintas
+    #    platform, bukan cuma 1 jenis pesanan saja.
+    for _ in range(5):
+        item = random.choice(packaged_items)
+        order_type = random.choice([ORDER_TYPE_DINE_IN, ORDER_TYPE_TAKEAWAY, ORDER_TYPE_OJOL])
+        table = random.choice(demo_tables) if order_type == ORDER_TYPE_DINE_IN else None
+        channel = random.choice(demo_channels) if order_type == ORDER_TYPE_OJOL else None
+        _demo_make_order(
+            order_type, [(item, random.randint(1, 2))], table=table, channel=channel,
+            is_paid=True, paid_at=_random_datetime_between(today_start, today),
+        )
+
+    # 4) Tambahan pesanan lunas hari ini (jenis & isi acak) supaya
+    #    "Riwayat Hari Ini" di Kasir menampilkan 20 transaksi siap
+    #    cetak ulang - bukan cuma 10 dari langkah 2 & 3 di atas.
+    for _ in range(10):
+        n_items = random.randint(1, 2)
+        items = [(random.choice(demo_items), random.randint(1, 2)) for _ in range(n_items)]
+        order_type = random.choices(
+            [ORDER_TYPE_DINE_IN, ORDER_TYPE_TAKEAWAY, ORDER_TYPE_OJOL], weights=[50, 35, 15],
+        )[0]
+        table = random.choice(demo_tables) if order_type == ORDER_TYPE_DINE_IN else None
+        channel = random.choice(demo_channels) if order_type == ORDER_TYPE_OJOL else None
+        _demo_make_order(
+            order_type, items, table=table, channel=channel,
+            is_paid=True, paid_at=_random_datetime_between(today_start, today),
+        )
+
+    db.session.flush()
+    today_revenue = (
+        db.session.query(func.coalesce(func.sum(OrderItem.price_snapshot * OrderItem.quantity), 0))
+        .join(Order, OrderItem.order_id == Order.id)
+        .filter(Order.is_paid.is_(True), Order.paid_at >= today_start)
+        .scalar()
+    )
+
+    # 5) Sisa hari di bulan berjalan (sebelum hari ini) diisi transaksi
+    #    acak sampai total bulan ini kira-kira Rp30 juta, dan 8 bulan
+    #    sebelumnya (Januari s/d bulan lalu) sampai total tahun ini
+    #    kira-kira Rp400 juta - buat contoh angka Laporan Penjualan yang
+    #    masuk akal besarnya. Random murni, tidak perlu presisi.
+    month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if month_start < today_start:
+        _seed_demo_filler_orders(
+            month_start, today_start, max(0, 30_000_000 - today_revenue),
+            demo_items, demo_tables, demo_channels,
+        )
+
+    year_start = today.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    if year_start < month_start:
+        _seed_demo_filler_orders(
+            year_start, month_start, 370_000_000,
+            demo_items, demo_tables, demo_channels,
+        )
+
+
 def _seed_demo_data():
     """Isi menu + inventory dummy dari app/demo_data/fixture.json (foto
     ikut disalin dari app/demo_data/photos/) - ditandai is_demo=True
@@ -2965,6 +3206,34 @@ def _seed_demo_data():
         db.session.add(table)
         _generate_table_qr(table)
 
+    # 1 lantai contoh (Lantai 1) - cuma dibuat kalau toko belum punya
+    # Floor bernomor 1 sendiri, supaya tidak bentrok sama data asli
+    # (Floor.number unique). 10 meja demo di atas semuanya sudah pakai
+    # floor=1, jadi baris ini cuma nempelkan NAMA-nya saja.
+    if not Floor.query.filter_by(number=1).first():
+        db.session.add(Floor(number=1, name=DEMO_FLOOR_NAME, is_demo=True))
+
+    # 2 bahan baku kemasan (gelas & kotak sekali pakai) - ditempel ke
+    # beberapa menu contoh (bukan bagian resep asli fixture.json) supaya
+    # potongan stok kemasan kelihatan nyata dipakai, bukan cuma bahan
+    # baku "isi" minuman/makanannya saja.
+    packaging_cup = Ingredient(
+        name=DEMO_PACKAGING_CUP_NAME, unit="pcs", stock_quantity=300, low_stock_threshold=50, is_demo=True,
+    )
+    packaging_box = Ingredient(
+        name=DEMO_PACKAGING_BOX_NAME, unit="pcs", stock_quantity=300, low_stock_threshold=50, is_demo=True,
+    )
+    db.session.add_all([packaging_cup, packaging_box])
+    db.session.flush()
+
+    demo_drink_items = [m for m in categories_by_name["Kopi"].items if m.is_demo][:3] if "Kopi" in categories_by_name else []
+    demo_food_items = [m for m in categories_by_name["Makanan Berat"].items if m.is_demo][:3] if "Makanan Berat" in categories_by_name else []
+    for item in demo_drink_items:
+        db.session.add(MenuItemIngredient(menu_item_id=item.id, ingredient_id=packaging_cup.id, quantity_used=1))
+    for item in demo_food_items:
+        db.session.add(MenuItemIngredient(menu_item_id=item.id, ingredient_id=packaging_box.id, quantity_used=1))
+    db.session.flush()
+
     # 3 platform delivery demo - markup persentase mengikuti kisaran komisi
     # riil yang berlaku ke mitra reguler (per September 2026, bukan
     # merchant preferred/strategis yang komisinya bisa lebih rendah):
@@ -2995,6 +3264,7 @@ def _seed_demo_data():
             channel.logo = dest_name
 
     _apply_demo_settings()
+    _seed_demo_orders()
 
     db.session.commit()
 
@@ -3087,6 +3357,9 @@ def _clear_demo_data():
     for channel in demo_channels:
         _remove_logo(channel, "logo")
         db.session.delete(channel)
+
+    for floor in Floor.query.filter_by(is_demo=True).all():
+        db.session.delete(floor)
 
     _restore_real_settings()
 

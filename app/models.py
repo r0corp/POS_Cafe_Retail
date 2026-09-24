@@ -313,6 +313,12 @@ class Floor(db.Model):
     number = db.Column(db.Integer, nullable=False, unique=True)
     name = db.Column(db.String(50), nullable=False)
 
+    # Sama polanya dengan Category/MenuItem/Table/Ingredient/OrderChannel -
+    # ditandai True kalau lantai ini dibuat Mode Demo, supaya bisa
+    # dihapus lagi otomatis lewat staff._clear_demo_data() tanpa
+    # menyentuh lantai asli toko.
+    is_demo = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text("0"))
+
     def __repr__(self):
         return f"<Floor {self.number}: {self.name}>"
 
