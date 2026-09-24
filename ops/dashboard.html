@@ -253,10 +253,26 @@ function shortHash(h) {
   return (h || "").slice(0, 7);
 }
 
-async function fetchStatus(agent) {
-  const res = await fetch(agentUrl(agent, "/status"), {
-    headers: { "X-Agent-Token": agent.token },
-  });
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchStatus(agent, attempt = 1) {
+  let res;
+  try {
+    res = await fetch(agentUrl(agent, "/status"), {
+      headers: { "X-Agent-Token": agent.token },
+    });
+  } catch (e) {
+    // Koneksi lewat Tailscale relay kadang butuh "pemanasan" di percobaan
+    // pertama setelah idle (paket pertama drop sebelum jalur ketemu) -
+    // coba ulang sebentar sebelum benar-benar dianggap offline.
+    if (attempt < 3) {
+      await sleep(1500);
+      return fetchStatus(agent, attempt + 1);
+    }
+    throw new Error("Tidak bisa terhubung (cek Tailscale & agent-nya masih hidup).");
+  }
   if (res.status === 401) throw new Error("Token salah/ditolak.");
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
@@ -295,7 +311,8 @@ async function triggerUpdate(agent, logEl, btnEl) {
 }
 
 function statusBadge(cardEl, state) {
-  const badge = cardEl.querySelector(".status-badge");
+  const badge = cardEl && cardEl.querySelector(".status-badge");
+  if (!badge) return;
   if (state === "loading") {
     badge.className = "badge badge-muted";
     badge.textContent = "Mengecek...";
