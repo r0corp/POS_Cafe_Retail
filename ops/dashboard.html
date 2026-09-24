@@ -381,6 +381,11 @@ async function triggerUpdate(agent, logEl, btnEl) {
     const data = await res.json();
     if (!res.ok) {
       logEl.textContent = `Gagal: ${data.error || res.status}`;
+    } else if (data.ok === false) {
+      // HTTP 200 tapi deploy DIBATALKAN sebelum sempat menyentuh
+      // aplikasi POS (mis. git fetch gagal/timeout) - lihat _deploy_to
+      // di ops/agent.py. Bukan error fatal, cuma belum kepakai.
+      logEl.textContent = `Update dibatalkan (aplikasi POS tidak disentuh):\n\n${data.log}`;
     } else {
       logEl.textContent =
         (data.changed
@@ -451,6 +456,8 @@ async function triggerRollback(agent, commitHash, logEl, btnEl, panel) {
     const data = await res.json();
     if (!res.ok) {
       logEl.textContent = `Gagal: ${data.error || res.status}`;
+    } else if (data.ok === false) {
+      logEl.textContent = `Rollback dibatalkan (aplikasi POS tidak disentuh):\n\n${data.log}`;
     } else {
       logEl.textContent = `Rollback selesai: ${shortHash(data.before)} -> ${shortHash(data.after)}\n\n${data.log}`;
     }

@@ -40,6 +40,12 @@ SERVICE_NAME = os.environ.get("SERVICE_NAME", "OrulabsPOS")
 NSSM_PATH = os.environ.get("NSSM_PATH", r"C:\nssm\nssm.exe")
 TASK_NAME = os.environ.get("TASK_NAME", "CafePOS AutoStart")
 
+# Internet mini PC kadang putus-nyambung - tanpa batas waktu eksplisit,
+# `git fetch`/`pip install` bisa nyangkut lama sekali (menit) nunggu
+# koneksi yang tidak akan pernah nyambung, bukannya gagal cepat.
+FETCH_TIMEOUT = 20
+PIP_TIMEOUT = 180
+
 if not AGENT_TOKEN:
     raise RuntimeError(
         "AGENT_TOKEN belum diisi di ops/.env - wajib diisi token rahasia "
@@ -49,11 +55,14 @@ if not AGENT_TOKEN:
 app = Flask(__name__)
 
 
-def _run(cmd, cwd=None):
-    result = subprocess.run(
-        cmd, cwd=cwd or PROJECT_ROOT, capture_output=True, text=True, shell=False,
-    )
-    return result.returncode, (result.stdout or "") + (result.stderr or "")
+def _run(cmd, cwd=None, timeout=None):
+    try:
+        result = subprocess.run(
+            cmd, cwd=cwd or PROJECT_ROOT, capture_output=True, text=True, shell=False, timeout=timeout,
+        )
+        return result.returncode, (result.stdout or "") + (result.stderr or "")
+    except subprocess.TimeoutExpired:
+        return -1, f"(timeout setelah {timeout} detik - internet/koneksi kemungkinan lambat atau macet)"
 
 
 def _authorized():
@@ -151,7 +160,7 @@ def status():
     if not _authorized():
         return _unauthorized()
 
-    _run(["git", "fetch", "origin"])
+    _run(["git", "fetch", "origin"], timeout=FETCH_TIMEOUT)
     _, current_hash = _run(["git", "rev-parse", "HEAD"])
     _, latest_hash = _run(["git", "rev-parse", "origin/main"])
     current_hash = current_hash.strip()
@@ -189,15 +198,45 @@ def _commit_exists(sha):
     return code == 0
 
 
-def _deploy_to(target_ref, log_lines):
+def _deploy_to(target_ref, log_lines, require_fetch):
     """Inti dari /update & /rollback - satu-satunya beda cuma target_ref
-    ("origin/main" buat update, sebuah commit SHA buat rollback)."""
+    ("origin/main" buat update, sebuah commit SHA buat rollback) dan
+    require_fetch.
 
-    mode = _stop_pos(log_lines)
+    git fetch dijalankan DULU, SEBELUM aplikasi POS dimatikan - supaya
+    kalau internet mini PC lagi bermasalah (timeout/putus), aplikasi
+    TIDAK ikut dimatikan sia-sia untuk deploy yang toh tidak akan
+    berhasil. Ini nyata kejadian sekali: /rollback sempat mematikan POS
+    lalu macet nunggu fetch yang tidak pernah selesai, aplikasi mati
+    sampai ada yang nyalakan manual.
+
+    require_fetch=True (dipakai /update): fetch WAJIB berhasil dulu -
+    origin/main butuh commit terbaru dari GitHub, jadi kalau fetch
+    gagal/timeout, deploy dibatalkan total, POS tidak disentuh sama
+    sekali. require_fetch=False (dipakai /rollback): commit tujuannya
+    sudah pasti ada di riwayat lokal (sudah divalidasi _commit_exists
+    sebelum fungsi ini dipanggil) - TIDAK butuh data baru dari GitHub,
+    jadi fetch cuma usaha terbaik (buat data /commits tetap segar),
+    boleh lanjut walau fetch-nya gagal.
+
+    Return True kalau proses deploy (stop-reset-restart) benar-benar
+    dijalankan, False kalau dibatalkan sebelum sempat menyentuh POS."""
 
     log_lines.append("$ git fetch origin")
-    _, out = _run(["git", "fetch", "origin"])
+    fetch_code, out = _run(["git", "fetch", "origin"], timeout=FETCH_TIMEOUT)
     log_lines.append(out.strip())
+
+    if fetch_code != 0:
+        if require_fetch:
+            log_lines.append(
+                "Fetch dari GitHub gagal/timeout - deploy DIBATALKAN, aplikasi POS TIDAK disentuh sama sekali."
+            )
+            return False
+        log_lines.append(
+            "Fetch dari GitHub gagal/timeout - lanjut pakai riwayat commit lokal yang sudah ada (rollback tidak butuh data baru)."
+        )
+
+    mode = _stop_pos(log_lines)
 
     log_lines.append(f"$ git reset --hard {target_ref}")
     _, out = _run(["git", "reset", "--hard", target_ref])
@@ -206,16 +245,17 @@ def _deploy_to(target_ref, log_lines):
     venv_pip = os.path.join(PROJECT_ROOT, "venv", "Scripts", "pip.exe")
     if os.path.exists(venv_pip):
         log_lines.append("$ pip install -r requirements.txt")
-        _, out = _run([venv_pip, "install", "-r", "requirements.txt", "--quiet"])
+        _, out = _run([venv_pip, "install", "-r", "requirements.txt", "--quiet"], timeout=PIP_TIMEOUT)
         log_lines.append(out.strip())
 
     venv_pybabel = os.path.join(PROJECT_ROOT, "venv", "Scripts", "pybabel.exe")
     if os.path.exists(venv_pybabel):
         log_lines.append("$ pybabel compile -d app/translations")
-        _, out = _run([venv_pybabel, "compile", "-d", os.path.join("app", "translations")])
+        _, out = _run([venv_pybabel, "compile", "-d", os.path.join("app", "translations")], timeout=30)
         log_lines.append(out.strip())
 
     _start_pos(mode, log_lines)
+    return True
 
 
 @app.route("/commits", methods=["GET", "OPTIONS"])
@@ -226,7 +266,7 @@ def commits():
         return _unauthorized()
 
     limit = request.args.get("limit", default=20, type=int)
-    _run(["git", "fetch", "origin"])
+    _run(["git", "fetch", "origin"], timeout=FETCH_TIMEOUT)
     _, out = _run(["git", "log", f"-{limit}", "--format=%H|%s|%ci", "origin/main"])
 
     history = []
@@ -250,13 +290,13 @@ def update():
     _, before = _run(["git", "rev-parse", "HEAD"])
     before = before.strip()
 
-    _deploy_to("origin/main", log_lines)
+    deployed = _deploy_to("origin/main", log_lines, require_fetch=True)
 
     _, after = _run(["git", "rev-parse", "HEAD"])
     after = after.strip()
 
     return jsonify({
-        "ok": True,
+        "ok": deployed,
         "before": before,
         "after": after,
         "changed": before != after,
@@ -281,13 +321,13 @@ def rollback():
     _, before = _run(["git", "rev-parse", "HEAD"])
     before = before.strip()
 
-    _deploy_to(target, log_lines)
+    deployed = _deploy_to(target, log_lines, require_fetch=False)
 
     _, after = _run(["git", "rev-parse", "HEAD"])
     after = after.strip()
 
     return jsonify({
-        "ok": True,
+        "ok": deployed,
         "before": before,
         "after": after,
         "changed": before != after,
