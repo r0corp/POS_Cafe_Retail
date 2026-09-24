@@ -147,6 +147,29 @@
     font-family: inherit;
   }
   .add-form .full { grid-column: 1 / -1; }
+  .discover-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    margin-bottom: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .discover-item:hover { background: rgba(255,255,255,0.09); }
+  .discover-item-ip { color: var(--muted); font-family: monospace; font-size: 12px; }
+  .discover-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .discover-dot-on { background: var(--ok); }
+  .discover-dot-off { background: var(--muted); }
   .empty-state {
     color: var(--muted);
     font-size: 13px;
@@ -172,7 +195,11 @@
   <p class="subtitle">Pantau versi kode yang jalan di tiap instalasi POS, dan update dari jarak jauh lewat Tailscale.</p>
 
   <div class="card" id="addCard">
-    <div class="agent-name" style="margin-bottom: 12px;">+ Tambah Mini PC</div>
+    <div class="agent-header" style="margin-bottom: 12px;">
+      <div class="agent-name">+ Tambah Mini PC</div>
+      <button class="btn-secondary" onclick="discoverDevices()" id="discoverBtn">&#x1F50D; Cari Device di Tailscale</button>
+    </div>
+    <div id="discoverResults"></div>
     <div class="add-form">
       <input type="text" id="newName" placeholder="Nama (mis. Cafe Cakung)">
       <input type="text" id="newHost" placeholder="IP Tailscale (mis. 100.92.108.118)">
@@ -205,6 +232,52 @@ function saveAgents(agents) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(agents));
   } catch (e) {}
+}
+
+async function discoverDevices() {
+  const btn = document.getElementById("discoverBtn");
+  const resultsEl = document.getElementById("discoverResults");
+  btn.disabled = true;
+  btn.textContent = "Mencari...";
+  resultsEl.innerHTML = `<div class="empty-state">Mencari device di tailnet...</div>`;
+
+  try {
+    // Dashboard ini sendiri dilayani oleh ops/dashboard_server.py di
+    // localhost:8790 - endpoint /api/tailscale-devices ikut nempel di
+    // situ. Kalau dashboard dibuka lewat file:// langsung (bukan lewat
+    // server itu), fitur ini tidak akan jalan (dikasih tahu di pesan
+    // error-nya).
+    const res = await fetch("http://localhost:8790/api/tailscale-devices");
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    const known = new Set(loadAgents().map(a => a.host));
+    const candidates = data.devices.filter(d => !known.has(d.ip) && !d.is_self);
+
+    if (!candidates.length) {
+      resultsEl.innerHTML = `<div class="empty-state">Tidak ada device baru di tailnet (atau semuanya sudah terdaftar).</div>`;
+    } else {
+      resultsEl.innerHTML = candidates.map(d => `
+        <div class="discover-item" data-name="${d.name}" data-ip="${d.ip}">
+          <span><span class="discover-dot ${d.online ? 'discover-dot-on' : 'discover-dot-off'}"></span>${d.name} <span class="discover-item-ip">(${d.os})</span></span>
+          <span class="discover-item-ip">${d.ip}</span>
+        </div>
+      `).join("");
+      resultsEl.querySelectorAll(".discover-item").forEach(el => {
+        el.addEventListener("click", () => {
+          document.getElementById("newName").value = el.dataset.name;
+          document.getElementById("newHost").value = el.dataset.ip;
+          document.getElementById("newToken").focus();
+        });
+      });
+    }
+  } catch (e) {
+    resultsEl.innerHTML = `<div class="empty-state">Gagal cari device: ${e.message}. (Fitur ini butuh dashboard dibuka lewat http://localhost:8790, bukan file lokal.)</div>`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = "\u{1F50D} Cari Device di Tailscale";
 }
 
 function addAgent() {
