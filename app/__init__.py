@@ -157,11 +157,21 @@ def _ensure_schema():
         raw.close()
 
 
-def create_app():
+def create_app(config_overrides=None):
+    """`config_overrides` dipakai TES SAJA (lihat tests/conftest.py) -
+    config.Config baca SQLALCHEMY_DATABASE_URI dkk dari os.environ cuma
+    SEKALI saat modul config.py pertama kali di-import (class attribute,
+    bukan dihitung ulang tiap create_app() dipanggil), jadi ganti-ganti
+    os.environ["DATABASE_URL"] antar-test TIDAK cukup buat pindah ke
+    database test yang beda tiap kali - harus di-override eksplisit di
+    sini, SEBELUM db.init_app()/_ensure_schema() jalan."""
+
     app = Flask(__name__)
     app.config.from_object("config.Config")
     app.config.setdefault("BABEL_DEFAULT_LOCALE", DEFAULT_LANGUAGE)
     app.config.setdefault("BABEL_TRANSLATION_DIRECTORIES", "translations")
+    if config_overrides:
+        app.config.update(config_overrides)
 
     db.init_app(app)
     migrate.init_app(app, db)

@@ -1,0 +1,5 @@
+# Dependency tambahan buat development/testing SAJA - tidak perlu
+# di-install di mini PC produksi (requirements.txt tetap cukup buat
+# menjalankan aplikasinya).
+-r requirements.txt
+pytest==8.3.4
