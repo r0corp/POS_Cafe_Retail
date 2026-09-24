@@ -242,11 +242,17 @@ function agentUrl(agent, path) {
 
 function fmtDate(iso) {
   if (!iso || iso === "?") return "-";
-  try {
-    return new Date(iso.replace(" ", "T")).toLocaleString("id-ID");
-  } catch (e) {
-    return iso;
+  // git --format=%ci menghasilkan "2026-09-24 12:01:44 +0700" - offset
+  // zona waktunya tanpa titik dua ("+0700"), yang bikin `new Date()`
+  // browser gagal parse (Invalid Date). Susun ulang jadi ISO 8601 yang
+  // benar ("+07:00") sebelum di-parse.
+  const match = iso.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/);
+  if (match) {
+    const [, date, time, tzHour, tzMinute] = match;
+    const parsed = new Date(`${date}T${time}${tzHour}:${tzMinute}`);
+    if (!isNaN(parsed)) return parsed.toLocaleString("id-ID");
   }
+  return iso;
 }
 
 function shortHash(h) {
