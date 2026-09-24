@@ -369,6 +369,10 @@ function fmtDate(iso) {
     const parsed = new Date(`${date}T${time}${tzHour}:${tzMinute}`);
     if (!isNaN(parsed)) return parsed.toLocaleString("id-ID");
   }
+  // Format lain (mis. ISO 8601 "T..." dari Python datetime.isoformat(),
+  // dipakai /backups) - biasanya sudah langsung bisa di-parse browser.
+  const direct = new Date(iso);
+  if (!isNaN(direct)) return direct.toLocaleString("id-ID");
   return iso;
 }
 
