@@ -79,7 +79,10 @@ def _service_status():
     mode = _resolved_mode()
     if mode == "nssm":
         _, out = _run([NSSM_PATH, "status", SERVICE_NAME])
-        return out.strip() or "unknown"
+        # nssm.exe mencetak ke console pakai UTF-16 - subprocess.run(text=True)
+        # mendekodenya pakai encoding default OS, jadi tiap karakter kepisah
+        # byte null ("S\x00E\x00R\x00..."). Buang byte null-nya saja.
+        return out.replace("\x00", "").strip() or "unknown"
     _, out = _powershell(f"(Get-ScheduledTask -TaskName '{TASK_NAME}').State")
     return out.strip() or "unknown"
 
