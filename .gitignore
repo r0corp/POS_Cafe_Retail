@@ -21,6 +21,8 @@ serve_stdout*.txt
 serve_stderr*.txt
 logs_stdout.txt
 logs_stderr.txt
+ops_dashboard_stdout.txt
+ops_dashboard_stderr.txt
 *.zip
 
 # Android app
