@@ -49,12 +49,14 @@ from ..models import (
     Order,
     OrderItem,
     OrderStockDeduction,
+    CancelledOrderLog,
     Settings,
     User,
     LoginLog,
     floor_display_name,
     generate_order_pin,
     parse_quantity_fields,
+    calculate_ppn,
     ORDER_STATUSES,
     ORDER_TYPES,
     ORDER_TYPE_LABELS,
@@ -833,14 +835,13 @@ def kitchen_list():
 
 
 @staff_bp.route("/pelayan/ready-status")
-@roles_required(ROLE_PELAYAN)
+@roles_required(ROLE_OWNER, ROLE_PELAYAN)
 def pelayan_ready_status():
     """Dipoll global (base.html) khusus buat notifikasi suara Pelayan -
     bunyi begitu ada pesanan yang statusnya berubah jadi "Siap Diantar",
     tandanya pelayan harus ambil pesanan itu dari dapur ke meja tamu.
-    Sengaja tidak ada halaman daftar tersendiri untuk pelayan - bunyi
-    ini saja sudah cukup jadi penanda, pelayan tinggal lihat ke halaman
-    Dapur atau langsung ke dapur fisiknya."""
+    Daftarnya sendiri ada di halaman Pelayan (lihat waiter()), tempat
+    pelayan menandai pesanan "Sudah Diantar"."""
 
     signatures = [
         f"{order.id}:{order.status}"
@@ -849,10 +850,39 @@ def pelayan_ready_status():
     return {"order_ids": signatures}
 
 
+@staff_bp.route("/pelayan")
+@roles_required(ROLE_OWNER, ROLE_PELAYAN)
+def waiter():
+    """Daftar pesanan "Siap Diantar" untuk Pelayan - pelayan ambil dari
+    dapur, antar ke meja/tamu, lalu tandai "Sudah Diantar" di sini (baru
+    setelah itu meja dianggap kosong lagi)."""
+
+    return render_template("staff/waiter.html", orders=_ready_orders())
+
+
+@staff_bp.route("/pelayan/list")
+@roles_required(ROLE_OWNER, ROLE_PELAYAN)
+def waiter_list():
+    return render_template("staff/_waiter_orders.html", orders=_ready_orders())
+
+
+def _ready_orders():
+    return (
+        Order.query.filter_by(status="ready")
+        .order_by(Order.created_at.asc())
+        .all()
+    )
+
+
 @staff_bp.route("/orders/<int:order_id>/advance", methods=["POST"])
-@roles_required(ROLE_OWNER, ROLE_DAPUR)
+@roles_required(ROLE_OWNER, ROLE_DAPUR, ROLE_PELAYAN)
 def advance_status(order_id):
     order = Order.query.get_or_404(order_id)
+    # Pelayan cuma boleh langkah terakhir (Siap -> Sudah Diantar), tahap
+    # masak tetap urusan Dapur.
+    back_url = url_for("staff.waiter") if current_user.role == ROLE_PELAYAN else url_for("staff.kitchen")
+    if current_user.role == ROLE_PELAYAN and request.form.get("from_status") != "ready":
+        abort(403)
 
     # Status yang TERLIHAT di layar waktu tombol ditekan (dikirim form) -
     # dipakai sebagai syarat UPDATE supaya klik dobel / layar Dapur lain
@@ -861,7 +891,7 @@ def advance_status(order_id):
     from_status = request.form.get("from_status") or order.status
 
     if from_status not in ORDER_STATUSES or from_status == ORDER_STATUSES[-1]:
-        return redirect(url_for("staff.kitchen"))
+        return redirect(back_url)
 
     next_status = ORDER_STATUSES[ORDER_STATUSES.index(from_status) + 1]
     result = db.session.execute(
@@ -874,7 +904,7 @@ def advance_status(order_id):
     if result.rowcount == 0:
         flash(_("Status pesanan %(label)s sudah diubah dari device lain.", label=order.display_label), "warning")
 
-    return redirect(url_for("staff.kitchen"))
+    return redirect(back_url)
 
 
 # ============================================================
@@ -985,6 +1015,22 @@ def cancel_order(order_id):
     if restore_stock:
         restore_stock_for_order(order)
 
+    # Jejak pembatalan (lihat CancelledOrderLog) - item dibaca ulang dari
+    # database, bukan dari objek di session, supaya tambahan tamu yang
+    # baru saja masuk ikut tercatat.
+    current_items = OrderItem.query.filter_by(order_id=order.id).all()
+    db.session.add(CancelledOrderLog(
+        order_id=order.id,
+        label=f"{order.display_label} ({order.display_sublabel})",
+        order_type=order.order_type,
+        items_summary=", ".join(f"{item.quantity}x {item.name_snapshot}" for item in current_items) or "-",
+        total=sum(item.subtotal for item in current_items),
+        status_at_cancel=order.status,
+        stock_restored=restore_stock,
+        order_created_at=order.created_at,
+        cancelled_by=current_user.username,
+    ))
+
     # DELETE ... WHERE is_paid = 0 (bukan cek order.is_paid di atas yang
     # sudah basi) - jaga-jaga kasir lain baru saja memproses bayar
     # pesanan ini persis di antara cek tadi dan baris ini. Item & catatan
@@ -1043,7 +1089,7 @@ def pay_order(order_id):
     settings = get_settings()
     if settings.ppn_enabled and settings.ppn_percentage:
         ppn_percentage = settings.ppn_percentage
-        ppn_amount = round(order.total * settings.ppn_percentage / 100)
+        ppn_amount = calculate_ppn(order.total, settings.ppn_percentage)
     else:
         ppn_percentage = None
         ppn_amount = None
@@ -1786,6 +1832,15 @@ def _period_report(start, end):
 
     top_items = sorted(item_counts.items(), key=lambda pair: pair[1], reverse=True)[:10]
 
+    cancellations = (
+        CancelledOrderLog.query.filter(
+            CancelledOrderLog.cancelled_at >= start,
+            CancelledOrderLog.cancelled_at <= end,
+        )
+        .order_by(CancelledOrderLog.cancelled_at.desc())
+        .all()
+    )
+
     return {
         "total_sales": total_sales,
         "ppn_collected": ppn_collected,
@@ -1793,6 +1848,9 @@ def _period_report(start, end):
         "items_sold": items_sold,
         "avg_per_transaction": (total_sales / transaction_count) if transaction_count else 0,
         "top_items": top_items,
+        "cancellations": cancellations,
+        "cancelled_count": len(cancellations),
+        "cancelled_total": sum(log.total for log in cancellations),
     }
 
 
@@ -2264,6 +2322,11 @@ def admin_settings():
             flash(_("Nama toko wajib diisi."), "danger")
             return redirect(url_for("staff.admin_settings"))
 
+        # Nilai identitas toko SEBELUM form ini diterapkan - dipakai di
+        # bawah buat tahu field mana yang benar-benar diubah Owner selama
+        # Mode Demo aktif (lihat _sync_demo_backup()).
+        values_before = {field: getattr(settings, field) for field in DEMO_BACKUP_FIELDS}
+
         error = _save_logo("logo_square", settings, "logo_square")
         if error:
             flash(error, "danger")
@@ -2351,6 +2414,8 @@ def admin_settings():
             new_name = request.form.get(f"floor_name_{floor.id}", "").strip()
             if new_name:
                 floor.name = new_name
+
+        _sync_demo_backup(settings, values_before)
 
         db.session.commit()
 
@@ -2759,6 +2824,47 @@ def _apply_demo_settings():
             setattr(settings, field, dest_name)
 
 
+DEMO_BACKUP_FIELDS = SETTINGS_DEMO_TEXT_FIELDS + ("logo_square", "logo_wide")
+
+
+def _sync_demo_backup(settings, values_before):
+    """Selama Mode Demo aktif, identitas toko yang tampil adalah versi
+    CONTOH, sedangkan versi asli disimpan di demo_settings_backup dan
+    dipulihkan saat demo dimatikan. Kalau Owner mengubah identitas toko
+    di tengah demo, perubahan itu dianggap untuk toko ASLI - ikut
+    ditulis ke backup supaya tidak tertimpa nilai lama saat demo
+    dimatikan. Field yang tidak diubah tetap memakai nilai asli di
+    backup."""
+
+    if not settings.demo_settings_backup:
+        return
+
+    try:
+        backup = json.loads(settings.demo_settings_backup)
+    except ValueError:
+        return
+
+    for field in SETTINGS_DEMO_TEXT_FIELDS:
+        new_value = getattr(settings, field)
+        if new_value != values_before.get(field):
+            backup[field] = new_value
+
+    for field in ("logo_square", "logo_wide"):
+        old_value = values_before.get(field)
+        new_value = getattr(settings, field)
+        if new_value == old_value:
+            continue
+        if new_value is None and (old_value or "").startswith("demo-"):
+            # Cuma logo CONTOH yang dihapus - logo asli di backup aman.
+            continue
+        real_old = backup.get(field)
+        if real_old and real_old != new_value:
+            _delete_file_after_commit(os.path.join(_branding_upload_folder(), real_old))
+        backup[field] = new_value
+
+    settings.demo_settings_backup = json.dumps(backup)
+
+
 def _restore_real_settings():
     """Lawan dari _apply_demo_settings() - kembalikan nama toko, kontak,
     dan logo ke nilai asli dari sebelum Mode Demo aktif. File logo demo
@@ -3148,6 +3254,7 @@ def _factory_reset():
         _remove_logo(channel, "logo")
     MenuItemChannelPrice.query.delete()
     OrderStockDeduction.query.delete()
+    CancelledOrderLog.query.delete()
     OrderItem.query.delete()
     Order.query.delete()
     OrderChannel.query.delete()

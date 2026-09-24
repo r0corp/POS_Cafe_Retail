@@ -1,11 +1,24 @@
 import random
 from datetime import datetime, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 
 from flask_login import UserMixin
 from flask_babel import lazy_gettext as _l
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from . import db
+
+def calculate_ppn(subtotal, percentage):
+    """Nominal PPN (Rupiah bulat) dari subtotal - dibulatkan setengah ke
+    ATAS (16,5 -> 17), bukan round() bawaan Python yang membulatkan ke
+    angka genap terdekat (16,5 -> 16). Dihitung pakai Decimal supaya
+    tidak kena galat floating point (mis. 11% dari 150 = 16,500000001)."""
+
+    if not subtotal or not percentage:
+        return 0
+    amount = Decimal(int(subtotal)) * Decimal(str(percentage)) / Decimal(100)
+    return int(amount.quantize(Decimal(1), rounding=ROUND_HALF_UP))
+
 
 # Dianggap "online" kalau ada aktivitas dalam N menit terakhir.
 ONLINE_THRESHOLD_MINUTES = 3
@@ -545,7 +558,7 @@ class Order(db.Model):
 
         settings = Settings.query.order_by(Settings.id.asc()).first()
         if settings and settings.ppn_enabled and settings.ppn_percentage:
-            return self.total + round(self.total * settings.ppn_percentage / 100)
+            return self.total + calculate_ppn(self.total, settings.ppn_percentage)
 
         return self.total
 
@@ -606,9 +619,42 @@ class OrderItem(db.Model):
     quantity = db.Column(db.Integer, nullable=False, default=1)
     note = db.Column(db.String(200))
 
+    # True kalau item ini SUDAH dikerjakan dapur sebelum tamu menambah
+    # menu lain ke pesanan yang sama (lihat public.add_to_order) - pesanan
+    # dibalikin ke "pending" supaya tambahannya kelihatan di Dapur, tapi
+    # item lama ini ditampilkan sebagai "sudah dibuat" supaya tidak ikut
+    # dimasak ulang.
+    kitchen_done = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text("0"))
+
     @property
     def subtotal(self):
         return self.price_snapshot * self.quantity
+
+
+class CancelledOrderLog(db.Model):
+    """Jejak setiap pesanan yang dibatalkan kasir/owner (lihat
+    staff.cancel_order). Pesanannya sendiri dihapus supaya tidak ikut
+    laporan penjualan, tapi catatan ini tetap ada - Owner bisa lihat siapa
+    membatalkan apa, kapan, dan berapa nilainya di halaman Laporan (cegah
+    uang tunai diterima lalu pesanannya "dibatalkan" tanpa jejak)."""
+
+    __tablename__ = "cancelled_order_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, nullable=False)  # bukan FK - order-nya sudah dihapus
+    label = db.Column(db.String(150), nullable=False)
+    order_type = db.Column(db.String(10))
+    items_summary = db.Column(db.Text, nullable=False)
+    total = db.Column(db.Integer, nullable=False, default=0)
+    status_at_cancel = db.Column(db.String(20), nullable=False)
+    stock_restored = db.Column(db.Boolean, nullable=False, default=False)
+    order_created_at = db.Column(db.DateTime)
+    cancelled_by = db.Column(db.String(50), nullable=False)
+    cancelled_at = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
+
+    @property
+    def status_label(self):
+        return ORDER_STATUS_LABELS.get(self.status_at_cancel, self.status_at_cancel)
 
 
 class OrderStockDeduction(db.Model):

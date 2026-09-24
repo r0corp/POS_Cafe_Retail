@@ -29,6 +29,12 @@ NAV_ITEMS = [
         "roles": [ROLE_OWNER, ROLE_DAPUR],
     },
     {
+        "endpoint": "staff.waiter",
+        "icon": "bi-bell",
+        "label": _l("Siap Diantar"),
+        "roles": [ROLE_PELAYAN],
+    },
+    {
         "endpoint": "staff.cashier",
         "icon": "bi-cash-coin",
         "label": _l("Kasir"),

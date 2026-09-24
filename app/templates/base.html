@@ -645,8 +645,8 @@
   {% endif %}
   {% if current_user.role == 'pelayan' %}
     // Pesanan "Siap Diantar" dari Dapur - tanda pelayan harus ambil
-    // pesanan itu ke meja tamu. Tidak ada halaman daftar tersendiri,
-    // bunyi ini saja sudah cukup jadi penanda.
+    // pesanan itu ke meja tamu, lalu tandai "Sudah Diantar" di halaman
+    // Siap Diantar (daftarnya ikut ter-refresh kalau halaman itu dibuka).
     window.globalPelayanPoller = startOrderPoller({
       statusUrl: "{{ url_for('staff.pelayan_ready_status') }}",
       muteKey: "cafepos_mute_pelayan",
@@ -655,6 +655,9 @@
       customSoundUrl: CUSTOM_SOUND_URL,
       volume: NOTIF_VOLUME,
       enabled: NOTIF_ENABLED,
+      onNewOrder: function () {
+        if (window.refreshWaiterList) window.refreshWaiterList();
+      },
     });
   {% endif %}
 </script>

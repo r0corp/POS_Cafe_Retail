@@ -79,7 +79,7 @@
           </form>
 
           <form method="post" action="{{ url_for('staff.cancel_order', order_id=order.id) }}" class="mt-2"
-                data-confirm="{{ _('Batalkan pesanan %(label)s? Stok bahan baku yang sudah terpakai akan dikembalikan.', label=order.display_label) }}">
+                data-confirm="{{ _('Batalkan pesanan %(label)s? Stok bahan baku yang sudah terpakai akan dikembalikan.', label=order.display_label) if order.status == 'pending' else _('Batalkan pesanan %(label)s? Dapur sudah mulai memproses, jadi stok bahan baku TIDAK dikembalikan. Pembatalan tercatat di Laporan.', label=order.display_label) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-sm btn-outline-danger w-100">
               <i class="bi bi-x-circle"></i> {{ _('Batalkan Pesanan') }}

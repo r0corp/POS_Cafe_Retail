@@ -21,9 +21,15 @@
             <span class="badge-soft badge-status-{{ order.status }}">{{ order.status_label }}</span>
           </div>
 
+          {% set has_done_items = order.items | selectattr('kitchen_done') | list %}
           <ul class="list-unstyled small mb-3">
             {% for item in order.items %}
-              <li><i class="bi bi-dot"></i>{{ item.quantity }}x {{ item.name_snapshot }}</li>
+              {% if item.kitchen_done %}
+                {# Sudah dibuat sebelum tamu nambah menu - jangan dimasak ulang. #}
+                <li class="text-muted"><i class="bi bi-check2"></i> <s>{{ item.quantity }}x {{ item.name_snapshot }}</s> <span class="small">({{ _('sudah dibuat') }})</span></li>
+              {% else %}
+                <li class="{{ 'fw-semibold' if has_done_items else '' }}"><i class="bi bi-dot"></i>{{ item.quantity }}x {{ item.name_snapshot }}{% if has_done_items %} <span class="badge-soft badge-status-pending">{{ _('Tambahan') }}</span>{% endif %}</li>
+              {% endif %}
             {% endfor %}
           </ul>
 

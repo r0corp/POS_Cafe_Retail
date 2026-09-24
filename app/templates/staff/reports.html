@@ -99,6 +99,48 @@
               <div class="small">{{ _('Belum ada penjualan di periode ini.') }}</div>
             </div>
           {% endif %}
+
+          {# Jejak pesanan yang dibatalkan - tidak ikut dihitung sebagai
+             penjualan, tapi tetap kelihatan supaya pembatalan tidak bisa
+             dipakai menghilangkan transaksi tanpa jejak. #}
+          <h6 class="fw-semibold mt-4 mb-2">
+            <i class="bi bi-x-circle"></i> {{ _('Pesanan Dibatalkan') }}
+            <span class="text-muted small fw-normal">
+              &middot; {{ _('%(count)s pesanan, senilai Rp %(total)s', count=period.data.cancelled_count, total="{:,}".format(period.data.cancelled_total).replace(",", ".")) }}
+            </span>
+          </h6>
+          {% if period.data.cancellations %}
+            <div class="table-responsive">
+              <table class="table table-sm small align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>{{ _('Waktu Batal') }}</th>
+                    <th>{{ _('Pesanan') }}</th>
+                    <th>{{ _('Item') }}</th>
+                    <th class="text-end">{{ _('Total') }}</th>
+                    <th>{{ _('Status Saat Batal') }}</th>
+                    <th>{{ _('Stok') }}</th>
+                    <th>{{ _('Oleh') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for log in period.data.cancellations %}
+                    <tr>
+                      <td class="text-nowrap">{{ log.cancelled_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                      <td>#{{ log.order_id }} &middot; {{ log.label }}</td>
+                      <td>{{ log.items_summary }}</td>
+                      <td class="text-end text-nowrap">Rp {{ "{:,}".format(log.total).replace(",", ".") }}</td>
+                      <td>{{ log.status_label }}</td>
+                      <td>{{ _('Dikembalikan') if log.stock_restored else _('Tidak dikembalikan') }}</td>
+                      <td>{{ log.cancelled_by }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-muted small">{{ _('Tidak ada pesanan yang dibatalkan di periode ini.') }}</div>
+          {% endif %}
         </div>
       {% endfor %}
     </div>

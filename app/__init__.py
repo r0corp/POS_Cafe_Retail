@@ -39,6 +39,32 @@ def get_locale():
     return session.get("lang", DEFAULT_LANGUAGE)
 
 
+def _add_missing_columns(cur):
+    """Kolom yang ada di model tapi belum ada di tabel database lama
+    ditambahkan lewat ALTER TABLE ADD COLUMN (SQLite mendukung ini tanpa
+    rebuild tabel). Kolom NOT NULL wajib punya server_default di model -
+    kalau tidak, ditambahkan sebagai kolom yang boleh kosong supaya ALTER-
+    nya tidak gagal untuk baris yang sudah ada."""
+
+    for table in db.metadata.sorted_tables:
+        existing = {row[1] for row in cur.execute(f'PRAGMA table_info("{table.name}")').fetchall()}
+        if not existing:
+            continue  # tabel baru - sudah dibuat utuh oleh create_all()
+
+        for column in table.columns:
+            if column.name in existing:
+                continue
+
+            ddl = f'ALTER TABLE "{table.name}" ADD COLUMN "{column.name}" {column.type.compile(db.engine.dialect)}'
+            if column.server_default is not None:
+                default_sql = str(column.server_default.arg.compile(dialect=db.engine.dialect)) \
+                    if hasattr(column.server_default.arg, "compile") else repr(column.server_default.arg)
+                ddl += f" DEFAULT {default_sql}"
+                if not column.nullable:
+                    ddl += " NOT NULL"
+            cur.execute(ddl)
+
+
 def _ensure_schema():
     """Aplikasi ini tidak pakai migration (lihat DEPLOYMENT.md), jadi
     perubahan skema dirapikan di sini tiap start - aman dipanggil berkali-
@@ -46,7 +72,8 @@ def _ensure_schema():
 
     1. db.create_all() - bikin tabel yang BELUM ADA saja (mis. tabel baru
        order_stock_deductions di database lama). Tabel yang sudah ada tidak
-       disentuh sama sekali.
+       disentuh sama sekali, KECUALI kolom baru di model yang belum ada
+       di tabel lama - ditambahkan lewat _add_missing_columns().
     2. Tabel orders di database lama dibangun ulang sesuai model kalau:
        - kolom table_id masih NOT NULL (database dibuat sebelum fitur
          Bawa Pulang/Ojek Online - semua pesanan tanpa meja gagal disimpan),
@@ -71,6 +98,9 @@ def _ensure_schema():
     raw = db.engine.raw_connection()
     try:
         cur = raw.cursor()
+        _add_missing_columns(cur)
+        raw.commit()
+
         columns = cur.execute("PRAGMA table_info(orders)").fetchall()
         if not columns:
             return

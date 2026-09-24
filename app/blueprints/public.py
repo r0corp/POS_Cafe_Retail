@@ -248,6 +248,23 @@ def add_to_order(code, order_id):
         # yang barusan ditambah & stok yang barusan dipotong di atas)
         # supaya tidak ada item nyelip masuk ke pesanan yang sudah
         # ditutup/ditagih tanpa pernah ikut tertagih.
+        # Item yang sudah ada SEBELUM tambahan ini, di pesanan yang dapur
+        # sudah mulai kerjakan (status lewat "pending"), ditandai "sudah
+        # dibuat" - pesanan dibalikin ke pending supaya tambahannya muncul
+        # di Dapur, tapi item lama tidak ikut dimasak ulang. Syarat status
+        # dicek langsung di database (bukan objek order yang bisa basi).
+        db.session.flush()
+        new_item_ids = [item.id for item in new_items]
+        db.session.execute(
+            OrderItem.__table__.update()
+            .where(
+                OrderItem.order_id == order_id,
+                OrderItem.id.notin_(new_item_ids),
+                db.select(Order.id).where(Order.id == order_id, Order.status != "pending").exists(),
+            )
+            .values(kitchen_done=True)
+        )
+
         result = db.session.execute(
             Order.__table__.update()
             .where(Order.id == order.id, Order.is_paid.is_(False))
