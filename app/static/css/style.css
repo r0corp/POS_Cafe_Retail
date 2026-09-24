@@ -264,6 +264,28 @@ a {
   }
 }
 
+/* Mode Gelap - latar biru terang (--color-primary mode terang) diganti
+   gradasi gelap senada --color-bg/--color-surface supaya tidak jadi
+   kilatan biru cerah di tengah pengalaman yang seharusnya gelap. Bar
+   loading & teks pakai --color-primary versi mode gelap (biru langit
+   lebih terang) sebagai aksen, bukan putih polos, biar terasa masih
+   1 tema dengan sisa aplikasi. */
+:root[data-theme="dark"] .login-loader-overlay {
+  background: linear-gradient(160deg, var(--color-bg) 0%, var(--color-surface) 100%);
+}
+
+:root[data-theme="dark"] .login-loader-text {
+  color: var(--color-primary);
+}
+
+:root[data-theme="dark"] .login-loader-track {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .login-loader-fill {
+  background: var(--color-primary);
+}
+
 @media (max-width: 575.98px) {
   /* Tinggi .app-navbar-backdrop TIDAK di-override di sini lagi - JS
      (positionNavbarElements) sudah menghitung ulang --navbar-backdrop-
