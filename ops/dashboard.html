@@ -170,6 +170,14 @@
   }
   .discover-dot-on { background: var(--ok); }
   .discover-dot-off { background: var(--muted); }
+  .rollback-panel {
+    max-height: 260px;
+    overflow-y: auto;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--card-border);
+  }
+  .rollback-item { cursor: pointer; }
   .empty-state {
     color: var(--muted);
     font-size: 13px;
@@ -389,6 +397,71 @@ async function triggerUpdate(agent, logEl, btnEl) {
   await refreshOne(agent.id);
 }
 
+async function toggleRollbackPanel(agent, card) {
+  const panel = card.querySelector(".rollback-panel");
+
+  if (panel.style.display !== "none") {
+    panel.style.display = "none";
+    return;
+  }
+
+  panel.style.display = "block";
+  panel.innerHTML = `<div class="empty-state">Memuat riwayat commit...</div>`;
+
+  try {
+    const res = await fetch(agentUrl(agent, "/commits?limit=20"), {
+      headers: { "X-Agent-Token": agent.token },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    panel.innerHTML = data.commits.map(c => `
+      <div class="discover-item rollback-item" data-hash="${c.hash}">
+        <span>${c.hash === data.current ? '<span class="badge badge-ok" style="margin-right:6px;">Aktif</span>' : ''}${c.message}<br><span class="discover-item-ip">${shortHash(c.hash)} &middot; ${fmtDate(c.date)}</span></span>
+      </div>
+    `).join("");
+
+    panel.querySelectorAll(".rollback-item").forEach(el => {
+      if (el.dataset.hash === data.current) return; // sudah di sini, tidak perlu rollback ke diri sendiri
+      el.addEventListener("click", () => {
+        const logEl = card.querySelector(".log-box");
+        const btnEl = card.querySelector(".rollback-toggle-btn");
+        triggerRollback(agent, el.dataset.hash, logEl, btnEl, panel);
+      });
+    });
+  } catch (e) {
+    panel.innerHTML = `<div class="empty-state">Gagal ambil riwayat commit: ${e.message}</div>`;
+  }
+}
+
+async function triggerRollback(agent, commitHash, logEl, btnEl, panel) {
+  if (!confirm(`Rollback aplikasi POS di "${agent.name}" ke commit ${shortHash(commitHash)}? Aplikasi akan restart sebentar, dan versi setelah commit ini akan DITINGGALKAN sampai Anda update lagi nanti.`)) return;
+
+  panel.style.display = "none";
+  btnEl.disabled = true;
+  logEl.style.display = "block";
+  logEl.textContent = "Menjalankan rollback, mohon tunggu...";
+
+  try {
+    const res = await fetch(agentUrl(agent, "/rollback"), {
+      method: "POST",
+      headers: { "X-Agent-Token": agent.token, "Content-Type": "application/json" },
+      body: JSON.stringify({ commit: commitHash }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      logEl.textContent = `Gagal: ${data.error || res.status}`;
+    } else {
+      logEl.textContent = `Rollback selesai: ${shortHash(data.before)} -> ${shortHash(data.after)}\n\n${data.log}`;
+    }
+  } catch (e) {
+    logEl.textContent = `Gagal menghubungi agent: ${e.message}`;
+  }
+
+  btnEl.disabled = false;
+  await refreshOne(agent.id);
+}
+
 function statusBadge(cardEl, state) {
   const badge = cardEl && cardEl.querySelector(".status-badge");
   if (!badge) return;
@@ -424,9 +497,11 @@ function renderAgentCard(agent) {
     </div>
     <div class="actions">
       <button class="btn-primary update-btn">Update Sekarang</button>
+      <button class="btn-secondary rollback-toggle-btn">Rollback</button>
       <button class="btn-secondary refresh-btn">Refresh</button>
       <button class="btn-danger remove-btn">Hapus</button>
     </div>
+    <div class="rollback-panel" style="display:none;"></div>
     <div class="log-box"></div>
   `;
 
@@ -436,6 +511,9 @@ function renderAgentCard(agent) {
     const logEl = card.querySelector(".log-box");
     const btnEl = card.querySelector(".update-btn");
     triggerUpdate(agent, logEl, btnEl);
+  });
+  card.querySelector(".rollback-toggle-btn").addEventListener("click", () => {
+    toggleRollbackPanel(agent, card);
   });
 
   return card;

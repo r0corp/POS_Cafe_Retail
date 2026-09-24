@@ -3,16 +3,20 @@ terus di mini PC (lewat Scheduled Task/NSSM sendiri, lihat
 install_agent.ps1) supaya tetap bisa dihubungi walau aplikasi POS
 utama sedang di-restart/di-update.
 
-Tugasnya cuma 2, dipanggil dari dashboard.html (laptop mana pun,
-lewat Tailscale) pakai token rahasia di header X-Agent-Token:
-  - GET  /status  -> commit yang sedang jalan vs commit terbaru di GitHub
-  - POST /update  -> git fetch + reset --hard origin/main, sinkron
-                      dependency, compile terjemahan, restart POS
+Dipanggil dari dashboard.html (laptop mana pun, lewat Tailscale) pakai
+token rahasia di header X-Agent-Token:
+  - GET  /status   -> commit yang sedang jalan vs commit terbaru di GitHub
+  - GET  /commits  -> riwayat commit terbaru (buat pilihan rollback)
+  - POST /update   -> deploy ke origin/main (fetch + reset --hard + restart)
+  - POST /rollback -> deploy ke commit SHA tertentu (fetch + reset --hard
+                       ke situ, BUKAN ke origin/main) - buat balik ke versi
+                       sebelumnya kalau update terbaru ternyata bermasalah
 Logikanya sama persis dengan migration/update_mini_pc.ps1, cuma
 dipicu dari jarak jauh lewat HTTP alih-alih dijalankan manual."""
 
 import hmac
 import os
+import re
 import subprocess
 from datetime import datetime, timezone
 
@@ -171,16 +175,23 @@ def status():
     })
 
 
-@app.route("/update", methods=["POST", "OPTIONS"])
-def update():
-    if request.method == "OPTIONS":
-        return "", 204
-    if not _authorized():
-        return _unauthorized()
+FULL_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
-    log_lines = []
-    _, before = _run(["git", "rev-parse", "HEAD"])
-    before = before.strip()
+
+def _commit_exists(sha):
+    """Pastikan `sha` beneran commit yang ada di riwayat repo ini SEBELUM
+    dipakai di `git reset --hard` - mencegah string aneh dari request
+    (typo, atau percobaan jahil) diperlakukan sebagai flag/argumen git."""
+
+    if not FULL_SHA_RE.match(sha):
+        return False
+    code, _ = _run(["git", "cat-file", "-e", f"{sha}^{{commit}}"])
+    return code == 0
+
+
+def _deploy_to(target_ref, log_lines):
+    """Inti dari /update & /rollback - satu-satunya beda cuma target_ref
+    ("origin/main" buat update, sebuah commit SHA buat rollback)."""
 
     mode = _stop_pos(log_lines)
 
@@ -188,8 +199,8 @@ def update():
     _, out = _run(["git", "fetch", "origin"])
     log_lines.append(out.strip())
 
-    log_lines.append("$ git reset --hard origin/main")
-    _, out = _run(["git", "reset", "--hard", "origin/main"])
+    log_lines.append(f"$ git reset --hard {target_ref}")
+    _, out = _run(["git", "reset", "--hard", target_ref])
     log_lines.append(out.strip())
 
     venv_pip = os.path.join(PROJECT_ROOT, "venv", "Scripts", "pip.exe")
@@ -205,6 +216,72 @@ def update():
         log_lines.append(out.strip())
 
     _start_pos(mode, log_lines)
+
+
+@app.route("/commits", methods=["GET", "OPTIONS"])
+def commits():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _authorized():
+        return _unauthorized()
+
+    limit = request.args.get("limit", default=20, type=int)
+    _run(["git", "fetch", "origin"])
+    _, out = _run(["git", "log", f"-{limit}", "--format=%H|%s|%ci", "origin/main"])
+
+    history = []
+    for line in out.strip().splitlines():
+        parts = line.split("|", 2)
+        if len(parts) == 3:
+            history.append({"hash": parts[0], "message": parts[1], "date": parts[2]})
+
+    _, current_hash = _run(["git", "rev-parse", "HEAD"])
+    return jsonify({"commits": history, "current": current_hash.strip()})
+
+
+@app.route("/update", methods=["POST", "OPTIONS"])
+def update():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _authorized():
+        return _unauthorized()
+
+    log_lines = []
+    _, before = _run(["git", "rev-parse", "HEAD"])
+    before = before.strip()
+
+    _deploy_to("origin/main", log_lines)
+
+    _, after = _run(["git", "rev-parse", "HEAD"])
+    after = after.strip()
+
+    return jsonify({
+        "ok": True,
+        "before": before,
+        "after": after,
+        "changed": before != after,
+        "log": "\n".join(line for line in log_lines if line),
+    })
+
+
+@app.route("/rollback", methods=["POST", "OPTIONS"])
+def rollback():
+    if request.method == "OPTIONS":
+        return "", 204
+    if not _authorized():
+        return _unauthorized()
+
+    target = (request.get_json(silent=True) or {}).get("commit") or request.form.get("commit", "")
+    target = target.strip().lower()
+
+    if not _commit_exists(target):
+        return jsonify({"error": "Commit tidak valid atau tidak ditemukan di riwayat repo ini."}), 400
+
+    log_lines = []
+    _, before = _run(["git", "rev-parse", "HEAD"])
+    before = before.strip()
+
+    _deploy_to(target, log_lines)
 
     _, after = _run(["git", "rev-parse", "HEAD"])
     after = after.strip()
