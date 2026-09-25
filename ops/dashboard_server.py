@@ -15,11 +15,35 @@ import json
 import os
 import shutil
 import subprocess
+import uuid
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PORT = int(os.environ.get("DASHBOARD_PORT", "8790"))
+
+# Daftar mini PC yang terdaftar di dashboard ini - disimpan di file lokal
+# (bukan localStorage browser) supaya "statis": selalu sama isinya berapa
+# pun kali dashboard dibuka, browser apa pun dipakai, dan tidak hilang
+# kalau sebelumnya sempat dibuka lewat cara lain (file:// vs http://).
+# File ini SENGAJA tidak masuk git (lihat .gitignore) karena isinya token
+# rahasia tiap mini PC.
+AGENTS_FILE = os.path.join(HERE, "dashboard_agents.json")
+
+
+def _load_agents():
+    if not os.path.exists(AGENTS_FILE):
+        return []
+    try:
+        with open(AGENTS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def _save_agents(agents):
+    with open(AGENTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(agents, f, ensure_ascii=False, indent=2)
 
 # Dicari di lokasi umum instalasi Tailscale di Windows kalau tidak ada
 # di PATH (umum terjadi - installer GUI-nya tidak selalu nambahin PATH).
@@ -85,6 +109,60 @@ def tailscale_devices():
     ]
 
     return jsonify({"devices": devices})
+
+
+@app.route("/api/agents", methods=["GET"])
+def list_agents():
+    return jsonify({"agents": _load_agents()})
+
+
+@app.route("/api/agents", methods=["POST"])
+def add_agent():
+    body = request.get_json(silent=True) or {}
+    name = (body.get("name") or "").strip()
+    host = (body.get("host") or "").strip()
+    port = (body.get("port") or "").strip() or "8787"
+    token = (body.get("token") or "").strip()
+
+    if not name or not host or not token:
+        return jsonify({"error": "Nama, host, dan token wajib diisi."}), 400
+
+    agents = _load_agents()
+    agent = {"id": uuid.uuid4().hex[:12], "name": name, "host": host, "port": port, "token": token}
+    agents.append(agent)
+    _save_agents(agents)
+    return jsonify({"agent": agent}), 201
+
+
+@app.route("/api/agents/<agent_id>", methods=["PUT"])
+def update_agent(agent_id):
+    body = request.get_json(silent=True) or {}
+    name = (body.get("name") or "").strip()
+    host = (body.get("host") or "").strip()
+    port = (body.get("port") or "").strip() or "8787"
+    token = (body.get("token") or "").strip()
+
+    if not name or not host or not token:
+        return jsonify({"error": "Nama, host, dan token wajib diisi."}), 400
+
+    agents = _load_agents()
+    for a in agents:
+        if a["id"] == agent_id:
+            a.update({"name": name, "host": host, "port": port, "token": token})
+            _save_agents(agents)
+            return jsonify({"agent": a})
+
+    return jsonify({"error": "Mini PC tidak ditemukan."}), 404
+
+
+@app.route("/api/agents/<agent_id>", methods=["DELETE"])
+def delete_agent(agent_id):
+    agents = _load_agents()
+    remaining = [a for a in agents if a["id"] != agent_id]
+    if len(remaining) == len(agents):
+        return jsonify({"error": "Mini PC tidak ditemukan."}), 404
+    _save_agents(remaining)
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":

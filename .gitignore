@@ -6,6 +6,8 @@ venv/
 
 # Environment / secrets
 .env
+ops/.env
+ops/dashboard_agents.json
 
 # Runtime data (database, backups, generated uploads & QR codes)
 instance/
