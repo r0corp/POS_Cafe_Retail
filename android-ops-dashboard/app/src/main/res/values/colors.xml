@@ -1,0 +1,5 @@
+<resources>
+    <color name="white">#FFFFFF</color>
+    <color name="offline_bg">#0B1220</color>
+    <color name="offline_accent">#F07828</color>
+</resources>

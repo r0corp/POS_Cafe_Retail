@@ -1,0 +1,41 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'id.orulabs.opsdashboard'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "id.orulabs.opsdashboard"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+configurations.all {
+    // androidx.appcompat & swiperefreshlayout menarik kotlin-stdlib-jdk7/jdk8
+    // versi lama secara transitif, padahal isinya sudah digabung ke dalam
+    // kotlin-stdlib itu sendiri sejak Kotlin 1.8 - exclude biar tidak
+    // bentrok class duplikat saat build.
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+}

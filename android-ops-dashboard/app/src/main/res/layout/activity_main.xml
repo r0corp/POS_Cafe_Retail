@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <FrameLayout
+        android:id="@+id/offlineLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/offline_bg"
+        android:visibility="gone">
+
+        <WebView
+            android:id="@+id/offlineWebView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/offline_bg" />
+
+        <Button
+            android:id="@+id/retryButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="48dp"
+            android:background="@drawable/btn_retry_background"
+            android:elevation="4dp"
+            android:stateListAnimator="@null"
+            android:text="@string/retry"
+            android:textAllCaps="false"
+            android:textColor="@color/white" />
+
+    </FrameLayout>
+
+</FrameLayout>

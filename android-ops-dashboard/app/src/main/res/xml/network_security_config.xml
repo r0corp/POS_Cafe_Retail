@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Dashboard jalan di HTTP biasa lewat Tailscale (terenkripsi di
+         level WireGuard-nya sendiri, bukan lewat HTTPS/TLS), jadi
+         cleartext cuma diizinkan khusus ke IP Tailscale laptop kontrol -
+         bukan ke semua domain.
+
+         WAJIB diganti sebelum build - samakan dengan IP di server_url
+         (res/values/strings.xml). -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">100.0.0.1</domain>
+    </domain-config>
+</network-security-config>

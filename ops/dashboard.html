@@ -107,6 +107,7 @@
   .pending-hash { color: var(--muted); font-family: monospace; font-size: 11px; }
   .actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 14px;
   }
@@ -303,7 +304,12 @@
 
   <div class="top-actions">
     <span class="device-count" id="deviceCount"></span>
-    <button class="btn-secondary" onclick="refreshAll()">&#x21bb; Refresh Semua</button>
+    <div style="display:flex; gap:8px;">
+      <button class="btn-secondary" onclick="refreshAll()">&#x21bb; Refresh Semua</button>
+      <form method="post" action="/logout" style="margin:0;">
+        <button type="submit" class="btn-secondary">Keluar</button>
+      </form>
+    </div>
   </div>
 
   <div id="agentList"></div>

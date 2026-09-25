@@ -261,6 +261,14 @@ lewat jaringan Tailscale:
 - Lihat log error dari jarak jauh, dan verifikasi file backup database
   (bukan cuma "ada filenya", tapi beneran dicek bisa dipulihkan).
 
+Dashboard-nya bind ke `0.0.0.0` (bisa dibuka dari HP lewat Tailscale, lihat
+"Aplikasi Android" di bawah), jadi **wajib** diisi `DASHBOARD_PASSWORD` di
+`ops/.env` sebelum dijalankan — tanpa itu `dashboard_server.py` langsung
+berhenti saat start. Daftar mini PC yang terdaftar (nama/IP/token) disimpan
+di `ops/dashboard_agents.json` (server-side, sengaja tidak masuk git),
+bukan localStorage browser, supaya selalu konsisten mau dibuka dari
+browser/device apa pun.
+
 Dipakai developer untuk memelihara instalasi di lokasi lain tanpa perlu
 remote desktop. Lihat komentar di `ops/agent.py` untuk detail arsitekturnya.
 
@@ -288,6 +296,25 @@ cd android-app
 ```
 
 Hasilnya ada di `android-app/app/build/outputs/apk/debug/app-debug.apk`.
+
+Folder `android-ops-dashboard/` sama polanya, tapi untuk Dashboard Kontrol
+Deploy (`ops/dashboard.html`) - dipakai developer/IT sendiri, bukan staf
+toko, supaya bisa Update/Rollback mini PC dari HP lewat Tailscale tanpa
+buka browser dan ketik alamat manual. Wajib edit dulu sebelum build:
+
+- `android-ops-dashboard/app/src/main/res/values/strings.xml` -
+  `server_url`, isi IP Tailscale laptop yang menjalankan
+  `ops/dashboard_server.py` (lihat `tailscale ip -4` di laptop itu).
+- `android-ops-dashboard/app/src/main/res/xml/network_security_config.xml` -
+  samakan IP-nya dengan `server_url` di atas.
+- Dashboard-nya sendiri wajib sudah diisi `DASHBOARD_PASSWORD` di
+  `ops/.env` (lihat bagian "Kontrol deploy jarak jauh" di atas) sebelum
+  di-bind ke jaringan/Tailscale.
+
+```bash
+cd android-ops-dashboard
+.\gradlew.bat assembleDebug
+```
 
 ## Lisensi
 
