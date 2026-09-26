@@ -215,6 +215,7 @@
       <div class="center bold">{{ settings.shop_name }}</div>
       {% if settings.address %}<div class="center">{{ settings.address }}</div>{% endif %}
       {% if settings.phone %}<div class="center">{{ _('Telp: %(phone)s', phone=settings.phone) }}</div>{% endif %}
+      {% if settings.opening_time and settings.closing_time %}<div class="center">{{ _('Buka %(opening)s - %(closing)s', opening=settings.opening_time, closing=settings.closing_time) }}</div>{% endif %}
     {% endif %}
 
     <div class="center shop-tag muted">{{ _('*** STRUK PEMBAYARAN ***') }}</div>

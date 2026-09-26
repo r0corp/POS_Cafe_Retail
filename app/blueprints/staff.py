@@ -1228,6 +1228,8 @@ def _receipt_text_lines(order, settings):
             center(settings.address)
         if settings.phone:
             center(_("Telp: %(phone)s", phone=settings.phone))
+        if settings.opening_time and settings.closing_time:
+            center(_("Buka %(opening)s - %(closing)s", opening=settings.opening_time, closing=settings.closing_time))
     center(_("*** STRUK PEMBAYARAN ***"))
     divider()
 
@@ -1416,6 +1418,8 @@ def receipt_pdf(order_id):
             header_lines.append(("center", settings.address))
         if settings.phone:
             header_lines.append(("center", _("Telp: %(phone)s", phone=settings.phone)))
+        if settings.opening_time and settings.closing_time:
+            header_lines.append(("center", _("Buka %(opening)s - %(closing)s", opening=settings.opening_time, closing=settings.closing_time)))
     header_lines.append(("center-muted", _("*** STRUK PEMBAYARAN ***")))
 
     info_rows = [
@@ -2597,6 +2601,12 @@ def admin_settings():
         settings.receipt_print_weight = print_weight if print_weight in RECEIPT_PRINT_WEIGHTS else "normal"
         settings.address = request.form.get("address", "").strip() or None
         settings.phone = request.form.get("phone", "").strip() or None
+
+        opening_time = request.form.get("opening_time", "").strip()
+        closing_time = request.form.get("closing_time", "").strip()
+        time_re = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+        settings.opening_time = opening_time if time_re.match(opening_time) else None
+        settings.closing_time = closing_time if time_re.match(closing_time) else None
         settings.instagram = request.form.get("instagram", "").strip() or None
         settings.tiktok = request.form.get("tiktok", "").strip() or None
         settings.whatsapp = request.form.get("whatsapp", "").strip() or None
@@ -2995,6 +3005,8 @@ SETTINGS_DEMO_TEXT_FIELDS = (
     "shop_name",
     "address",
     "phone",
+    "opening_time",
+    "closing_time",
     "instagram",
     "tiktok",
     "whatsapp",
@@ -3773,6 +3785,8 @@ def _factory_reset():
     settings.shop_name = current_app.config["CAFE_NAME"]
     settings.address = None
     settings.phone = None
+    settings.opening_time = None
+    settings.closing_time = None
     settings.instagram = None
     settings.tiktok = None
     settings.whatsapp = None

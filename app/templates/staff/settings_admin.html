@@ -74,11 +74,22 @@
                       <input type="text" name="phone" class="form-control" value="{{ settings.phone or '' }}" placeholder="{{ _('Contoh: 081388xxxxx') }}">
                     </div>
                   </div>
-                  <div class="mb-1">
+                  <div class="mb-3">
                     <div class="form-field-row">
                       <label class="form-label form-field-label small fw-semibold">{{ _('Alamat Toko') }}</label>
                       <textarea name="address" class="form-control" rows="2" placeholder="{{ _('Contoh: Jl. Mahoni Blk. E Gg. 2 No.9, Jakarta Utara') }}">{{ settings.address or '' }}</textarea>
                     </div>
+                  </div>
+                  <div class="mb-1">
+                    <div class="form-field-row">
+                      <label class="form-label form-field-label small fw-semibold">{{ _('Jam Operasional') }}</label>
+                      <div class="d-flex align-items-center gap-2" style="flex: 1 1 auto;">
+                        <input type="time" name="opening_time" class="form-control" value="{{ settings.opening_time or '' }}" style="max-width: 130px;">
+                        <span class="text-muted small">{{ _('s/d') }}</span>
+                        <input type="time" name="closing_time" class="form-control" value="{{ settings.closing_time or '' }}" style="max-width: 130px;">
+                      </div>
+                    </div>
+                    <div class="form-text">{{ _('Ditampilkan di struk. Kosongkan salah satu untuk sembunyikan.') }}</div>
                   </div>
                 </div>
 

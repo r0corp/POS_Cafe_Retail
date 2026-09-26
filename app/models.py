@@ -196,6 +196,15 @@ class Settings(db.Model):
     # pelanggan gampang follow toko.
     address = db.Column(db.String(255))
     phone = db.Column(db.String(30))
+
+    # Jam operasional toko (format teks "HH:MM", bukan db.Time) - cukup
+    # buat ditampilkan di struk supaya pelanggan tahu jam buka/tutup tanpa
+    # perlu tanya staf, tidak dipakai logika apa pun (mis. auto-tutup
+    # toko). Kosong salah satu/keduanya = baris jam operasional tidak
+    # ditampilkan sama sekali di struk.
+    opening_time = db.Column(db.String(5))
+    closing_time = db.Column(db.String(5))
+
     instagram = db.Column(db.String(100))
     tiktok = db.Column(db.String(100))
     whatsapp = db.Column(db.String(30))
