@@ -1,9 +1,14 @@
 package id.cafepos.retail;
 
+import android.content.Context;
 import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Bundle;
+import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
+import android.print.PrintManager;
 import android.view.View;
+import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -117,6 +122,17 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 swipeRefresh.setRefreshing(false);
+
+                // WebView bawaan TIDAK mengimplementasikan window.print() -
+                // manggilnya diam-diam tidak melakukan apa-apa (beda dengan
+                // browser Chrome biasa yang munculkan dialog print). Timpa
+                // di tiap halaman baru supaya tombol "Cetak Struk" (yang
+                // pakai onclick="window.print()") lempar ke printCurrentPage()
+                // lewat jembatan AndroidPrint di bawah.
+                view.evaluateJavascript(
+                        "if (window.AndroidPrint) { window.print = function () { window.AndroidPrint.requestPrint(); }; }",
+                        null
+                );
             }
 
             @Override
@@ -145,6 +161,11 @@ public class MainActivity extends AppCompatActivity {
                 showOffline(null);
             }
         });
+
+        // Jembatan supaya window.print() (ditimpa di onPageFinished di atas)
+        // bisa manggil PrintManager Android yang sesungguhnya - lihat
+        // printCurrentPage() & PrintBridge di bawah.
+        webView.addJavascriptInterface(new PrintBridge(), "AndroidPrint");
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -189,5 +210,30 @@ public class MainActivity extends AppCompatActivity {
                 "setErrorCode(" + (httpErrorCode != null ? httpErrorCode : "null") + ");",
                 null
         );
+    }
+
+    /** Buka dialog Cetak Android bawaan untuk konten WebView saat ini
+     * (dipanggil dari halaman struk lewat window.print(), lihat
+     * onPageFinished & PrintBridge). Dialog ini menampilkan Print Service
+     * apa pun yang sudah terpasang di tablet/HP kasir - kalau printer
+     * thermal-nya belum ada driver Print Service (banyak printer thermal
+     * murah cuma dijual dengan app cetak sendiri, bukan Print Service
+     * resmi Android), pilihan "Simpan sebagai PDF" tetap selalu ada. */
+    private void printCurrentPage() {
+        PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+        if (printManager == null) {
+            Toast.makeText(this, getString(R.string.print_unavailable_error), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String jobName = getString(R.string.app_name) + " - Struk";
+        PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter(jobName);
+        printManager.print(jobName, adapter, new PrintAttributes.Builder().build());
+    }
+
+    private class PrintBridge {
+        @JavascriptInterface
+        public void requestPrint() {
+            runOnUiThread(MainActivity.this::printCurrentPage);
+        }
     }
 }

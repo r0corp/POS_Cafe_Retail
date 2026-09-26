@@ -158,9 +158,10 @@ class Settings(db.Model):
     # nama toko), atau "both" (logo + nama).
     navbar_display = db.Column(db.String(10), nullable=False, default="both")
 
-    # Lebar kertas printer thermal ("58" atau "80" mm) - menentukan
-    # ukuran halaman cetak struk. 58mm dipakai sebagai default karena
-    # printer thermal ukuran itu yang paling umum dipakai UMKM/warkop.
+    # Lebar kertas printer thermal dalam mm, salah satu dari
+    # RECEIPT_PAPER_WIDTHS di atas - menentukan ukuran halaman cetak
+    # struk. 58mm dipakai sebagai default karena printer thermal
+    # ukuran itu yang paling umum dipakai UMKM/warkop.
     receipt_paper_width = db.Column(db.String(5), nullable=False, default="58")
 
     # Nama printer thermal PERSIS seperti tertera di "Printers & Scanners"
@@ -170,6 +171,14 @@ class Settings(db.Model):
     # tombol "Cetak Struk" ditekan dari tablet/HP, bukan dari mini PC-nya
     # sendiri. Kosong = pakai printer default Windows di mini PC.
     receipt_printer_name = db.Column(db.String(100))
+
+    # Ketebalan teks struk ("thin"/"normal"/"bold", lihat
+    # RECEIPT_PRINT_WEIGHTS) - printer thermal yang head-nya sudah agak
+    # aus sering mencetak terlalu tipis/pudar walau tintanya (panasnya)
+    # sebenarnya cukup, jadi toko butuh cara menebalkan tampilan tanpa
+    # ganti/servis printer. "normal" = tampilan default (cuma judul &
+    # total yang bold, seperti sebelum fitur ini ada).
+    receipt_print_weight = db.Column(db.String(10), nullable=False, default="normal")
 
     # Sistem PPN (Pajak Pertambahan Nilai) - kalau aktif, dihitung dari
     # persentase ini dan ditambahkan otomatis ke total tagihan saat bayar
@@ -420,6 +429,28 @@ ORDER_TYPE_LABELS = {
 
 CHANNEL_PRICING_PERCENT = "percent"
 CHANNEL_PRICING_MANUAL = "manual"
+
+# Pilihan lebar kertas struk (mm) - dua ukuran roll umum (58mm/80mm),
+# plus varian "area cetak sempit"-nya. Banyak printer thermal murah
+# punya lebar kertas fisik 58mm/80mm tapi area cetak sebenarnya lebih
+# sempit (48mm/72mm), jadi struk kepotong di pinggir kanan kalau
+# lebar halaman disamakan dengan lebar kertas fisik. Nilai = font
+# size PDF (px CSS-nya diatur terpisah di receipt.html).
+RECEIPT_PAPER_WIDTHS = {
+    "48": 7,
+    "58": 8,
+    "72": 8.5,
+    "80": 9,
+}
+
+# Opsi ketebalan cetak struk, urut dari paling tipis ke paling tebal.
+RECEIPT_PRINT_WEIGHTS = ["thin", "normal", "bold"]
+
+RECEIPT_PRINT_WEIGHT_LABELS = {
+    "thin": _l("Tipis"),
+    "normal": _l("Sedang"),
+    "bold": _l("Tebal"),
+}
 
 
 class OrderChannel(db.Model):

@@ -335,13 +335,35 @@
                       <div class="form-text mt-0 mb-0">
                         {{ _('58mm - printer thermal kecil/portable, struk lebih ringkas. 80mm - printer kasir standar, muat lebih banyak kolom per baris.') }}
                       </div>
+                      <div class="form-text mt-1 mb-0">
+                        {{ _('Kalau struk masih terpotong di pinggir kanan saat dicetak, area cetak printer Anda kemungkinan lebih sempit dari lebar kertasnya (mis. kertas 58mm dengan area cetak 48mm) - coba pilih ukuran yang lebih kecil.') }}
+                      </div>
                     </div>
                     <div class="form-field-row mt-3" style="--form-field-label-width: 110px;">
                       <label class="form-label form-field-label small">{{ _('Ukuran Kertas') }}</label>
-                      <div style="flex: 0 0 180px; max-width: 180px;">
+                      <div style="flex: 0 0 220px; max-width: 220px;">
                         <select name="receipt_paper_width" class="form-select" data-elegant-select>
-                          <option value="58" {% if settings.receipt_paper_width == '58' %}selected{% endif %}>{{ _('58mm (umum)') }}</option>
-                          <option value="80" {% if settings.receipt_paper_width == '80' %}selected{% endif %}>80mm</option>
+                          <optgroup label="{{ _('Kertas 58mm') }}">
+                            <option value="58" {% if settings.receipt_paper_width == '58' %}selected{% endif %}>{{ _('58mm (umum)') }}</option>
+                            <option value="48" {% if settings.receipt_paper_width == '48' %}selected{% endif %}>{{ _('48mm (area cetak sempit)') }}</option>
+                          </optgroup>
+                          <optgroup label="{{ _('Kertas 80mm') }}">
+                            <option value="80" {% if settings.receipt_paper_width == '80' %}selected{% endif %}>{{ _('80mm (umum)') }}</option>
+                            <option value="72" {% if settings.receipt_paper_width == '72' %}selected{% endif %}>{{ _('72mm (area cetak sempit)') }}</option>
+                          </optgroup>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-text mt-3 mb-0">
+                      {{ _('Kalau hasil cetaknya pudar/susah dibaca (biasanya karena head printer sudah agak aus), coba naikkan ke "Tebal". "Tipis" cocok kalau mau hemat panas head/lebih cepat cetak dan printernya masih tajam.') }}
+                    </div>
+                    <div class="form-field-row mt-2" style="--form-field-label-width: 110px;">
+                      <label class="form-label form-field-label small">{{ _('Ketebalan Cetak') }}</label>
+                      <div style="flex: 0 0 220px; max-width: 220px;">
+                        <select name="receipt_print_weight" class="form-select" data-elegant-select>
+                          <option value="thin" {% if settings.receipt_print_weight == 'thin' %}selected{% endif %}>{{ _('Tipis') }}</option>
+                          <option value="normal" {% if settings.receipt_print_weight == 'normal' %}selected{% endif %}>{{ _('Sedang') }}</option>
+                          <option value="bold" {% if settings.receipt_print_weight == 'bold' %}selected{% endif %}>{{ _('Tebal') }}</option>
                         </select>
                       </div>
                     </div>

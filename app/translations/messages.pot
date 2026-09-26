@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:43+0700\n"
+"POT-Creation-Date: 2026-09-26 15:19+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,21 +17,21 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app/__init__.py:172
+#: app/__init__.py:183
 msgid "Silakan login terlebih dahulu."
 msgstr ""
 
-#: app/__init__.py:206
+#: app/__init__.py:217
 msgid ""
 "Sesi halaman ini sudah kedaluwarsa. Silakan muat ulang halaman lalu coba "
 "lagi."
 msgstr ""
 
-#: app/__init__.py:211
+#: app/__init__.py:222
 msgid "File yang diupload terlalu besar (maksimal 16 MB)."
 msgstr ""
 
-#: app/__init__.py:331
+#: app/__init__.py:342
 msgid "Akun Anda telah dinonaktifkan. Hubungi Owner."
 msgstr ""
 
@@ -51,9 +51,9 @@ msgstr ""
 msgid "Owner"
 msgstr ""
 
-#: app/blueprints/staff.py:1237 app/blueprints/staff.py:2002
-#: app/blueprints/staff.py:2133 app/models.py:35 app/nav.py:40
-#: app/templates/staff/cashier.html:2 app/templates/staff/receipt.html:206
+#: app/blueprints/staff.py:1252 app/blueprints/staff.py:2035
+#: app/blueprints/staff.py:2166 app/models.py:35 app/nav.py:40
+#: app/templates/staff/cashier.html:2 app/templates/staff/receipt.html:227
 #: app/templates/staff/users_admin.html:38
 msgid "Kasir"
 msgstr ""
@@ -84,21 +84,33 @@ msgstr ""
 msgid "Sudah Diantar"
 msgstr ""
 
-#: app/models.py:328
+#: app/models.py:343
 #, python-format
 msgid "Lantai %(number)s"
 msgstr ""
 
-#: app/models.py:402 app/templates/staff/order_new.html:22
+#: app/models.py:417 app/templates/staff/order_new.html:22
 msgid "Makan di Tempat"
 msgstr ""
 
-#: app/models.py:403 app/templates/staff/order_new.html:29
+#: app/models.py:418 app/templates/staff/order_new.html:29
 msgid "Bawa Pulang"
 msgstr ""
 
-#: app/models.py:404
+#: app/models.py:419
 msgid "Ojek Online"
+msgstr ""
+
+#: app/models.py:442 app/templates/staff/settings_admin.html:364
+msgid "Tipis"
+msgstr ""
+
+#: app/models.py:443 app/templates/staff/settings_admin.html:365
+msgid "Sedang"
+msgstr ""
+
+#: app/models.py:444 app/templates/staff/settings_admin.html:366
+msgid "Tebal"
 msgstr ""
 
 #: app/nav.py:10 app/templates/staff/dashboard.html:2
@@ -106,9 +118,9 @@ msgstr ""
 msgid "Dashboard"
 msgstr ""
 
-#: app/blueprints/staff.py:1233 app/blueprints/staff.py:2001
-#: app/blueprints/staff.py:2132 app/nav.py:16
-#: app/templates/staff/order_new.html:55 app/templates/staff/receipt.html:203
+#: app/blueprints/staff.py:1248 app/blueprints/staff.py:2034
+#: app/blueprints/staff.py:2165 app/nav.py:16
+#: app/templates/staff/order_new.html:55 app/templates/staff/receipt.html:224
 #: app/templates/staff/table_map.html:2 app/templates/staff/table_map.html:5
 msgid "Meja"
 msgstr ""
@@ -186,30 +198,30 @@ msgstr ""
 msgid "PIN salah. Tanya teman semeja Anda yang tadi pesan pertama kali."
 msgstr ""
 
-#: app/blueprints/staff.py:245
+#: app/blueprints/staff.py:260
 msgid "Format gambar harus PNG, JPG, JPEG, atau WEBP."
 msgstr ""
 
-#: app/blueprints/staff.py:365
+#: app/blueprints/staff.py:380
 #, python-format
 msgid "Kode meja %(code)s sudah dipakai meja lain. Pakai kode lain."
 msgstr ""
 
-#: app/blueprints/staff.py:378
+#: app/blueprints/staff.py:393
 #, python-format
 msgid "Gagal membuat QR untuk meja %(label)s. Coba lagi."
 msgstr ""
 
-#: app/blueprints/staff.py:383
+#: app/blueprints/staff.py:398
 #, python-format
 msgid "Meja %(label)s ditambahkan beserta QR code-nya."
 msgstr ""
 
-#: app/blueprints/staff.py:385
+#: app/blueprints/staff.py:400
 msgid "Lengkapi label, lantai, dan kode meja."
 msgstr ""
 
-#: app/blueprints/staff.py:454
+#: app/blueprints/staff.py:469
 #, python-format
 msgid ""
 "Meja %(label)s tidak bisa dihapus karena sudah punya riwayat pesanan "
@@ -217,204 +229,204 @@ msgid ""
 "ganti labelnya."
 msgstr ""
 
-#: app/blueprints/staff.py:474
+#: app/blueprints/staff.py:489
 #, python-format
 msgid "Meja %(label)s berhasil dihapus."
 msgstr ""
 
-#: app/blueprints/staff.py:555
+#: app/blueprints/staff.py:570
 msgid "SAMBUNGKAN KE WIFI DULU"
 msgstr ""
 
-#: app/blueprints/staff.py:558 app/templates/staff/floor_qr_print.html:259
+#: app/blueprints/staff.py:573 app/templates/staff/floor_qr_print.html:259
 #: app/templates/staff/table_qr_print.html:251
 msgid "Pass"
 msgstr ""
 
-#: app/blueprints/staff.py:575
+#: app/blueprints/staff.py:590
 msgid "SCAN UNTUK PESAN"
 msgstr ""
 
-#: app/blueprints/staff.py:577 app/templates/staff/floor_qr_print.html:268
+#: app/blueprints/staff.py:592 app/templates/staff/floor_qr_print.html:268
 #: app/templates/staff/table_qr_print.html:260
 msgid "Lihat menu & pesan langsung dari HP Anda"
 msgstr ""
 
-#: app/blueprints/staff.py:702
+#: app/blueprints/staff.py:717
 msgid "Meja tidak valid."
 msgstr ""
 
-#: app/blueprints/staff.py:706
+#: app/blueprints/staff.py:721
 #, python-format
 msgid "Meja %(label)s sudah terisi pesanan lain."
 msgstr ""
 
-#: app/blueprints/staff.py:714
+#: app/blueprints/staff.py:729
 msgid "Platform ojol tidak valid."
 msgstr ""
 
-#: app/blueprints/staff.py:746
+#: app/blueprints/staff.py:761
 msgid "Pilih minimal 1 item."
 msgstr ""
 
-#: app/blueprints/staff.py:763
+#: app/blueprints/staff.py:778
 msgid "Meja baru saja terisi pesanan lain. Coba pilih meja lain."
 msgstr ""
 
-#: app/blueprints/staff.py:765
+#: app/blueprints/staff.py:780
 msgid "Pesanan gagal disimpan. Coba lagi."
 msgstr ""
 
-#: app/blueprints/staff.py:768
+#: app/blueprints/staff.py:783
 #, python-format
 msgid "Pesanan untuk %(label)s berhasil dibuat."
 msgstr ""
 
-#: app/blueprints/staff.py:905
+#: app/blueprints/staff.py:920
 #, python-format
 msgid "Status pesanan %(label)s sudah diubah dari device lain."
 msgstr ""
 
-#: app/blueprints/staff.py:1007 app/blueprints/staff.py:1048
+#: app/blueprints/staff.py:1022 app/blueprints/staff.py:1063
 #, python-format
 msgid "Pesanan #%(id)s sudah dibayar, tidak bisa dibatalkan lewat sini."
 msgstr ""
 
-#: app/blueprints/staff.py:1054
+#: app/blueprints/staff.py:1069
 #, python-format
 msgid ""
 "Pesanan #%(id)s dibatalkan, stok bahan baku yang terpakai sudah "
 "dikembalikan."
 msgstr ""
 
-#: app/blueprints/staff.py:1056
+#: app/blueprints/staff.py:1071
 #, python-format
 msgid ""
 "Pesanan #%(id)s dibatalkan. Stok tidak dikembalikan karena pesanan sudah "
 "mulai diproses dapur."
 msgstr ""
 
-#: app/blueprints/staff.py:1071 app/blueprints/staff.py:1156
+#: app/blueprints/staff.py:1086 app/blueprints/staff.py:1171
 #, python-format
 msgid "Pesanan #%(id)s sudah dibayar sebelumnya."
 msgstr ""
 
-#: app/blueprints/staff.py:1077
+#: app/blueprints/staff.py:1092
 msgid "Metode pembayaran tidak valid."
 msgstr ""
 
-#: app/blueprints/staff.py:1086 app/blueprints/staff.py:1154
+#: app/blueprints/staff.py:1101 app/blueprints/staff.py:1169
 #, python-format
 msgid ""
 "Tagihan pesanan %(label)s baru saja berubah. Cek lagi totalnya sebelum "
 "bayar."
 msgstr ""
 
-#: app/blueprints/staff.py:1106 app/templates/staff/cashier.html:76
+#: app/blueprints/staff.py:1121 app/templates/staff/cashier.html:76
 msgid "Uang diterima kurang dari total tagihan."
 msgstr ""
 
-#: app/blueprints/staff.py:1151
+#: app/blueprints/staff.py:1166
 #, python-format
 msgid "Pesanan #%(id)s sudah dibatalkan."
 msgstr ""
 
-#: app/blueprints/staff.py:1161
+#: app/blueprints/staff.py:1176
 #, python-format
 msgid "Pesanan #%(id)s ditandai sudah dibayar."
 msgstr ""
 
-#: app/blueprints/staff.py:1170
+#: app/blueprints/staff.py:1185
 #, python-format
 msgid "Pesanan #%(id)s belum dibayar - struk baru tersedia setelah lunas."
 msgstr ""
 
-#: app/blueprints/staff.py:1228 app/templates/staff/receipt.html:195
+#: app/blueprints/staff.py:1243 app/templates/staff/receipt.html:216
 #, python-format
 msgid "Telp: %(phone)s"
 msgstr ""
 
-#: app/blueprints/staff.py:1229 app/templates/staff/receipt.html:198
+#: app/blueprints/staff.py:1244 app/templates/staff/receipt.html:219
 msgid "*** STRUK PEMBAYARAN ***"
 msgstr ""
 
-#: app/blueprints/staff.py:1232 app/blueprints/staff.py:2001
-#: app/blueprints/staff.py:2132 app/templates/staff/receipt.html:202
+#: app/blueprints/staff.py:1247 app/blueprints/staff.py:2034
+#: app/blueprints/staff.py:2165 app/templates/staff/receipt.html:223
 msgid "No. Struk"
 msgstr ""
 
-#: app/blueprints/staff.py:1233 app/templates/staff/receipt.html:203
+#: app/blueprints/staff.py:1248 app/templates/staff/receipt.html:224
 msgid "Jenis"
 msgstr ""
 
-#: app/blueprints/staff.py:1234 app/blueprints/staff.py:2001
-#: app/blueprints/staff.py:2132 app/templates/staff/receipt.html:204
+#: app/blueprints/staff.py:1249 app/blueprints/staff.py:2034
+#: app/blueprints/staff.py:2165 app/templates/staff/receipt.html:225
 msgid "Tanggal"
 msgstr ""
 
-#: app/blueprints/staff.py:1250 app/templates/staff/_cashier_orders.html:35
-#: app/templates/staff/receipt.html:224
+#: app/blueprints/staff.py:1265 app/templates/staff/_cashier_orders.html:35
+#: app/templates/staff/receipt.html:245
 msgid "Subtotal"
 msgstr ""
 
-#: app/blueprints/staff.py:1252 app/templates/staff/_cashier_orders.html:39
-#: app/templates/staff/receipt.html:228
+#: app/blueprints/staff.py:1267 app/templates/staff/_cashier_orders.html:39
+#: app/templates/staff/receipt.html:249
 #, python-format
 msgid "PPN %(pct)s%%"
 msgstr ""
 
-#: app/blueprints/staff.py:1256 app/templates/staff/_cashier_orders.html:65
-#: app/templates/staff/receipt.html:240
+#: app/blueprints/staff.py:1271 app/templates/staff/_cashier_orders.html:65
+#: app/templates/staff/receipt.html:261
 msgid "Bayar"
 msgstr ""
 
-#: app/blueprints/staff.py:1258 app/blueprints/staff.py:2002
-#: app/blueprints/staff.py:2133 app/templates/staff/receipt.html:245
+#: app/blueprints/staff.py:1273 app/blueprints/staff.py:2035
+#: app/blueprints/staff.py:2166 app/templates/staff/receipt.html:266
 msgid "Tunai"
 msgstr ""
 
-#: app/blueprints/staff.py:1259 app/blueprints/staff.py:2002
-#: app/blueprints/staff.py:2133 app/templates/staff/_cashier_orders.html:71
-#: app/templates/staff/cashier.html:77 app/templates/staff/receipt.html:249
+#: app/blueprints/staff.py:1274 app/blueprints/staff.py:2035
+#: app/blueprints/staff.py:2166 app/templates/staff/_cashier_orders.html:71
+#: app/templates/staff/cashier.html:77 app/templates/staff/receipt.html:270
 msgid "Kembalian"
 msgstr ""
 
-#: app/blueprints/staff.py:1263 app/templates/staff/receipt.html:257
+#: app/blueprints/staff.py:1278 app/templates/staff/receipt.html:278
 #, python-format
 msgid "IG: %(handle)s"
 msgstr ""
 
-#: app/blueprints/staff.py:1265 app/templates/staff/receipt.html:258
+#: app/blueprints/staff.py:1280 app/templates/staff/receipt.html:279
 #, python-format
 msgid "TikTok: %(handle)s"
 msgstr ""
 
-#: app/blueprints/staff.py:1267 app/templates/staff/receipt.html:259
+#: app/blueprints/staff.py:1282 app/templates/staff/receipt.html:280
 #, python-format
 msgid "WA: %(handle)s"
 msgstr ""
 
-#: app/blueprints/staff.py:1344 app/templates/staff/receipt.html:235
+#: app/blueprints/staff.py:1377 app/templates/staff/receipt.html:256
 msgid "TOTAL"
 msgstr ""
 
-#: app/blueprints/staff.py:1357 app/templates/staff/receipt.html:270
+#: app/blueprints/staff.py:1390 app/templates/staff/receipt.html:291
 msgid "Terima kasih!"
 msgstr ""
 
-#: app/blueprints/staff.py:1386
+#: app/blueprints/staff.py:1419
 msgid "Kategori ditambahkan."
 msgstr ""
 
-#: app/blueprints/staff.py:1399
+#: app/blueprints/staff.py:1432
 msgid "Menu ditambahkan."
 msgstr ""
 
-#: app/blueprints/staff.py:1401
+#: app/blueprints/staff.py:1434
 msgid "Isi nama, harga (lebih dari 0), dan kategori menu dengan benar."
 msgstr ""
 
-#: app/blueprints/staff.py:1429
+#: app/blueprints/staff.py:1462
 #, python-format
 msgid ""
 "Menu %(name)s tidak bisa dihapus karena sudah punya riwayat pesanan "
@@ -422,382 +434,382 @@ msgid ""
 "dijual."
 msgstr ""
 
-#: app/blueprints/staff.py:1448
+#: app/blueprints/staff.py:1481
 #, python-format
 msgid "Menu %(name)s dihapus."
 msgstr ""
 
-#: app/blueprints/staff.py:1460
+#: app/blueprints/staff.py:1493
 #, python-format
 msgid "Foto %(name)s dihapus."
 msgstr ""
 
-#: app/blueprints/staff.py:1473
+#: app/blueprints/staff.py:1506
 #, python-format
 msgid "Foto %(name)s berhasil diperbarui."
 msgstr ""
 
-#: app/blueprints/staff.py:1487
+#: app/blueprints/staff.py:1520
 msgid "Pilih bahan baku dan isi jumlah pemakaian dengan benar."
 msgstr ""
 
-#: app/blueprints/staff.py:1506
+#: app/blueprints/staff.py:1539
 #, python-format
 msgid "Resep %(name)s berhasil diperbarui."
 msgstr ""
 
-#: app/blueprints/staff.py:1544
+#: app/blueprints/staff.py:1577
 #, python-format
 msgid "Bahan baku %(name)s ditambahkan."
 msgstr ""
 
-#: app/blueprints/staff.py:1546
+#: app/blueprints/staff.py:1579
 msgid "Isi nama, satuan, dan stok awal dengan benar."
 msgstr ""
 
-#: app/blueprints/staff.py:1561
+#: app/blueprints/staff.py:1594
 msgid "Jumlah restock tidak valid."
 msgstr ""
 
-#: app/blueprints/staff.py:1577
+#: app/blueprints/staff.py:1610
 #, python-format
 msgid "Stok %(name)s ditambah %(amount)s %(unit)s."
 msgstr ""
 
-#: app/blueprints/staff.py:1592
+#: app/blueprints/staff.py:1625
 #, python-format
 msgid ""
 "Bahan %(name)s tidak bisa dihapus karena masih dipakai di resep: "
 "%(menus)s."
 msgstr ""
 
-#: app/blueprints/staff.py:1603
+#: app/blueprints/staff.py:1636
 #, python-format
 msgid "Bahan %(name)s dihapus."
 msgstr ""
 
-#: app/blueprints/staff.py:1632 app/blueprints/staff.py:1722
+#: app/blueprints/staff.py:1665 app/blueprints/staff.py:1755
 msgid "Bahan Baku Menipis / Habis"
 msgstr ""
 
-#: app/blueprints/staff.py:1632 app/blueprints/staff.py:1722
+#: app/blueprints/staff.py:1665 app/blueprints/staff.py:1755
 #: app/templates/staff/inventory.html:41
 msgid "Daftar Bahan Baku"
 msgstr ""
 
-#: app/blueprints/staff.py:1658 app/blueprints/staff.py:1737
+#: app/blueprints/staff.py:1691 app/blueprints/staff.py:1770
 #: app/templates/staff/inventory.html:15
 msgid "Nama Bahan"
 msgstr ""
 
-#: app/blueprints/staff.py:1658 app/blueprints/staff.py:1737
+#: app/blueprints/staff.py:1691 app/blueprints/staff.py:1770
 #: app/templates/staff/inventory.html:19
 msgid "Satuan"
 msgstr ""
 
-#: app/blueprints/staff.py:1658 app/blueprints/staff.py:1737
+#: app/blueprints/staff.py:1691 app/blueprints/staff.py:1770
 msgid "Stok Saat Ini"
 msgstr ""
 
-#: app/blueprints/staff.py:1658 app/blueprints/staff.py:1737
+#: app/blueprints/staff.py:1691 app/blueprints/staff.py:1770
 #: app/templates/staff/inventory.html:27
 msgid "Batas Stok Menipis"
 msgstr ""
 
-#: app/blueprints/staff.py:1658 app/blueprints/staff.py:1737
-#: app/templates/staff/settings_admin.html:722
-#: app/templates/staff/settings_admin.html:814
+#: app/blueprints/staff.py:1691 app/blueprints/staff.py:1770
+#: app/templates/staff/settings_admin.html:744
+#: app/templates/staff/settings_admin.html:836
 msgid "Status"
 msgstr ""
 
-#: app/blueprints/staff.py:1672 app/blueprints/staff.py:1741
+#: app/blueprints/staff.py:1705 app/blueprints/staff.py:1774
 #: app/templates/staff/inventory.html:74
 msgid "Menipis"
 msgstr ""
 
-#: app/blueprints/staff.py:1672 app/blueprints/staff.py:1741
+#: app/blueprints/staff.py:1705 app/blueprints/staff.py:1774
 msgid "Aman"
 msgstr ""
 
-#: app/blueprints/staff.py:1683 app/blueprints/staff.py:1751
+#: app/blueprints/staff.py:1716 app/blueprints/staff.py:1784
 msgid "Tidak ada bahan baku yang menipis/habis."
 msgstr ""
 
-#: app/blueprints/staff.py:1683 app/blueprints/staff.py:1751
+#: app/blueprints/staff.py:1716 app/blueprints/staff.py:1784
 msgid "Belum ada bahan baku."
 msgstr ""
 
-#: app/blueprints/staff.py:1858 app/templates/base.html:207
+#: app/blueprints/staff.py:1891 app/templates/base.html:207
 msgid "Januari"
 msgstr ""
 
-#: app/blueprints/staff.py:1858 app/templates/base.html:207
+#: app/blueprints/staff.py:1891 app/templates/base.html:207
 msgid "Februari"
 msgstr ""
 
-#: app/blueprints/staff.py:1858 app/templates/base.html:207
+#: app/blueprints/staff.py:1891 app/templates/base.html:207
 msgid "Maret"
 msgstr ""
 
-#: app/blueprints/staff.py:1858 app/templates/base.html:207
+#: app/blueprints/staff.py:1891 app/templates/base.html:207
 msgid "April"
 msgstr ""
 
-#: app/blueprints/staff.py:1858 app/blueprints/staff.py:1862
+#: app/blueprints/staff.py:1891 app/blueprints/staff.py:1895
 #: app/templates/base.html:208
 msgid "Mei"
 msgstr ""
 
-#: app/blueprints/staff.py:1858 app/templates/base.html:208
+#: app/blueprints/staff.py:1891 app/templates/base.html:208
 msgid "Juni"
 msgstr ""
 
-#: app/blueprints/staff.py:1859 app/templates/base.html:208
+#: app/blueprints/staff.py:1892 app/templates/base.html:208
 msgid "Juli"
 msgstr ""
 
-#: app/blueprints/staff.py:1859 app/templates/base.html:208
+#: app/blueprints/staff.py:1892 app/templates/base.html:208
 msgid "Agustus"
 msgstr ""
 
-#: app/blueprints/staff.py:1859 app/templates/base.html:209
+#: app/blueprints/staff.py:1892 app/templates/base.html:209
 msgid "September"
 msgstr ""
 
-#: app/blueprints/staff.py:1859 app/templates/base.html:209
+#: app/blueprints/staff.py:1892 app/templates/base.html:209
 msgid "Oktober"
 msgstr ""
 
-#: app/blueprints/staff.py:1859 app/templates/base.html:209
+#: app/blueprints/staff.py:1892 app/templates/base.html:209
 msgid "November"
 msgstr ""
 
-#: app/blueprints/staff.py:1859 app/templates/base.html:209
+#: app/blueprints/staff.py:1892 app/templates/base.html:209
 msgid "Desember"
 msgstr ""
 
-#: app/blueprints/staff.py:1862
+#: app/blueprints/staff.py:1895
 msgid "Jan"
 msgstr ""
 
-#: app/blueprints/staff.py:1862
+#: app/blueprints/staff.py:1895
 msgid "Feb"
 msgstr ""
 
-#: app/blueprints/staff.py:1862
+#: app/blueprints/staff.py:1895
 msgid "Mar"
 msgstr ""
 
-#: app/blueprints/staff.py:1862
+#: app/blueprints/staff.py:1895
 msgid "Apr"
 msgstr ""
 
-#: app/blueprints/staff.py:1862
+#: app/blueprints/staff.py:1895
 msgid "Jun"
 msgstr ""
 
-#: app/blueprints/staff.py:1863
+#: app/blueprints/staff.py:1896
 msgid "Jul"
 msgstr ""
 
-#: app/blueprints/staff.py:1863
+#: app/blueprints/staff.py:1896
 msgid "Agu"
 msgstr ""
 
-#: app/blueprints/staff.py:1863
+#: app/blueprints/staff.py:1896
 msgid "Sep"
 msgstr ""
 
-#: app/blueprints/staff.py:1863
+#: app/blueprints/staff.py:1896
 msgid "Okt"
 msgstr ""
 
-#: app/blueprints/staff.py:1863
+#: app/blueprints/staff.py:1896
 msgid "Nov"
 msgstr ""
 
-#: app/blueprints/staff.py:1863
+#: app/blueprints/staff.py:1896
 msgid "Des"
 msgstr ""
 
-#: app/blueprints/staff.py:1868
+#: app/blueprints/staff.py:1901
 msgid "Harian"
 msgstr ""
 
-#: app/blueprints/staff.py:1869
+#: app/blueprints/staff.py:1902
 msgid "Mingguan"
 msgstr ""
 
-#: app/blueprints/staff.py:1870
+#: app/blueprints/staff.py:1903
 msgid "Bulanan"
 msgstr ""
 
-#: app/blueprints/staff.py:1871
+#: app/blueprints/staff.py:1904
 msgid "Tahunan"
 msgstr ""
 
-#: app/blueprints/staff.py:1984 app/blueprints/staff.py:2045
-#: app/blueprints/staff.py:2114 app/templates/staff/reports.html:41
+#: app/blueprints/staff.py:2017 app/blueprints/staff.py:2078
+#: app/blueprints/staff.py:2147 app/templates/staff/reports.html:41
 msgid "Total Penjualan"
 msgstr ""
 
-#: app/blueprints/staff.py:1985 app/blueprints/staff.py:2050
-#: app/blueprints/staff.py:2115 app/templates/staff/reports.html:78
+#: app/blueprints/staff.py:2018 app/blueprints/staff.py:2083
+#: app/blueprints/staff.py:2148 app/templates/staff/reports.html:78
 msgid "PPN Terkumpul"
 msgstr ""
 
-#: app/blueprints/staff.py:1986 app/blueprints/staff.py:2116
+#: app/blueprints/staff.py:2019 app/blueprints/staff.py:2149
 #: app/templates/staff/reports.html:50
 msgid "Transaksi"
 msgstr ""
 
-#: app/blueprints/staff.py:1987 app/blueprints/staff.py:2117
+#: app/blueprints/staff.py:2020 app/blueprints/staff.py:2150
 #: app/templates/staff/reports.html:59
 msgid "Rata-rata/Transaksi"
 msgstr ""
 
-#: app/blueprints/staff.py:1988 app/blueprints/staff.py:2118
+#: app/blueprints/staff.py:2021 app/blueprints/staff.py:2151
 #: app/templates/staff/reports.html:68
 msgid "Item Terjual"
 msgstr ""
 
-#: app/blueprints/staff.py:2001 app/blueprints/staff.py:2132
+#: app/blueprints/staff.py:2034 app/blueprints/staff.py:2165
 #: app/templates/staff/reports.html:119
 msgid "Item"
 msgstr ""
 
-#: app/blueprints/staff.py:2002 app/blueprints/staff.py:2133
+#: app/blueprints/staff.py:2035 app/blueprints/staff.py:2166
 #: app/templates/staff/_cashier_orders.html:60
 msgid "Metode"
 msgstr ""
 
-#: app/blueprints/staff.py:2002 app/blueprints/staff.py:2133
+#: app/blueprints/staff.py:2035 app/blueprints/staff.py:2166
 msgid "PPN"
 msgstr ""
 
-#: app/blueprints/staff.py:2002 app/blueprints/staff.py:2133
+#: app/blueprints/staff.py:2035 app/blueprints/staff.py:2166
 #: app/templates/public/status.html:89
 #: app/templates/staff/_cashier_orders.html:44
 #: app/templates/staff/reports.html:120
 msgid "Total"
 msgstr ""
 
-#: app/blueprints/staff.py:2041 app/blueprints/staff.py:2153
+#: app/blueprints/staff.py:2074 app/blueprints/staff.py:2186
 #: app/templates/staff/reports.html:99
 msgid "Belum ada penjualan di periode ini."
 msgstr ""
 
-#: app/blueprints/staff.py:2055
+#: app/blueprints/staff.py:2088
 msgid "Total Termasuk PPN"
 msgstr ""
 
-#: app/blueprints/staff.py:2060
+#: app/blueprints/staff.py:2093
 msgid "Jumlah Transaksi"
 msgstr ""
 
-#: app/blueprints/staff.py:2196
+#: app/blueprints/staff.py:2229
 msgid "Isi username, password, dan role dengan benar."
 msgstr ""
 
-#: app/blueprints/staff.py:2198
+#: app/blueprints/staff.py:2231
 msgid "Username sudah dipakai."
 msgstr ""
 
-#: app/blueprints/staff.py:2206
+#: app/blueprints/staff.py:2239
 #, python-format
 msgid "User '%(username)s' (%(role)s) berhasil dibuat."
 msgstr ""
 
-#: app/blueprints/staff.py:2257
+#: app/blueprints/staff.py:2290
 msgid "Tidak bisa menonaktifkan akun sendiri."
 msgstr ""
 
-#: app/blueprints/staff.py:2272
+#: app/blueprints/staff.py:2305
 msgid "Tidak bisa menghapus akun sendiri."
 msgstr ""
 
-#: app/blueprints/staff.py:2280
+#: app/blueprints/staff.py:2313
 #, python-format
 msgid "User %(username)s dihapus."
 msgstr ""
 
-#: app/blueprints/staff.py:2292
+#: app/blueprints/staff.py:2325
 #, python-format
 msgid "Foto %(username)s dihapus."
 msgstr ""
 
-#: app/blueprints/staff.py:2305
+#: app/blueprints/staff.py:2338
 #, python-format
 msgid "Foto profil %(username)s berhasil diperbarui."
 msgstr ""
 
-#: app/blueprints/staff.py:2322
+#: app/blueprints/staff.py:2355
 msgid "Nama toko wajib diisi."
 msgstr ""
 
-#: app/blueprints/staff.py:2349
+#: app/blueprints/staff.py:2382
 msgid "Format nada harus MP3, WAV, OGG, atau M4A."
 msgstr ""
 
-#: app/blueprints/staff.py:2422
+#: app/blueprints/staff.py:2458
 msgid "Pengaturan toko berhasil disimpan."
 msgstr ""
 
-#: app/blueprints/staff.py:2472
+#: app/blueprints/staff.py:2508
 #, python-format
 msgid "Lantai %(number)s ditambahkan."
 msgstr ""
 
-#: app/blueprints/staff.py:2489
+#: app/blueprints/staff.py:2525
 #, python-format
 msgid "%(name)s dihapus."
 msgstr ""
 
-#: app/blueprints/staff.py:2528
+#: app/blueprints/staff.py:2564
 msgid "Logo & Branding"
 msgstr ""
 
-#: app/blueprints/staff.py:2529
+#: app/blueprints/staff.py:2565
 msgid "Foto Profil"
 msgstr ""
 
-#: app/blueprints/staff.py:2530
+#: app/blueprints/staff.py:2566
 msgid "Foto Menu"
 msgstr ""
 
-#: app/blueprints/staff.py:2531
+#: app/blueprints/staff.py:2567
 msgid "QR Code Meja"
 msgstr ""
 
-#: app/blueprints/staff.py:2629 app/blueprints/staff.py:2666
+#: app/blueprints/staff.py:2665 app/blueprints/staff.py:2702
 msgid "Nama platform wajib diisi."
 msgstr ""
 
-#: app/blueprints/staff.py:2655
+#: app/blueprints/staff.py:2691
 #, python-format
 msgid "Platform %(name)s ditambahkan."
 msgstr ""
 
-#: app/blueprints/staff.py:2689
+#: app/blueprints/staff.py:2725
 #, python-format
 msgid "Platform %(name)s diperbarui."
 msgstr ""
 
-#: app/blueprints/staff.py:2709
+#: app/blueprints/staff.py:2745
 #, python-format
 msgid "Platform %(name)s dihapus."
 msgstr ""
 
-#: app/blueprints/staff.py:2757
+#: app/blueprints/staff.py:2793
 #, python-format
 msgid "Harga khusus %(name)s disimpan."
 msgstr ""
 
-#: app/blueprints/staff.py:3152 app/blueprints/staff.py:3221
+#: app/blueprints/staff.py:3448 app/blueprints/staff.py:3517
 msgid "Kunci PIN developer sudah kedaluwarsa. Buka kunci lagi dengan PIN."
 msgstr ""
 
-#: app/blueprints/staff.py:3162
+#: app/blueprints/staff.py:3458
 #, python-format
 msgid ""
 "Mode Demo belum bisa dimatikan: menu asli berikut masih memakai "
@@ -805,52 +817,52 @@ msgid ""
 "%(names)s."
 msgstr ""
 
-#: app/blueprints/staff.py:3169
+#: app/blueprints/staff.py:3465
 msgid "Mode Demo dimatikan - semua data dummy sudah dihapus."
 msgstr ""
 
-#: app/blueprints/staff.py:3172
+#: app/blueprints/staff.py:3468
 msgid "Mode Demo diaktifkan - menu & inventory dummy sudah dimuat."
 msgstr ""
 
-#: app/blueprints/staff.py:3186
+#: app/blueprints/staff.py:3482
 msgid ""
 "Mode Perbaikan diaktifkan - hanya akun Owner yang masih bisa mengakses "
 "aplikasi."
 msgstr ""
 
-#: app/blueprints/staff.py:3190
+#: app/blueprints/staff.py:3486
 msgid "Mode Perbaikan dimatikan - aplikasi kembali normal untuk semua pengguna."
 msgstr ""
 
-#: app/blueprints/staff.py:3229
+#: app/blueprints/staff.py:3525
 msgid ""
 "Reset ke mode pabrik selesai - semua data toko sudah dikosongkan, kecuali"
 " daftar pengguna dan pengaturan Notifikasi."
 msgstr ""
 
-#: app/blueprints/staff.py:3333
+#: app/blueprints/staff.py:3630
 msgid ""
 "Cache aplikasi dibersihkan - logo, foto profil, dan QR code akan otomatis"
 " dimuat ulang versi terbaru di semua device."
 msgstr ""
 
-#: app/blueprints/staff.py:3352
+#: app/blueprints/staff.py:3649
 #, python-format
 msgid "Backup GAGAL dibuat: %(error)s"
 msgstr ""
 
-#: app/blueprints/staff.py:3355
+#: app/blueprints/staff.py:3652
 #, python-format
 msgid "Backup berhasil dibuat: %(filename)s"
 msgstr ""
 
-#: app/blueprints/staff.py:3380
+#: app/blueprints/staff.py:3677
 #, python-format
 msgid "Backup %(filename)s dihapus."
 msgstr ""
 
-#: app/blueprints/staff.py:3382
+#: app/blueprints/staff.py:3679
 msgid "Gagal menghapus file backup (mungkin sedang dipakai)."
 msgstr ""
 
@@ -1422,7 +1434,7 @@ msgid "Cetak Semua"
 msgstr ""
 
 #: app/templates/staff/floor_qr_print.html:229
-#: app/templates/staff/receipt.html:166
+#: app/templates/staff/receipt.html:187
 #: app/templates/staff/table_qr_print.html:222
 msgid "Cetak ke PDF"
 msgstr ""
@@ -1433,7 +1445,7 @@ msgid "Kembali ke Meja"
 msgstr ""
 
 #: app/templates/staff/floor_qr_print.html:237
-#: app/templates/staff/receipt.html:174
+#: app/templates/staff/receipt.html:195
 #: app/templates/staff/table_qr_print.html:230
 msgid "Kembali ke Dasbor"
 msgstr ""
@@ -1661,16 +1673,16 @@ msgstr ""
 msgid "Struk #%(id)s"
 msgstr ""
 
-#: app/templates/staff/receipt.html:158
+#: app/templates/staff/receipt.html:179
 #, python-format
 msgid "Struk #%(id)s siap dicetak"
 msgstr ""
 
-#: app/templates/staff/receipt.html:162
+#: app/templates/staff/receipt.html:183
 msgid "Cetak Struk"
 msgstr ""
 
-#: app/templates/staff/receipt.html:170
+#: app/templates/staff/receipt.html:191
 msgid "Kembali ke Kasir"
 msgstr ""
 
@@ -1861,7 +1873,7 @@ msgstr ""
 
 #: app/templates/staff/settings_admin.html:180
 #: app/templates/staff/settings_admin.html:199
-#: app/templates/staff/settings_admin.html:366
+#: app/templates/staff/settings_admin.html:388
 msgid "Reset"
 msgstr ""
 
@@ -1988,337 +2000,375 @@ msgid ""
 "printer kasir standar, muat lebih banyak kolom per baris."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:340
-msgid "Ukuran Kertas"
+#: app/templates/staff/settings_admin.html:339
+msgid ""
+"Kalau struk masih terpotong di pinggir kanan saat dicetak, area cetak "
+"printer Anda kemungkinan lebih sempit dari lebar kertasnya (mis. kertas "
+"58mm dengan area cetak 48mm) - coba pilih ukuran yang lebih kecil."
 msgstr ""
 
 #: app/templates/staff/settings_admin.html:343
+msgid "Ukuran Kertas"
+msgstr ""
+
+#: app/templates/staff/settings_admin.html:346
+msgid "Kertas 58mm"
+msgstr ""
+
+#: app/templates/staff/settings_admin.html:347
 msgid "58mm (umum)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:353
+#: app/templates/staff/settings_admin.html:348
+msgid "48mm (area cetak sempit)"
+msgstr ""
+
+#: app/templates/staff/settings_admin.html:350
+msgid "Kertas 80mm"
+msgstr ""
+
+#: app/templates/staff/settings_admin.html:351
+msgid "80mm (umum)"
+msgstr ""
+
+#: app/templates/staff/settings_admin.html:352
+msgid "72mm (area cetak sempit)"
+msgstr ""
+
+#: app/templates/staff/settings_admin.html:358
+msgid ""
+"Kalau hasil cetaknya pudar/susah dibaca (biasanya karena head printer "
+"sudah agak aus), coba naikkan ke \"Tebal\". \"Tipis\" cocok kalau mau "
+"hemat panas head/lebih cepat cetak dan printernya masih tajam."
+msgstr ""
+
+#: app/templates/staff/settings_admin.html:361
+msgid "Ketebalan Cetak"
+msgstr ""
+
+#: app/templates/staff/settings_admin.html:375
 msgid "QRIS Offline"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:356
+#: app/templates/staff/settings_admin.html:378
 msgid ""
 "Upload gambar QRIS statis toko Anda (dari GoPay Bisnis/DANA Bisnis/bank)."
 " Muncul tombol \"Tampilkan QRIS\" di halaman Kasir, supaya pelayan bisa "
 "langsung tunjukkan QR-nya ke tamu untuk di-scan di meja."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:361
+#: app/templates/staff/settings_admin.html:383
 msgid "Upload QRIS"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:387
+#: app/templates/staff/settings_admin.html:409
 msgid "Nada Owner (Default Toko)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:390
+#: app/templates/staff/settings_admin.html:412
 msgid ""
 "Mengatur bunyi notifikasi pesanan baru di halaman Dapur & Kasir. Staf "
 "tetap bisa matikan sementara dari tombol suara di halaman masing-masing, "
 "terpisah dari pengaturan ini."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:396
+#: app/templates/staff/settings_admin.html:418
 msgid "Aktifkan Notifikasi Suara"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:397
+#: app/templates/staff/settings_admin.html:419
 msgid ""
 "Kalau dimatikan, halaman Dapur & Kasir tidak akan bunyi sama sekali (mode"
 " bisu penuh)."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:402
+#: app/templates/staff/settings_admin.html:424
 msgid "Volume Notifikasi"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:409
+#: app/templates/staff/settings_admin.html:431
 msgid ""
 "Klik ikon play untuk coba dengarkan, klik kartunya untuk memilih. Nada "
 "ini juga jadi fallback untuk role lain yang belum ditentukan nadanya di "
 "samping."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:417
+#: app/templates/staff/settings_admin.html:439
 msgid "Nada Sendiri (Upload)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:422
-#: app/templates/staff/settings_admin.html:454
-#: app/templates/staff/settings_admin.html:465
+#: app/templates/staff/settings_admin.html:444
 #: app/templates/staff/settings_admin.html:476
-#: app/templates/staff/settings_admin.html:1192
+#: app/templates/staff/settings_admin.html:487
+#: app/templates/staff/settings_admin.html:498
+#: app/templates/staff/settings_admin.html:1214
 msgid "Coba dengarkan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:427
+#: app/templates/staff/settings_admin.html:449
 msgid "Pilih"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:432
+#: app/templates/staff/settings_admin.html:454
 msgid "Hapus nada ini"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:435
+#: app/templates/staff/settings_admin.html:457
 msgid "Belum ada nada yang diupload."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:439
+#: app/templates/staff/settings_admin.html:461
 msgid "Format MP3, WAV, OGG, atau M4A."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:445
+#: app/templates/staff/settings_admin.html:467
 msgid "Nada per Role Staf"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:448
+#: app/templates/staff/settings_admin.html:470
 msgid ""
 "Beda nada per role membantu Anda mengenali device siapa yang bunyi saat "
 "notifikasi masuk. Kosongkan supaya ikut nada Owner di samping."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:452
+#: app/templates/staff/settings_admin.html:474
 msgid "Nada untuk Dapur"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:458
-#: app/templates/staff/settings_admin.html:469
 #: app/templates/staff/settings_admin.html:480
+#: app/templates/staff/settings_admin.html:491
+#: app/templates/staff/settings_admin.html:502
 msgid "Ikuti Nada Owner"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:463
+#: app/templates/staff/settings_admin.html:485
 msgid "Nada untuk Kasir"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:474
+#: app/templates/staff/settings_admin.html:496
 msgid "Nada untuk Pelayan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:487
+#: app/templates/staff/settings_admin.html:509
 msgid ""
 "Pelayan dengar nada ini saat ada pesanan yang siap diantar dari Dapur. "
 "Kasir juga dengar nada ini saat ada pembayaran selesai diproses kasir "
 "lain."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:503
+#: app/templates/staff/settings_admin.html:525
 msgid ""
 "Kelola platform pesan-antar yang dipakai toko - kasir bisa langsung buat "
 "pesanan tanpa pilih meja lewat platform yang aktif di sini."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:525
-#: app/templates/staff/settings_admin.html:588
+#: app/templates/staff/settings_admin.html:547
+#: app/templates/staff/settings_admin.html:610
 msgid "Logo Platform"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:530
+#: app/templates/staff/settings_admin.html:552
 msgid "Hapus Logo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:536
-#: app/templates/staff/settings_admin.html:592
+#: app/templates/staff/settings_admin.html:558
+#: app/templates/staff/settings_admin.html:614
 msgid "Mode Harga"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:538
-#: app/templates/staff/settings_admin.html:594
+#: app/templates/staff/settings_admin.html:560
+#: app/templates/staff/settings_admin.html:616
 msgid "Markup Persentase"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:539
-#: app/templates/staff/settings_admin.html:595
+#: app/templates/staff/settings_admin.html:561
+#: app/templates/staff/settings_admin.html:617
 msgid "Harga Manual per Menu"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:544
-#: app/templates/staff/settings_admin.html:599
+#: app/templates/staff/settings_admin.html:566
+#: app/templates/staff/settings_admin.html:621
 #, python-format
 msgid "Markup (%%)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:550
-#: app/templates/staff/settings_admin.html:724
+#: app/templates/staff/settings_admin.html:572
+#: app/templates/staff/settings_admin.html:746
 msgid "Aktif"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:555
+#: app/templates/staff/settings_admin.html:577
 msgid "Simpan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:565
+#: app/templates/staff/settings_admin.html:587
 #, python-format
 msgid "Hapus platform %(name)s?"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:568
+#: app/templates/staff/settings_admin.html:590
 msgid "Hapus Platform"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:579
+#: app/templates/staff/settings_admin.html:601
 msgid "+ Tambah Platform Baru"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:584
+#: app/templates/staff/settings_admin.html:606
 msgid "Nama Platform"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:604
+#: app/templates/staff/settings_admin.html:626
 msgid "Tambah Platform"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:619
+#: app/templates/staff/settings_admin.html:641
 msgid "Bersihkan Cache Aplikasi"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:624
+#: app/templates/staff/settings_admin.html:646
 msgid "Paksa semua device ambil gambar (logo, foto, QR) versi terbaru."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:629
+#: app/templates/staff/settings_admin.html:651
 msgid "Ukuran Cache Gambar"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:647
+#: app/templates/staff/settings_admin.html:669
 msgid "Belum ada gambar yang diupload."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:654
+#: app/templates/staff/settings_admin.html:676
 msgid "Bersihkan Cache"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:663
+#: app/templates/staff/settings_admin.html:685
 msgid "Backup Database"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:668
+#: app/templates/staff/settings_admin.html:690
 msgid "Backup database & semua gambar dalam 1 file .zip."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:675
+#: app/templates/staff/settings_admin.html:697
 msgid "Belum ada backup. Klik \"Buat Backup Baru\" untuk membuat yang pertama."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:692
+#: app/templates/staff/settings_admin.html:714
 #, python-format
 msgid "Hapus backup %(name)s? Tidak bisa dibatalkan."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:708
+#: app/templates/staff/settings_admin.html:730
 msgid "Buat Backup Baru"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:717
+#: app/templates/staff/settings_admin.html:739
 msgid "Mode Demo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:726
-#: app/templates/staff/settings_admin.html:818
+#: app/templates/staff/settings_admin.html:748
+#: app/templates/staff/settings_admin.html:840
 #: app/templates/staff/users_admin.html:72
 msgid "Nonaktif"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:731
+#: app/templates/staff/settings_admin.html:753
 msgid "PIN Mode Demo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:733
-#: app/templates/staff/settings_admin.html:853
+#: app/templates/staff/settings_admin.html:755
+#: app/templates/staff/settings_admin.html:875
 msgid "Buka Kunci"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:737
-#: app/templates/staff/settings_admin.html:857
+#: app/templates/staff/settings_admin.html:759
+#: app/templates/staff/settings_admin.html:879
 msgid "PIN salah."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:740
+#: app/templates/staff/settings_admin.html:762
 msgid "Kunci Demo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:745
+#: app/templates/staff/settings_admin.html:767
 msgid ""
 "Isi menu & inventory contoh untuk demo - aman, tidak menyentuh data asli "
 "toko."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:751
+#: app/templates/staff/settings_admin.html:773
 msgid "Data contoh yang sedang dimuat"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:753
+#: app/templates/staff/settings_admin.html:775
 msgid "Isi data contoh kalau dinyalakan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:759
+#: app/templates/staff/settings_admin.html:781
 #, python-format
 msgid "%(count)s kategori"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:763
+#: app/templates/staff/settings_admin.html:785
 #, python-format
 msgid "%(count)s menu (dengan foto)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:767
+#: app/templates/staff/settings_admin.html:789
 #, python-format
 msgid "%(count)s bahan baku"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:771
+#: app/templates/staff/settings_admin.html:793
 #, python-format
 msgid "%(count)s meja (Lantai 1)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:775
+#: app/templates/staff/settings_admin.html:797
 #, python-format
 msgid "%(count)s platform delivery"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:779
+#: app/templates/staff/settings_admin.html:801
 msgid "Identitas & logo toko (sementara)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:785
+#: app/templates/staff/settings_admin.html:807
 msgid "Matikan Mode Demo? Semua data contoh akan dihapus."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:789
+#: app/templates/staff/settings_admin.html:811
 msgid "Matikan Mode Demo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:793
+#: app/templates/staff/settings_admin.html:815
 msgid "Aktifkan Mode Demo"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:806
+#: app/templates/staff/settings_admin.html:828
 msgid "Mode Perbaikan (Maintenance)"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:816
+#: app/templates/staff/settings_admin.html:838
 msgid "Aktif - hanya Owner yang bisa akses"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:823
+#: app/templates/staff/settings_admin.html:845
 msgid ""
 "Aktifkan Mode Perbaikan? Kasir, dapur, dan pelayan tidak akan bisa "
 "memakai aplikasi sampai kamu matikan lagi."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:827
+#: app/templates/staff/settings_admin.html:849
 msgid "Matikan Mode Perbaikan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:831
+#: app/templates/staff/settings_admin.html:853
 msgid "Aktifkan Mode Perbaikan"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:838
+#: app/templates/staff/settings_admin.html:860
 msgid ""
 "Aktifkan saat sedang ada perbaikan kode di server produksi. Selama aktif,"
 " semua pengguna lain (kasir, dapur, pelayan, dan siapa pun yang belum "
@@ -2327,20 +2377,20 @@ msgid ""
 "sebelum dinyalakan lagi ke semua orang."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:846
-#: app/templates/staff/settings_admin.html:873
+#: app/templates/staff/settings_admin.html:868
+#: app/templates/staff/settings_admin.html:895
 msgid "Reset ke Mode Pabrik"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:851
+#: app/templates/staff/settings_admin.html:873
 msgid "PIN Reset Pabrik"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:860
+#: app/templates/staff/settings_admin.html:882
 msgid "Kunci Reset"
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:866
+#: app/templates/staff/settings_admin.html:888
 msgid ""
 "Kosongkan kategori, menu, bahan baku, meja, lantai, riwayat pesanan, dan "
 "kembalikan Pengaturan Toko ke kondisi kosong - KECUALI menu Pengguna, "
@@ -2348,13 +2398,13 @@ msgid ""
 "dan tidak bisa dibatalkan."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:870
+#: app/templates/staff/settings_admin.html:892
 msgid ""
 "YAKIN reset ke mode pabrik? Semua data toko akan hilang permanen, kecuali"
 " daftar pengguna. Tindakan ini TIDAK BISA dibatalkan."
 msgstr ""
 
-#: app/templates/staff/settings_admin.html:888
+#: app/templates/staff/settings_admin.html:910
 msgid "Simpan Pengaturan"
 msgstr ""
 
