@@ -1275,7 +1275,6 @@ def _receipt_text_lines(order, settings):
         for line in social_lines:
             center(line)
 
-    center("Orulabs (c) 2026")
     divider("=")
     center(_("Terima kasih!"))
     lines.append("")
@@ -1466,7 +1465,7 @@ def receipt_pdf(order_id):
     n_lines = (
         len(header_lines) + len(info_rows) + len(item_lines)
         + len(ppn_rows) + 1 + len(payment_rows) + len(social_lines)
-        + 4  # "Orulabs (c) 2026", "Terima kasih!", dan 2 baris jarak ekstra
+        + 3  # "Terima kasih!" dan 2 baris jarak ekstra
     )
     n_dividers = 3 + (1 if ppn_rows else 0) + (1 if social_lines else 0)
     page_h = (
@@ -1564,7 +1563,6 @@ def receipt_pdf(order_id):
         for line in social_lines:
             center(line)
 
-    center("Orulabs © 2026", muted=True, size=max(6, font_size - 1))
     divider(dashed=False)
     center(_("Terima kasih!"), bold=True)
 
