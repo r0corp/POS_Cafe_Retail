@@ -82,12 +82,12 @@
                   </div>
                   <div class="mb-1">
                     <div class="form-field-row">
-                      <label class="form-label form-field-label small fw-semibold">{{ _('Jam Operasional') }}</label>
-                      <div class="d-flex align-items-center gap-2" style="flex: 1 1 auto;">
-                        <input type="time" name="opening_time" class="form-control" value="{{ settings.opening_time or '' }}" style="max-width: 130px;">
-                        <span class="text-muted small">{{ _('s/d') }}</span>
-                        <input type="time" name="closing_time" class="form-control" value="{{ settings.closing_time or '' }}" style="max-width: 130px;">
-                      </div>
+                      <label class="form-label form-field-label small fw-semibold">{{ _('Jam Buka') }}</label>
+                      <input type="time" name="opening_time" class="form-control" value="{{ settings.opening_time or '' }}">
+                    </div>
+                    <div class="form-field-row mt-2">
+                      <label class="form-label form-field-label small fw-semibold">{{ _('Jam Tutup') }}</label>
+                      <input type="time" name="closing_time" class="form-control" value="{{ settings.closing_time or '' }}">
                     </div>
                     <div class="form-text">{{ _('Ditampilkan di struk. Kosongkan salah satu untuk sembunyikan.') }}</div>
                   </div>
@@ -380,7 +380,9 @@
                     </div>
                     <div class="form-field-row mt-2" style="--form-field-label-width: 110px;">
                       <label class="form-label form-field-label small">{{ _('Nama Printer') }}</label>
-                      <input type="text" name="receipt_printer_name" class="form-control" value="{{ settings.receipt_printer_name or '' }}" placeholder="{{ _('mis. POS-58') }}">
+                      <div style="flex: 0 0 220px; max-width: 220px;">
+                        <input type="text" name="receipt_printer_name" class="form-control" value="{{ settings.receipt_printer_name or '' }}" placeholder="{{ _('mis. POS-58') }}">
+                      </div>
                     </div>
                     <div class="form-text mt-1 mb-0">
                       {{ _('Nama PERSIS seperti tertera di Printers &amp; Scanners Windows di mini PC toko - dipakai server untuk cetak langsung ke printer itu, supaya tombol Cetak Struk tetap tercetak dengan benar walau ditekan dari tablet/HP. Kosongkan untuk pakai printer default Windows.') }}
