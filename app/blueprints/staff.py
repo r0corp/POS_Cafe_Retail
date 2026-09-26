@@ -66,6 +66,8 @@ from ..models import (
     ORDER_TYPE_OJOL,
     CHANNEL_PRICING_PERCENT,
     CHANNEL_PRICING_MANUAL,
+    RECEIPT_PAPER_WIDTHS,
+    RECEIPT_PRINT_WEIGHTS,
     PAYMENT_METHODS,
     ROLES,
     ROLE_LABELS,
@@ -1208,11 +1210,11 @@ def receipt_pdf(order_id):
         abort(404)
     settings = get_settings()
 
-    page_w = (58 if settings.receipt_paper_width == "58" else 80) * mm
+    page_w = float(settings.receipt_paper_width) * mm
     margin = 4 * mm
     content_w = page_w - 2 * margin
     line_h = 4.6 * mm
-    font_size = 8 if settings.receipt_paper_width == "58" else 9
+    font_size = RECEIPT_PAPER_WIDTHS.get(settings.receipt_paper_width, 8)
 
     logo_filename = (
         order.channel.logo if (order.channel and order.channel.logo)
@@ -1293,21 +1295,39 @@ def receipt_pdf(order_id):
         + n_lines * line_h + n_dividers * 2.5 * mm + 4 * mm
     )
 
+    # Ketebalan cetak ("thin"/"normal"/"bold") menimpa flag bold/muted per
+    # baris di atas - dipakai toko yang printernya sudah agak aus/pudar
+    # (butuh "bold" biar tetap kebaca) atau justru mau hemat tinta/panas
+    # head ("thin"). Lihat versi CSS-nya di receipt.html.
+    print_weight = settings.receipt_print_weight
+
+    def _bold_for(requested_bold):
+        if print_weight == "bold":
+            return True
+        if print_weight == "thin":
+            return False
+        return requested_bold
+
+    def _gray_for(base_gray):
+        if print_weight == "thin":
+            return min(0.55, base_gray + 0.25)
+        return base_gray
+
     buffer = io.BytesIO()
     c = pdf_canvas.Canvas(buffer, pagesize=(page_w, page_h))
     y = page_h - margin
 
     def center(text, bold=False, muted=False, size=None):
         nonlocal y
-        c.setFont("Courier-Bold" if bold else "Courier", size or font_size)
-        c.setFillGray(0.33 if muted else 0)
+        c.setFont("Courier-Bold" if _bold_for(bold) else "Courier", size or font_size)
+        c.setFillGray(_gray_for(0.33 if muted else 0))
         c.drawCentredString(page_w / 2, y - font_size * 0.8, _pdf_safe(text))
         y -= line_h
 
     def row(left, right, bold=False, muted=False):
         nonlocal y
-        c.setFont("Courier-Bold" if bold else "Courier", font_size)
-        c.setFillGray(0.27 if muted else 0)
+        c.setFont("Courier-Bold" if _bold_for(bold) else "Courier", font_size)
+        c.setFillGray(_gray_for(0.27 if muted else 0))
         c.drawString(margin, y - font_size * 0.8, _pdf_safe(left))
         c.drawRightString(page_w - margin, y - font_size * 0.8, _pdf_safe(right))
         y -= line_h
@@ -2395,7 +2415,10 @@ def admin_settings():
         settings.ppn_percentage = max(0.0, min(100.0, ppn_percentage))
 
         paper_width = request.form.get("receipt_paper_width", "58")
-        settings.receipt_paper_width = paper_width if paper_width in ("58", "80") else "58"
+        settings.receipt_paper_width = paper_width if paper_width in RECEIPT_PAPER_WIDTHS else "58"
+
+        print_weight = request.form.get("receipt_print_weight", "normal")
+        settings.receipt_print_weight = print_weight if print_weight in RECEIPT_PRINT_WEIGHTS else "normal"
         settings.address = request.form.get("address", "").strip() or None
         settings.phone = request.form.get("phone", "").strip() or None
         settings.instagram = request.form.get("instagram", "").strip() or None
@@ -3585,6 +3608,7 @@ def _factory_reset():
     settings.receipt_logo_choice = "wide"
     settings.navbar_display = "both"
     settings.receipt_paper_width = "58"
+    settings.receipt_print_weight = "normal"
     settings.ppn_enabled = False
     settings.ppn_percentage = 11.0
     settings.demo_settings_backup = None
