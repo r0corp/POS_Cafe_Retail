@@ -345,6 +345,13 @@
                         </select>
                       </div>
                     </div>
+                    <div class="form-field-row mt-2" style="--form-field-label-width: 110px;">
+                      <label class="form-label form-field-label small">{{ _('Nama Printer') }}</label>
+                      <input type="text" name="receipt_printer_name" class="form-control" value="{{ settings.receipt_printer_name or '' }}" placeholder="{{ _('mis. POS-58') }}">
+                    </div>
+                    <div class="form-text mt-1 mb-0">
+                      {{ _('Nama PERSIS seperti tertera di Printers &amp; Scanners Windows di mini PC toko - dipakai server untuk cetak langsung ke printer itu, supaya tombol Cetak Struk tetap tercetak dengan benar walau ditekan dari tablet/HP. Kosongkan untuk pakai printer default Windows.') }}
+                    </div>
                   </div>
                 </div>
 

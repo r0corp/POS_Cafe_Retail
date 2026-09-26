@@ -163,6 +163,14 @@ class Settings(db.Model):
     # printer thermal ukuran itu yang paling umum dipakai UMKM/warkop.
     receipt_paper_width = db.Column(db.String(5), nullable=False, default="58")
 
+    # Nama printer thermal PERSIS seperti tertera di "Printers & Scanners"
+    # Windows milik mini PC (bukan nama toko/produk) - dipakai server untuk
+    # cetak struk langsung ke printer itu (lihat _print_receipt_to_printer
+    # di staff.py), supaya tetap tercetak ke printer yang benar walau
+    # tombol "Cetak Struk" ditekan dari tablet/HP, bukan dari mini PC-nya
+    # sendiri. Kosong = pakai printer default Windows di mini PC.
+    receipt_printer_name = db.Column(db.String(100))
+
     # Sistem PPN (Pajak Pertambahan Nilai) - kalau aktif, dihitung dari
     # persentase ini dan ditambahkan otomatis ke total tagihan saat bayar
     # sampai ke struk. Tiap Order menyimpan snapshot persen & nominalnya

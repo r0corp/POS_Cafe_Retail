@@ -12,3 +12,4 @@ Babel==2.18.0
 pytz
 reportlab==5.0.1
 openpyxl==3.1.5
+pywin32==311; sys_platform == "win32"

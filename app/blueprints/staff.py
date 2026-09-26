@@ -16,6 +16,7 @@ from flask import (
     flash,
     g,
     has_request_context,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -1173,6 +1174,161 @@ def pay_order(order_id):
 
     flash(_("Pesanan #%(id)s ditandai sudah dibayar.", id=order.id), "success")
     return redirect(url_for("staff.receipt", order_id=order.id, just_paid=1))
+
+
+def _receipt_text_lines(order, settings):
+    """Susun struk sebagai baris-baris teks polos ASCII, urutan & isinya
+    disamakan persis dengan app/templates/staff/receipt.html - dipakai
+    untuk cetak RAW ke printer thermal (lihat _print_receipt_to_printer),
+    bukan buat ditampilkan di layar."""
+    width = 32 if settings.receipt_paper_width == "58" else 42
+    lines = []
+
+    def safe(text):
+        # Printer thermal murah (termasuk "POS-58" generik) biasanya cuma
+        # dukung ASCII/codepage bawaan - emoji atau tanda kutip pintar
+        # hasil copy-paste diganti '?' daripada bikin baris itu jadi
+        # karakter aneh (mojibake) atau nge-hang printernya.
+        return str(text).encode("ascii", errors="replace").decode("ascii")
+
+    def center(text):
+        text = safe(text)
+        pad = max(0, (width - len(text)) // 2)
+        lines.append(" " * pad + text)
+
+    def divider(ch="-"):
+        lines.append(ch * width)
+
+    def row(left, right):
+        left, right = safe(left), safe(right)
+        space = width - len(left) - len(right)
+        if space < 1:
+            lines.append(left)
+            lines.append(right.rjust(width))
+        else:
+            lines.append(left + " " * space + right)
+
+    def rupiah(n):
+        return "Rp " + "{:,}".format(n).replace(",", ".")
+
+    if order.channel and order.channel.logo:
+        center(order.channel.name)
+        center(settings.shop_name)
+    else:
+        center(settings.shop_name)
+        if settings.address:
+            center(settings.address)
+        if settings.phone:
+            center(_("Telp: %(phone)s", phone=settings.phone))
+    center(_("*** STRUK PEMBAYARAN ***"))
+    divider()
+
+    row(_("No. Struk"), f"#{order.id}")
+    row(_("Meja") if order.table else _("Jenis"), f"{order.display_label} ({order.display_sublabel})")
+    row(_("Tanggal"), (order.paid_at or order.created_at).strftime("%d/%m/%Y %H:%M"))
+    if order.served_by:
+        row(_("Kasir"), order.served_by)
+    divider()
+
+    for item in order.items:
+        lines.append(safe(item.name_snapshot))
+        row(
+            f"{item.quantity} x {'{:,}'.format(item.price_snapshot).replace(',', '.')}",
+            "{:,}".format(item.subtotal).replace(",", "."),
+        )
+
+    if order.ppn_amount:
+        divider()
+        row(_("Subtotal"), rupiah(order.total))
+        row(_("PPN %(pct)s%%", pct=round(order.ppn_percentage, 1)), rupiah(order.ppn_amount))
+
+    divider("=")
+    row(_("TOTAL"), rupiah(order.grand_total))
+    divider("=")
+
+    row(_("Bayar"), "Cash" if order.payment_method == "cash" else "QRIS")
+    if order.payment_method == "cash" and order.cash_received is not None:
+        row(_("Tunai"), rupiah(order.cash_received))
+        row(_("Kembalian"), rupiah(order.change_amount))
+
+    social_lines = []
+    if settings.instagram:
+        social_lines.append(_("IG: %(handle)s", handle=settings.instagram))
+    if settings.tiktok:
+        social_lines.append(_("TikTok: %(handle)s", handle=settings.tiktok))
+    if settings.whatsapp:
+        social_lines.append(_("WA: %(handle)s", handle=settings.whatsapp))
+    if settings.other_social:
+        social_lines.append(settings.other_social)
+    if social_lines:
+        divider()
+        for line in social_lines:
+            center(line)
+
+    center("Orulabs (c) 2026")
+    divider("=")
+    center(_("Terima kasih!"))
+    lines.append("")
+    lines.append("")
+
+    return lines
+
+
+def _print_receipt_to_printer(order, settings):
+    """Kirim struk sebagai RAW text LANGSUNG ke printer thermal yang
+    terpasang di server (mini PC) lewat win32print - BUKAN window.print()
+    browser. window.print() cuma bisa mencetak ke printer yang terpasang
+    di DEVICE yang menekan tombolnya sendiri, jadi percuma dipanggil dari
+    tablet/HP kalau printer thermal-nya nempel USB di mini PC. Dengan cara
+    ini, device apa pun yang menekan "Cetak Struk" tetap mencetak ke
+    printer yang sama (yang di server), karena eksekusi print-nya di sini,
+    bukan di browser si penekan tombol."""
+    try:
+        import win32print
+    except ImportError:
+        raise RuntimeError(
+            _("Modul pywin32 belum terpasang di server - jalankan 'pip install pywin32'.")
+        )
+
+    printer_name = settings.receipt_printer_name or win32print.GetDefaultPrinter()
+    text = "\n".join(_receipt_text_lines(order, settings)) + "\n"
+    # GS V 0 - perintah ESC/POS standar buat potong kertas otomatis,
+    # didukung hampir semua printer thermal termasuk model generik murah
+    # ("POS-58" dkk). Kalau printernya tidak dukung, byte ini biasanya
+    # cuma diabaikan (tidak bikin macet), bukan ikut tercetak jadi teks.
+    data = text.encode("ascii", errors="replace") + b"\x1d\x56\x00"
+
+    handle = win32print.OpenPrinter(printer_name)
+    try:
+        win32print.StartDocPrinter(handle, 1, ("Struk POS", None, "RAW"))
+        try:
+            win32print.StartPagePrinter(handle)
+            win32print.WritePrinter(handle, data)
+            win32print.EndPagePrinter(handle)
+        finally:
+            win32print.EndDocPrinter(handle)
+    finally:
+        win32print.ClosePrinter(handle)
+
+
+@staff_bp.route("/orders/<int:order_id>/print", methods=["POST"])
+@roles_required(ROLE_OWNER, ROLE_KASIR)
+def print_receipt(order_id):
+    """Dipanggil lewat fetch() dari tombol "Cetak Struk" - lihat
+    _print_receipt_to_printer untuk kenapa ini server-side, bukan
+    window.print()."""
+    order = Order.query.get_or_404(order_id)
+    if not order.is_paid:
+        return jsonify({"ok": False, "error": _("Pesanan belum dibayar.")}), 400
+
+    settings = get_settings()
+    try:
+        _print_receipt_to_printer(order, settings)
+    except Exception as e:
+        current_app.logger.exception("Gagal cetak struk #%s", order.id)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+    return jsonify({"ok": True})
 
 
 @staff_bp.route("/orders/<int:order_id>/receipt")
@@ -2396,6 +2552,7 @@ def admin_settings():
 
         paper_width = request.form.get("receipt_paper_width", "58")
         settings.receipt_paper_width = paper_width if paper_width in ("58", "80") else "58"
+        settings.receipt_printer_name = request.form.get("receipt_printer_name", "").strip() or None
         settings.address = request.form.get("address", "").strip() or None
         settings.phone = request.form.get("phone", "").strip() or None
         settings.instagram = request.form.get("instagram", "").strip() or None
