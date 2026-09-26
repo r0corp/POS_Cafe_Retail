@@ -592,7 +592,7 @@ def _draw_table_qr_card(c, table, settings, page_w, page_h, margin):
     y -= 5 * mm
     center_text(_("Lihat menu & pesan langsung dari HP Anda"), y, size=7.5, color=(0.53, 0.53, 0.53))
 
-    center_text("Orulabs © 2026", margin, size=7, color=(0.6, 0.6, 0.6))
+    center_text(settings.shop_name, margin, size=7, color=(0.6, 0.6, 0.6))
 
 
 @staff_bp.route("/tables/<int:table_id>/qr-print.pdf")
@@ -1275,6 +1275,7 @@ def _receipt_text_lines(order, settings):
         for line in social_lines:
             center(line)
 
+    center(settings.shop_name)
     divider("=")
     center(_("Terima kasih!"))
     lines.append("")
@@ -1465,7 +1466,7 @@ def receipt_pdf(order_id):
     n_lines = (
         len(header_lines) + len(info_rows) + len(item_lines)
         + len(ppn_rows) + 1 + len(payment_rows) + len(social_lines)
-        + 3  # "Terima kasih!" dan 2 baris jarak ekstra
+        + 4  # nama toko (footer), "Terima kasih!", dan 2 baris jarak ekstra
     )
     n_dividers = 3 + (1 if ppn_rows else 0) + (1 if social_lines else 0)
     page_h = (
@@ -1563,6 +1564,7 @@ def receipt_pdf(order_id):
         for line in social_lines:
             center(line)
 
+    center(settings.shop_name, muted=True, size=max(6, font_size - 1))
     divider(dashed=False)
     center(_("Terima kasih!"), bold=True)
 
