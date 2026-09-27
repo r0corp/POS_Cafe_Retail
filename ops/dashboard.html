@@ -111,6 +111,29 @@
     gap: 8px;
     margin-top: 14px;
   }
+  .action-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .action-group {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 10px 10px 12px;
+  }
+  .action-group-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .action-group .actions {
+    margin-top: 0;
+  }
   button {
     font-family: inherit;
     font-size: 13px;
@@ -795,14 +818,24 @@ function renderAgentCard(agent) {
     <div class="commit-body">
       <div class="empty-state">Memuat status...</div>
     </div>
-    <div class="actions">
-      <button class="btn-primary update-btn">Update Sekarang</button>
-      <button class="btn-secondary rollback-toggle-btn">Rollback</button>
-      <button class="btn-secondary logs-toggle-btn">Log</button>
-      <button class="btn-secondary backups-toggle-btn">Backup</button>
-      <button class="btn-secondary refresh-btn">Refresh</button>
-      <button class="btn-secondary edit-toggle-btn">Edit</button>
-      <button class="btn-danger remove-btn">Hapus</button>
+    <div class="action-groups">
+      <div class="action-group">
+        <div class="action-group-label">Deploy</div>
+        <div class="actions">
+          <button class="btn-primary update-btn">Update Sekarang</button>
+          <button class="btn-secondary rollback-toggle-btn">Rollback</button>
+          <button class="btn-secondary logs-toggle-btn">Log</button>
+          <button class="btn-secondary backups-toggle-btn">Backup</button>
+        </div>
+      </div>
+      <div class="action-group">
+        <div class="action-group-label">Kelola</div>
+        <div class="actions">
+          <button class="btn-secondary refresh-btn">Refresh</button>
+          <button class="btn-secondary edit-toggle-btn">Edit</button>
+          <button class="btn-danger remove-btn">Hapus</button>
+        </div>
+      </div>
     </div>
     <div class="rollback-panel" style="display:none;"></div>
     <div class="logs-panel" style="display:none;"></div>

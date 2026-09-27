@@ -33,6 +33,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
             android:layout_marginBottom="48dp"
+            android:background="@drawable/offline_actions_card_background"
             android:orientation="horizontal">
 
             <Button
