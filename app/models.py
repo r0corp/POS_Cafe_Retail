@@ -106,6 +106,22 @@ class LoginLog(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
 
 
+class PaymentNotification(db.Model):
+    """Notifikasi "uang QRIS masuk" yang diteruskan tablet kasir dari
+    notifikasi asli app BCA Merchant (lihat endpoint
+    /api/payment-notification di staff.py) - amount NULL berarti server
+    tidak berhasil menemukan nominal Rupiah di teks notifikasinya (lihat
+    _parse_qris_amount()), tapi raw_text tetap disimpan supaya bisa
+    dicek manual & pola regex-nya diperbaiki tanpa perlu bongkar APK."""
+
+    __tablename__ = "payment_notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Integer)
+    raw_text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+
 class Settings(db.Model):
     """Pengaturan identitas toko (nama, logo, footer) - cuma 1 baris
     (singleton), diedit lewat halaman /admin/settings (khusus Owner)."""
@@ -198,6 +214,15 @@ class Settings(db.Model):
     # Gambar QRIS statis/offline milik toko - ditunjukkan ke tamu saat
     # bayar QRIS langsung di meja (tanpa perlu ke kasir).
     qris_image = db.Column(db.String(255))
+
+    # Token rahasia buat endpoint /api/payment-notification (lihat
+    # staff.py) - dipakai tablet kasir (lewat listener notifikasi app
+    # BCA Merchant) buat lapor "uang QRIS masuk" ke server ini tanpa
+    # perlu login. NULLABLE & digenerate malas (lihat
+    # get_payment_notify_token()) - setiap instalasi toko dapat token
+    # SENDIRI-SENDIRI yang random, jadi tidak bisa ada satu nilai
+    # server_default yang sama buat semua baris lama.
+    payment_notify_token = db.Column(db.String(64))
 
     # Sebagian usaha (gerobak/kaki lima/booth) tidak punya meja sama
     # sekali - matikan ini supaya menu "Meja", opsi "Makan di Tempat" di

@@ -263,6 +263,170 @@ function startOrderPoller(options) {
   return { isMuted: isMuted, setMuted: setMuted };
 }
 
+// Poll berkala endpoint JSON berisi {payments: [{id, amount, created_at}]}
+// (notifikasi "uang QRIS masuk" dari listener BCA Merchant di tablet -
+// lihat receive_payment_notification() di staff.py), bunyikan chime +
+// tampilkan toast buat tiap ID baru. Beda dari startOrderPoller() karena
+// perlu bawa data nominal per item buat teks toast-nya, bukan cuma
+// deteksi "ada yang baru".
+function startPaymentNotificationPoller(options) {
+  const muteKey = options.muteKey;
+  let knownIds = null;
+
+  function isMuted() {
+    try {
+      return localStorage.getItem(muteKey) === "1";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setMuted(muted) {
+    try {
+      localStorage.setItem(muteKey, muted ? "1" : "0");
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function formatRupiah(n) {
+    return "Rp " + Number(n).toLocaleString("id-ID");
+  }
+
+  function poll() {
+    fetch(options.statusUrl)
+      .then((res) => {
+        if (!res.ok || res.redirected) throw new Error("poll failed");
+        return res.json();
+      })
+      .then((data) => {
+        const payments = data.payments || [];
+
+        if (knownIds === null) {
+          knownIds = new Set(payments.map((p) => p.id));
+          return;
+        }
+
+        const newOnes = payments.filter((p) => !knownIds.has(p.id));
+        knownIds = new Set(payments.map((p) => p.id));
+
+        if (newOnes.length === 0 || options.enabled === false || isMuted()) return;
+
+        newOnes.forEach((p) => {
+          playOrderChime(options.soundKey, options.volume, options.customSoundUrl);
+          if (window.showToast) {
+            window.showToast(
+              p.amount != null
+                ? (options.labelPrefix || "Uang masuk: ") + formatRupiah(p.amount)
+                : (options.unreadableLabel || "Ada notifikasi pembayaran QRIS baru (nominal tidak terbaca)"),
+              "success"
+            );
+          }
+        });
+      })
+      .catch(() => {});
+  }
+
+  setInterval(poll, options.intervalMs || 5000);
+
+  return { isMuted: isMuted, setMuted: setMuted };
+}
+
+// Toast generik yang bisa dipanggil kapan saja lewat JS (bukan cuma dari
+// flash message Jinja saat render awal halaman) - dipakai
+// startPaymentNotificationPoller() di atas. Markup & animasinya PERSIS
+// sama dengan toast flash bawaan (lihat base.html) supaya konsisten;
+// wireToastDismiss() sengaja dipisah dari markup-nya sendiri supaya bisa
+// dipakai ulang baik untuk toast yang di-render Jinja saat load maupun
+// yang dibikin dinamis di sini.
+const TOAST_ICONS = {
+  success: "bi-check-circle-fill",
+  danger: "bi-x-circle-fill",
+  warning: "bi-exclamation-triangle-fill",
+  info: "bi-info-circle-fill",
+};
+
+function wireToastDismiss(toast, durationMs) {
+  const DURATION_MS = durationMs || 5000;
+  const bar = toast.querySelector(".toast-progress");
+  const closeBtn = toast.querySelector(".toast-close");
+  let timer = null;
+
+  function dismiss() {
+    if (!toast.isConnected) return;
+    const rect = toast.getBoundingClientRect();
+    toast.style.maxHeight = rect.height + "px";
+    void toast.offsetHeight;
+    toast.classList.add("toast-out");
+    requestAnimationFrame(function () {
+      toast.style.maxHeight = "0px";
+      toast.style.marginBottom = "0px";
+      toast.style.paddingTop = "0px";
+      toast.style.paddingBottom = "0px";
+    });
+    let removed = false;
+    function remove() {
+      if (removed) return;
+      removed = true;
+      toast.remove();
+    }
+    toast.addEventListener("transitionend", function onEnd(e) {
+      if (e.propertyName === "max-height") {
+        toast.removeEventListener("transitionend", onEnd);
+        remove();
+      }
+    });
+    setTimeout(remove, 500);
+  }
+
+  function startTimer() {
+    if (bar) {
+      bar.style.animationDuration = DURATION_MS + "ms";
+      bar.style.animationPlayState = "running";
+    }
+    timer = setTimeout(dismiss, DURATION_MS);
+  }
+
+  function pauseTimer() {
+    clearTimeout(timer);
+    if (bar) bar.style.animationPlayState = "paused";
+  }
+
+  startTimer();
+  toast.addEventListener("mouseenter", pauseTimer);
+  toast.addEventListener("mouseleave", startTimer);
+  if (closeBtn) {
+    closeBtn.addEventListener("click", function () {
+      clearTimeout(timer);
+      dismiss();
+    });
+  }
+}
+
+function showToast(message, category) {
+  let stack = document.getElementById("toastStack");
+  if (!stack) {
+    stack = document.createElement("div");
+    stack.className = "toast-stack";
+    stack.id = "toastStack";
+    const container = document.querySelector(".container-fluid");
+    if (!container) return;
+    container.insertBefore(stack, container.firstChild);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = "toast-item toast-" + (category || "info");
+  toast.setAttribute("role", "alert");
+  toast.innerHTML =
+    '<span class="toast-icon"><i class="bi ' + (TOAST_ICONS[category] || TOAST_ICONS.info) + '"></i></span>' +
+    '<span class="toast-body"></span>' +
+    '<button type="button" class="toast-close" aria-label="Close"><i class="bi bi-x"></i></button>' +
+    '<span class="toast-progress"></span>';
+  toast.querySelector(".toast-body").textContent = message;
+  stack.appendChild(toast);
+  wireToastDismiss(toast);
+}
+
 // Dipasang di tombol toggle suara supaya ikonnya berubah & preferensi
 // tersimpan. Panggil sekali setelah startOrderPoller().
 function wireMuteToggle(buttonId, iconId, poller) {

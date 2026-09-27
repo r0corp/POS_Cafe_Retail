@@ -581,8 +581,8 @@
     window.adjustFooterClearance = adjustFooterClearance;
   })();
 </script>
-{% if current_user.is_authenticated and current_user.role in ('owner', 'dapur', 'kasir', 'pelayan') %}
 <script src="{{ url_for('static', filename='js/notify.js') }}"></script>
+{% if current_user.is_authenticated and current_user.role in ('owner', 'dapur', 'kasir', 'pelayan') %}
 <script>
   // Notifikasi suara dipasang GLOBAL di sini (bukan cuma di halaman
   // Dapur/Kasir) supaya tetap bunyi meski staf sedang buka halaman lain
@@ -665,69 +665,25 @@
 <script>
   // Toast notifikasi (pengganti alert lebar-penuh lama) - auto-hilang
   // sendiri setelah beberapa detik dengan progress-bar, jeda kalau
-  // di-hover, dan bisa ditutup manual lewat tombol "x".
-  (function () {
-    var DURATION_MS = 5000;
-    document.querySelectorAll(".toast-item").forEach(function (toast) {
-      var bar = toast.querySelector(".toast-progress");
-      var closeBtn = toast.querySelector(".toast-close");
-      var timer = null;
+  // di-hover, dan bisa ditutup manual lewat tombol "x". Logikanya ada di
+  // wireToastDismiss() (notify.js) supaya bisa dipakai ulang juga untuk
+  // toast yang dibikin dinamis lewat JS (lihat showToast(), dipakai
+  // notifikasi "uang QRIS masuk" di bawah).
+  document.querySelectorAll(".toast-item").forEach(function (toast) {
+    wireToastDismiss(toast);
+  });
 
-      function dismiss() {
-        if (!toast.isConnected) return;
-        // Kunci dulu tinggi aslinya (px persis, bukan "auto") supaya
-        // max-height bisa dianimasikan turun ke 0 secara mulus - toast
-        // lain di bawahnya otomatis ikut naik pelan mengikuti collapse
-        // ini, tanpa perlu hitung posisi manual per-toast.
-        var rect = toast.getBoundingClientRect();
-        toast.style.maxHeight = rect.height + "px";
-        void toast.offsetHeight; // paksa reflow biar nilai di atas kepakai dulu
-        toast.classList.add("toast-out");
-        requestAnimationFrame(function () {
-          toast.style.maxHeight = "0px";
-          toast.style.marginBottom = "0px";
-          toast.style.paddingTop = "0px";
-          toast.style.paddingBottom = "0px";
-        });
-        var removed = false;
-        function remove() {
-          if (removed) return;
-          removed = true;
-          toast.remove();
-        }
-        toast.addEventListener("transitionend", function onEnd(e) {
-          if (e.propertyName === "max-height") {
-            toast.removeEventListener("transitionend", onEnd);
-            remove();
-          }
-        });
-        setTimeout(remove, 500); // jaga-jaga kalau transitionend tidak jalan
-      }
-
-      function startTimer() {
-        if (bar) {
-          bar.style.animationDuration = DURATION_MS + "ms";
-          bar.style.animationPlayState = "running";
-        }
-        timer = setTimeout(dismiss, DURATION_MS);
-      }
-
-      function pauseTimer() {
-        clearTimeout(timer);
-        if (bar) bar.style.animationPlayState = "paused";
-      }
-
-      startTimer();
-      toast.addEventListener("mouseenter", pauseTimer);
-      toast.addEventListener("mouseleave", startTimer);
-      if (closeBtn) {
-        closeBtn.addEventListener("click", function () {
-          clearTimeout(timer);
-          dismiss();
-        });
-      }
+  {% if current_user.is_authenticated and current_user.role in ('owner', 'kasir') %}
+    window.globalPaymentNotifPoller = startPaymentNotificationPoller({
+      statusUrl: "{{ url_for('staff.payment_notification_status') }}",
+      muteKey: "cafepos_mute_payment",
+      intervalMs: 5000,
+      soundKey: MY_ROLE_SOUND,
+      customSoundUrl: CUSTOM_SOUND_URL,
+      volume: NOTIF_VOLUME,
+      enabled: NOTIF_ENABLED,
     });
-  })();
+  {% endif %}
 </script>
 {% block scripts %}{% endblock %}
 </body>

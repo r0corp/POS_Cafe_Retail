@@ -2,11 +2,13 @@ from datetime import datetime, time, timedelta
 from xml.sax.saxutils import escape as xml_escape
 
 import qrcode
+import hmac
 import json
 import math
 import os
 import random
 import re
+import secrets
 import shutil
 
 from flask import (
@@ -34,7 +36,7 @@ from sqlalchemy import event, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from .. import db
+from .. import csrf, db
 from ..backup import write_backup_zip
 from ..decorators import roles_required
 from ..inventory import check_and_deduct_stock, restore_stock_for_order
@@ -55,6 +57,7 @@ from ..models import (
     Settings,
     User,
     LoginLog,
+    PaymentNotification,
     floor_display_name,
     generate_order_pin,
     parse_quantity_fields,
@@ -221,6 +224,20 @@ def get_settings():
         db.session.commit()
 
     return settings
+
+
+def get_payment_notify_token():
+    """Token rahasia buat endpoint /api/payment-notification - digenerate
+    sekali (lazy, sama polanya dengan secret_key.txt di umkm_app.py) lalu
+    disimpan permanen di Settings, supaya tablet kasir (listener
+    notifikasi BCA Merchant) punya kredensial tetap tanpa perlu Owner
+    isi manual di mana pun."""
+
+    settings = get_settings()
+    if not settings.payment_notify_token:
+        settings.payment_notify_token = secrets.token_urlsafe(32)
+        db.session.commit()
+    return settings.payment_notify_token
 
 
 def _upload_folder(subfolder):
@@ -1014,6 +1031,83 @@ def paid_order_status():
         ).all()
     ]
     return {"order_ids": signatures}
+
+
+# Cuma pola "Rp1.234" / "Rp 1.234,00" biasa - keharusan kata "qris" di
+# teksnya (dicek terpisah, lihat _parse_qris_amount) yang sebenarnya
+# jadi penyaring utama supaya notifikasi BCA Merchant LAIN (mutasi
+# transfer, laporan harian, dst - yang juga menyebut "Rp") tidak ikut
+# kesangkut jadi "uang masuk" palsu.
+_QRIS_AMOUNT_RE = re.compile(r"rp\.?\s*([\d.,]+)", re.IGNORECASE)
+
+
+def _parse_qris_amount(raw_text):
+    """Coba temukan nominal Rupiah dari teks notifikasi asli app BCA
+    Merchant. Ini TEBAKAN BERBASIS POLA (tidak ada dokumentasi resmi
+    format notifikasinya) - kalau ternyata tidak cocok dengan notifikasi
+    sungguhan nanti, cukup perbaiki regex ini saja (server-side, tidak
+    perlu bongkar/build ulang APK tablet)."""
+
+    if "qris" not in raw_text.lower():
+        return None
+
+    match = _QRIS_AMOUNT_RE.search(raw_text)
+    if not match:
+        return None
+
+    digits = re.sub(r"[^\d]", "", match.group(1))
+    if not digits:
+        return None
+
+    return int(digits)
+
+
+@staff_bp.route("/api/payment-notification", methods=["POST"])
+@csrf.exempt
+def receive_payment_notification():
+    """Dipanggil tablet kasir (NotificationListenerService di APK
+    Hotatos) tiap kali ada notifikasi baru dari app BCA Merchant di HP
+    yang sama - lihat get_payment_notify_token() & PaymentNotification.
+    SENGAJA tanpa @login_required/CSRF (ini panggilan mesin-ke-mesin
+    dari background service Android, bukan dari WebView yang login),
+    diamankan lewat token rahasia di header sendiri."""
+
+    supplied_token = request.headers.get("X-Payment-Token", "")
+    if not hmac.compare_digest(supplied_token, get_payment_notify_token()):
+        return {"error": "unauthorized"}, 403
+
+    raw_text = (request.get_json(silent=True) or {}).get("raw_text", "").strip()
+    if not raw_text:
+        return {"error": "raw_text kosong"}, 400
+
+    notif = PaymentNotification(raw_text=raw_text, amount=_parse_qris_amount(raw_text))
+    db.session.add(notif)
+    db.session.commit()
+
+    return {"ok": True, "amount": notif.amount}
+
+
+@staff_bp.route("/payment-notifications/status")
+@roles_required(ROLE_OWNER, ROLE_KASIR)
+def payment_notification_status():
+    """Dipoll global (base.html, Owner & Kasir) buat bunyi + toast "uang
+    QRIS masuk" - cuma 15 menit terakhir supaya tidak makin panjang
+    seiring waktu toko buka (staf yang baru buka halaman jam siang tidak
+    perlu dengar notifikasi transaksi jam pagi yang sudah lewat)."""
+
+    cutoff = datetime.now() - timedelta(minutes=15)
+    notifs = (
+        PaymentNotification.query.filter(PaymentNotification.created_at >= cutoff)
+        .order_by(PaymentNotification.created_at.asc())
+        .limit(20)
+        .all()
+    )
+    return {
+        "payments": [
+            {"id": n.id, "amount": n.amount, "created_at": n.created_at.isoformat()}
+            for n in notifs
+        ]
+    }
 
 
 @staff_bp.route("/orders/<int:order_id>/cancel", methods=["POST"])
@@ -2920,6 +3014,7 @@ def _system_tab_context():
         "channels": channels,
         "CHANNEL_PRICING_PERCENT": CHANNEL_PRICING_PERCENT,
         "CHANNEL_PRICING_MANUAL": CHANNEL_PRICING_MANUAL,
+        "payment_notify_token": get_payment_notify_token(),
     }
 
 

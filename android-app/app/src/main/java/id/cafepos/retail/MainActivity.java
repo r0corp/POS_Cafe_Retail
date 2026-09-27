@@ -1,12 +1,16 @@
 package id.cafepos.retail;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Bundle;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
+import android.provider.Settings;
+import android.text.TextUtils;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
@@ -97,6 +101,48 @@ public class MainActivity extends AppCompatActivity {
         });
 
         webView.loadUrl(serverUrl);
+
+        requestNotificationAccessIfNeeded();
+    }
+
+    /** "Akses Notifikasi" BUKAN permission biasa (tidak ada dialog Allow/
+     * Deny bawaan) - satu-satunya cara memintanya adalah arahkan user ke
+     * halaman Setelan khusus ini, satu kali, lalu mereka aktifkan manual
+     * buat aplikasi ini. Dipanggil tiap app dibuka SELAMA belum aktif -
+     * begitu sudah diaktifkan sekali, tidak akan muncul lagi selamanya
+     * (kecuali user sendiri yang matikan lagi dari Setelan). Fitur
+     * "dengar notifikasi BCA Merchant" (lihat
+     * PaymentNotificationListenerService) tidak akan jalan sebelum ini
+     * diaktifkan, tapi sisa aplikasi tetap berfungsi normal walau ini
+     * belum/tidak pernah diaktifkan. */
+    private void requestNotificationAccessIfNeeded() {
+        if (isNotificationServiceEnabled()) return;
+
+        Toast.makeText(
+                this,
+                "Aktifkan \"Akses Notifikasi\" untuk " + getString(R.string.app_name)
+                        + " supaya notifikasi pembayaran QRIS BCA Merchant bisa terdeteksi.",
+                Toast.LENGTH_LONG
+        ).show();
+        try {
+            startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+        } catch (Exception e) {
+            // Beberapa custom ROM Android tidak punya halaman Setelan ini -
+            // biarkan saja, sisa aplikasi tetap jalan normal tanpa fitur ini.
+        }
+    }
+
+    private boolean isNotificationServiceEnabled() {
+        String flat = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+        if (TextUtils.isEmpty(flat)) return false;
+
+        for (String name : flat.split(":")) {
+            ComponentName cn = ComponentName.unflattenFromString(name);
+            if (cn != null && TextUtils.equals(getPackageName(), cn.getPackageName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void setupWebView(String serverUrl) {

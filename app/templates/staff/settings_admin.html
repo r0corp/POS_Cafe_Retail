@@ -947,6 +947,27 @@
             </div>
           </div>
         </div>
+
+        <div class="row g-4 mt-0">
+          <div class="col-12 d-flex flex-column">
+            <div class="settings-section-title">
+              <span class="settings-section-num">6</span> {{ _('Notifikasi Pembayaran QRIS') }}
+            </div>
+            <div class="card flex-grow-1">
+              <div class="card-body system-card-body">
+                <p class="text-muted small">
+                  {{ _('Token ini dipakai tablet kasir (fitur dengar notifikasi BCA Merchant) supaya bisa lapor "uang QRIS masuk" ke server ini. Cukup ditempel sekali ke pengaturan APK Hotatos di tablet - tidak perlu diketik ulang setelahnya.') }}
+                </p>
+                <div class="input-group" style="max-width: 480px;">
+                  <input type="text" class="form-control" id="paymentNotifyToken" value="{{ payment_notify_token }}" readonly>
+                  <button type="button" class="btn btn-outline-secondary" id="copyPaymentTokenBtn">
+                    <i class="bi bi-clipboard"></i> {{ _('Salin') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
           </div>
@@ -968,6 +989,20 @@
   // jadi token CSRF-nya diambil dari meta tag di base.html, bukan dari
   // input hidden csrf_token seperti form-form lain di halaman ini.
   const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+  (function () {
+    const btn = document.getElementById("copyPaymentTokenBtn");
+    const input = document.getElementById("paymentNotifyToken");
+    if (!btn || !input) return;
+    btn.addEventListener("click", function () {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(input.value).catch(function () {});
+      } else {
+        input.select();
+        document.execCommand("copy");
+      }
+    });
+  })();
 
   // Tombol "Hapus Logo" di tiap kartu Platform Delivery - begitu diklik,
   // centang checkbox remove_logo (tersembunyi) lalu tukar tampilannya
