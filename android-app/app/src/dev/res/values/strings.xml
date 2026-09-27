@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Oru POS DEV</string>
+    <!-- Varian khusus testing dari laptop dev - arahkan ke IP Tailscale
+         laptop kontrol, BUKAN IP mini PC toko (lihat main/res/values).
+
+         WAJIB diganti sebelum build - isi IP Tailscale laptop dev yang
+         sebenarnya (lihat `tailscale ip -4` di laptop itu). -->
+    <string name="server_url">http://100.0.0.1:8000</string>
+    <string name="offline_message">Tidak bisa terhubung ke laptop dev. Pastikan laptop menyala, aplikasi POS-nya jalan, dan Tailscale di HP ini aktif, lalu coba lagi.</string>
+</resources>

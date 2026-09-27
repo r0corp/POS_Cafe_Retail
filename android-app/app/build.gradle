@@ -20,6 +20,22 @@ android {
         }
     }
 
+    // "prod" = APK toko asli (arah ke mini PC toko, lihat main/res).
+    // "dev" = APK testing khusus, arah ke laptop dev lewat Tailscale
+    // (lihat src/dev/res) - applicationId beda supaya bisa dipasang
+    // berdampingan dengan APK toko di HP yang sama tanpa bentrok.
+    flavorDimensions "environment"
+    productFlavors {
+        prod {
+            dimension "environment"
+        }
+        dev {
+            dimension "environment"
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
