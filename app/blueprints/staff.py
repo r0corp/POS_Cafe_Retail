@@ -1066,8 +1066,8 @@ def _parse_qris_amount(raw_text):
 @csrf.exempt
 def receive_payment_notification():
     """Dipanggil tablet kasir (NotificationListenerService di APK
-    Hotatos) tiap kali ada notifikasi baru dari app BCA Merchant di HP
-    yang sama - lihat get_payment_notify_token() & PaymentNotification.
+    kasir Android) tiap kali ada notifikasi baru dari app BCA Merchant di
+    HP yang sama - lihat get_payment_notify_token() & PaymentNotification.
     SENGAJA tanpa @login_required/CSRF (ini panggilan mesin-ke-mesin
     dari background service Android, bukan dari WebView yang login),
     diamankan lewat token rahasia di header sendiri."""

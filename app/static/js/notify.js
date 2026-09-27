@@ -379,7 +379,7 @@ function numberToWordsEN(n) {
 
 // Ucapkan "Uang masuk, lima puluh ribu rupiah" (atau versi Inggrisnya)
 // lewat Text-to-Speech - lewat jembatan Android (window.AndroidTTS, lihat
-// MainActivity.java) kalau dibuka dari APK Hotatos, atau lewat
+// MainActivity.java) kalau dibuka dari APK kasir Android, atau lewat
 // speechSynthesis bawaan browser sebagai cadangan (dipakai kalau halaman
 // ini dibuka dari laptop/browser biasa, bukan tablet). Diam saja (tidak
 // error) kalau dua-duanya tidak tersedia - toast & bunyi 'ting' tetap
