@@ -45,7 +45,12 @@ def login():
             flash(_("Terlalu banyak percobaan login gagal. Coba lagi beberapa menit lagi."), "danger")
             return render_template("auth/login.html")
 
-        user = User.query.filter_by(username=username).first()
+        # Case-insensitive - keyboard virtual Android suka meng-kapital-kan
+        # huruf pertama field teks biasa tanpa disadari pemakai (password
+        # aman karena type="password" tidak kena auto-capitalize), jadi
+        # username yang tersimpan bisa beda besar/kecil huruf dari yang
+        # diketik ulang saat login.
+        user = User.query.filter(db.func.lower(User.username) == username.lower()).first()
 
         if user and user.is_active_user and user.check_password(password):
             clear_failures(rate_key)

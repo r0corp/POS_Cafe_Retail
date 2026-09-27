@@ -25,7 +25,7 @@
     <form method="post" class="login-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="login-field">
-        <input type="text" id="loginUsername" name="username" class="login-input" required autofocus autocomplete="username" placeholder="{{ _('Username') }}">
+        <input type="text" id="loginUsername" name="username" class="login-input" required autofocus autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="{{ _('Username') }}">
       </div>
       <div class="login-field">
         <div class="login-input-wrap">

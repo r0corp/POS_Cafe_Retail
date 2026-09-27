@@ -13,7 +13,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="mb-2 form-field-row">
             <label class="form-label form-field-label small">{{ _('Username') }}</label>
-            <input type="text" name="username" class="form-control" required>
+            <input type="text" name="username" class="form-control" required autocapitalize="off" autocorrect="off" spellcheck="false">
           </div>
           <div class="mb-2 form-field-row">
             <label class="form-label form-field-label small">{{ _('Password') }}</label>

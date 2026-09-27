@@ -2489,7 +2489,10 @@ def admin_users():
 
         if not username or not password or role not in ROLES:
             flash(_("Isi username, password, dan role dengan benar."), "danger")
-        elif User.query.filter_by(username=username).first():
+        elif User.query.filter(db.func.lower(User.username) == username.lower()).first():
+            # Case-insensitive - cegah "budi" dan "Budi" ke-anggap 2 akun
+            # beda (lihat juga catatan di auth.py soal auto-capitalize
+            # keyboard Android).
             flash(_("Username sudah dipakai."), "danger")
         else:
             user = User(username=username, role=role)
