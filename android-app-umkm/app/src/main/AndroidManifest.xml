@@ -13,6 +13,12 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
+    <!-- Simpan file backup .zip ke folder Download - cuma wajib runtime
+         permission di Android lama (API < 29), versi baru sudah
+         dikecualikan dari scoped storage untuk folder publik lewat
+         DownloadManager. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+
     <application
         android:allowBackup="true"
         android:label="@string/app_name"
