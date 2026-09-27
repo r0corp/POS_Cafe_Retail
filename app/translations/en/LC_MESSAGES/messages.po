@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-27 13:09+0700\n"
+"POT-Creation-Date: 2026-09-27 13:16+0700\n"
 "PO-Revision-Date: 2026-09-14 19:34+0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -124,7 +124,6 @@ msgstr "Dashboard"
 #: app/blueprints/staff.py:1237 app/blueprints/staff.py:1427
 #: app/blueprints/staff.py:2253 app/blueprints/staff.py:2384 app/nav.py:16
 #: app/templates/staff/order_new.html:55 app/templates/staff/receipt.html:226
-#: app/templates/staff/table_map.html:2 app/templates/staff/table_map.html:5
 msgid "Meja"
 msgstr "Table"
 
@@ -2653,6 +2652,10 @@ msgstr ""
 #: app/templates/staff/settings_admin.html:930
 msgid "Simpan Pengaturan"
 msgstr "Save Settings"
+
+#: app/templates/staff/table_map.html:2 app/templates/staff/table_map.html:5
+msgid "Daftar Meja"
+msgstr "Table List"
 
 #: app/templates/staff/table_map.html:11
 msgid "Tambah Meja Baru"
