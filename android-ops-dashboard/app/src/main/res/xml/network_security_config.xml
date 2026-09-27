@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <!-- Dashboard jalan di HTTP biasa lewat Tailscale (terenkripsi di
-         level WireGuard-nya sendiri, bukan lewat HTTPS/TLS), jadi
-         cleartext cuma diizinkan khusus ke IP Tailscale laptop kontrol -
-         bukan ke semua domain.
+         level WireGuard-nya sendiri, bukan lewat HTTPS/TLS). Halaman
+         dashboard sendiri di-load dari IP laptop kontrol, tapi begitu
+         terbuka, javascript-nya connect LANGSUNG dari HP ke tiap mini
+         PC yang terdaftar (IP beda-beda, ditambah dinamis lewat form
+         "Tambah Mini PC") - jadi tidak bisa dibatasi ke satu IP saja.
 
-         WAJIB diganti sebelum build - samakan dengan IP di server_url
-         (res/values/strings.xml). -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">100.0.0.1</domain>
-    </domain-config>
+         Cleartext diizinkan untuk semua domain di sini karena app ini
+         cuma pernah dipakai di dalam jaringan privat Tailscale (bukan
+         internet terbuka), dan tiap request ke mini PC tetap wajib
+         AGENT_TOKEN yang benar. -->
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>
