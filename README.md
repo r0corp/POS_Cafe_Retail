@@ -292,10 +292,15 @@ Build APK debug (butuh JDK 17 + Android SDK terpasang):
 
 ```bash
 cd android-app
-.\gradlew.bat assembleDebug
+.\gradlew.bat assembleProdDebug
 ```
 
-Hasilnya ada di `android-app/app/build/outputs/apk/debug/app-debug.apk`.
+Hasilnya ada di `android-app/app/build/outputs/apk/prod/debug/app-prod-debug.apk`.
+
+Ada juga flavor `dev` (`assembleDevDebug`, isi `server_url`-nya di
+`android-app/app/src/dev/res/values/strings.xml`) - APK terpisah (beda
+applicationId, ikon dikasih label "DEV") buat testing dari HP ke laptop
+dev, tanpa mengubah konfigurasi APK toko yang asli.
 
 Folder `android-ops-dashboard/` sama polanya, tapi untuk Dashboard Kontrol
 Deploy (`ops/dashboard.html`) - dipakai developer/IT sendiri, bukan staf
