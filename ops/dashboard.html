@@ -39,6 +39,45 @@
     max-width: 1100px;
     margin: 0 auto;
   }
+  .title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .lang-switch {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .lang-flag-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px;
+    border-radius: 5px;
+    line-height: 1;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    opacity: 0.45;
+    filter: grayscale(70%);
+    transition: opacity 0.15s ease, filter 0.15s ease, background 0.15s ease;
+  }
+  .lang-flag-btn svg {
+    width: 22px;
+    height: 15px;
+    border-radius: 2px;
+    display: block;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+  }
+  .lang-flag-btn:hover { opacity: 0.8; filter: grayscale(20%); }
+  .lang-flag-btn.active {
+    opacity: 1;
+    filter: none;
+    background: rgba(240,120,40,0.18);
+  }
   #agentList {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -307,45 +346,244 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Orulabs POS &middot; Kontrol Deploy</h1>
-  <p class="subtitle">Pantau versi kode yang jalan di tiap instalasi POS, dan update dari jarak jauh lewat Tailscale.</p>
+  <div class="title-row">
+    <div>
+      <h1 data-i18n="title">Orulabs POS &middot; Kontrol Deploy</h1>
+      <p class="subtitle" data-i18n="subtitle">Pantau versi kode yang jalan di tiap instalasi POS, dan update dari jarak jauh lewat Tailscale.</p>
+    </div>
+    <div class="lang-switch">
+      <button type="button" class="lang-flag-btn" id="langBtnId" title="Bahasa Indonesia" onclick="setLang('id')">
+        <svg viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="1" fill="#e70011"/><rect width="3" height="1" y="1" fill="#fff"/></svg>
+      </button>
+      <button type="button" class="lang-flag-btn" id="langBtnEn" title="English" onclick="setLang('en')">
+        <svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg">
+          <rect width="60" height="30" fill="#00247d"/>
+          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#cf142b" stroke-width="2"/>
+          <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
+          <path d="M30,0 V30 M0,15 H60" stroke="#cf142b" stroke-width="6"/>
+        </svg>
+      </button>
+    </div>
+  </div>
 
   <div class="card" id="addCard">
     <div class="agent-header add-toggle" onclick="toggleAddForm()">
-      <div class="agent-name">+ Tambah Mini PC</div>
+      <div class="agent-name" data-i18n="addMiniPc">+ Tambah Mini PC</div>
       <span class="add-toggle-icon" id="addToggleIcon">&#x25B8;</span>
     </div>
     <div class="add-form-body" id="addFormBody" style="display:none;">
       <div class="agent-header" style="margin-bottom: 12px;">
-        <span class="agent-host">Cari mini PC yang sudah terinstall (agent) tapi belum terdaftar di sini:</span>
-        <button class="btn-secondary" onclick="discoverDevices()" id="discoverBtn">&#x1F50D; Cari Device di Tailscale</button>
+        <span class="agent-host" data-i18n="searchHint">Cari mini PC yang sudah terinstall (agent) tapi belum terdaftar di sini:</span>
+        <button class="btn-secondary" onclick="discoverDevices()" id="discoverBtn" data-i18n="searchBtn">&#x1F50D; Cari Device di Tailscale</button>
       </div>
       <div id="discoverResults"></div>
       <div class="add-form">
-        <input type="text" id="newName" placeholder="Nama (mis. Cafe Cakung)">
-        <input type="text" id="newHost" placeholder="IP Tailscale (mis. 100.92.108.118)">
-        <input type="text" id="newPort" placeholder="Port (default 8787)">
-        <input type="text" id="newToken" placeholder="Token (dari ops/.env di mini PC itu)">
+        <input type="text" id="newName" data-i18n-placeholder="nameHolder" placeholder="Nama (mis. Cafe Cakung)">
+        <input type="text" id="newHost" data-i18n-placeholder="hostHolder" placeholder="IP Tailscale (mis. 100.92.108.118)">
+        <input type="text" id="newPort" data-i18n-placeholder="portHolder" placeholder="Port (default 8787)">
+        <input type="text" id="newToken" data-i18n-placeholder="tokenHolder" placeholder="Token (dari ops/.env di mini PC itu)">
       </div>
-      <button class="btn-primary" onclick="addAgent()" id="addAgentBtn">Tambah</button>
+      <button class="btn-primary" onclick="addAgent()" id="addAgentBtn" data-i18n="addBtn">Tambah</button>
     </div>
   </div>
 
   <div class="top-actions">
     <span class="device-count" id="deviceCount"></span>
     <div style="display:flex; gap:8px;">
-      <button class="btn-secondary" onclick="refreshAll()">&#x21bb; Refresh Semua</button>
+      <button class="btn-secondary" onclick="refreshAll()" data-i18n="refreshAllBtn">&#x21bb; Refresh Semua</button>
       <form method="post" action="/logout" style="margin:0;">
-        <button type="submit" class="btn-secondary">Keluar</button>
+        <button type="submit" class="btn-secondary" data-i18n="logoutBtn">Keluar</button>
       </form>
     </div>
   </div>
 
   <div id="agentList"></div>
-  <div id="emptyState" class="empty-state" style="display:none;">Belum ada mini PC terdaftar - tambahkan lewat form di atas.</div>
+  <div id="emptyState" class="empty-state" style="display:none;" data-i18n="emptyState">Belum ada mini PC terdaftar - tambahkan lewat form di atas.</div>
 </div>
 
 <script>
+const I18N = {
+  id: {
+    title: "Orulabs POS &middot; Kontrol Deploy",
+    subtitle: "Pantau versi kode yang jalan di tiap instalasi POS, dan update dari jarak jauh lewat Tailscale.",
+    addMiniPc: "+ Tambah Mini PC",
+    searchHint: "Cari mini PC yang sudah terinstall (agent) tapi belum terdaftar di sini:",
+    searchBtn: "\u{1F50D} Cari Device di Tailscale",
+    searching: "Mencari...",
+    nameHolder: "Nama (mis. Cafe Cakung)",
+    hostHolder: "IP Tailscale (mis. 100.92.108.118)",
+    portHolder: "Port (default 8787)",
+    tokenHolder: "Token (dari ops/.env di mini PC itu)",
+    addBtn: "Tambah",
+    refreshAllBtn: "↻ Refresh Semua",
+    logoutBtn: "Keluar",
+    emptyState: "Belum ada mini PC terdaftar - tambahkan lewat form di atas.",
+    deviceCount: (n) => `${n} mini PC terdaftar`,
+    deployGroup: "Deploy",
+    manageGroup: "Kelola",
+    updateBtn: "Update",
+    rollbackBtn: "Rollback",
+    logBtn: "Log",
+    backupBtn: "Backup",
+    refreshBtn: "Refresh",
+    editBtn: "Edit",
+    saveBtn: "Simpan",
+    cancelBtn: "Batal",
+    removeBtn: "Hapus",
+    checkingBadge: "Mengecek...",
+    offlineBadge: "Tidak terhubung",
+    uptodateBadge: "Sudah terbaru",
+    outdatedBadge: "Ada update",
+    runningLabel: "Jalan",
+    latestLabel: "Terbaru",
+    serviceLabel: "Service",
+    checkedAt: (d) => `Dicek: ${d}`,
+    loadingStatus: "Memuat status...",
+    loadingCommits: "Memuat riwayat commit...",
+    loadingLogs: "Memuat log...",
+    loadingBackups: "Memuat daftar backup...",
+    activeBadge: "Aktif",
+    verifyBtn: "Verifikasi",
+    verifying: "Memeriksa...",
+    fillNameHostToken: "Isi nama, IP Tailscale, dan token dulu.",
+    confirmRemove: "Hapus mini PC ini dari daftar? (Tidak menghapus/mematikan agent di mini PC-nya, cuma dari daftar di dashboard ini.)",
+    failAdd: "Gagal menambahkan.",
+    failSave: "Gagal menyimpan perubahan.",
+    noNewDevices: "Tidak ada device baru di tailnet (atau semuanya sudah terdaftar).",
+    failDiscover: (msg) => `Gagal cari device: ${msg}. (Fitur ini butuh dashboard dibuka lewat http://localhost:8790, bukan file lokal.)`,
+    cannotConnect: "Tidak bisa terhubung (cek Tailscale & agent-nya masih hidup).",
+    tokenWrong: "Token salah/ditolak.",
+    processing: "Memproses...",
+    runningUpdate: "Menjalankan update, mohon tunggu...",
+    runningRollback: "Menjalankan rollback, mohon tunggu...",
+    fail: (msg) => `Gagal: ${msg}`,
+    updateCancelled: (log) => `Update dibatalkan (aplikasi POS tidak disentuh):\n\n${log}`,
+    updateDone: (before, after) => `Update selesai: ${before} -> ${after}`,
+    alreadyLatest: "Sudah versi terbaru, tidak ada perubahan.",
+    failContactAgent: (msg) => `Gagal menghubungi agent: ${msg}`,
+    confirmUpdate: (warn, name) => `${warn}Update aplikasi POS di "${name}" sekarang? Aplikasi akan restart sebentar (beberapa detik) selama proses ini.`,
+    confirmRollback: (warn, name, hash) => `${warn}Rollback aplikasi POS di "${name}" ke commit ${hash}? Aplikasi akan restart sebentar, dan versi setelah commit ini akan DITINGGALKAN sampai Anda update lagi nanti.`,
+    rollbackCancelled: (log) => `Rollback dibatalkan (aplikasi POS tidak disentuh):\n\n${log}`,
+    rollbackDone: (before, after, log) => `Rollback selesai: ${before} -> ${after}\n\n${log}`,
+    failCommits: (msg) => `Gagal ambil riwayat commit: ${msg}`,
+    failLogs: (msg) => `Gagal ambil log: ${msg}`,
+    noBackups: (folder) => `Belum ada file backup di ${folder}.`,
+    failBackups: (msg) => `Gagal ambil daftar backup: ${msg}`,
+    busyWarning: (time) => `Sekarang jam ${time} - kemungkinan masih jam operasional café. Pastikan tidak ada transaksi yang sedang berjalan sebelum lanjut.\n\n`,
+    timeNow: (time) => `Sekarang jam ${time}.\n\n`,
+    noDeviceSearchYet: "Mencari device di tailnet...",
+    fileOnlyWarning: "(Fitur ini butuh dashboard dibuka lewat http://localhost:8790, bukan file lokal.)",
+  },
+  en: {
+    title: "Orulabs POS &middot; Deploy Control",
+    subtitle: "Watch the code version running on each POS install, and update remotely over Tailscale.",
+    addMiniPc: "+ Add Mini PC",
+    searchHint: "Find a mini PC that already has the agent installed but isn't registered here yet:",
+    searchBtn: "\u{1F50D} Find Device on Tailscale",
+    searching: "Searching...",
+    nameHolder: "Name (e.g. Cafe Cakung)",
+    hostHolder: "Tailscale IP (e.g. 100.92.108.118)",
+    portHolder: "Port (default 8787)",
+    tokenHolder: "Token (from that mini PC's ops/.env)",
+    addBtn: "Add",
+    refreshAllBtn: "↻ Refresh All",
+    logoutBtn: "Log out",
+    emptyState: "No mini PC registered yet - add one with the form above.",
+    deviceCount: (n) => `${n} mini PC registered`,
+    deployGroup: "Deploy",
+    manageGroup: "Manage",
+    updateBtn: "Update",
+    rollbackBtn: "Rollback",
+    logBtn: "Log",
+    backupBtn: "Backup",
+    refreshBtn: "Refresh",
+    editBtn: "Edit",
+    saveBtn: "Save",
+    cancelBtn: "Cancel",
+    removeBtn: "Remove",
+    checkingBadge: "Checking...",
+    offlineBadge: "Not connected",
+    uptodateBadge: "Up to date",
+    outdatedBadge: "Update available",
+    runningLabel: "Running",
+    latestLabel: "Latest",
+    serviceLabel: "Service",
+    checkedAt: (d) => `Checked: ${d}`,
+    loadingStatus: "Loading status...",
+    loadingCommits: "Loading commit history...",
+    loadingLogs: "Loading log...",
+    loadingBackups: "Loading backup list...",
+    activeBadge: "Active",
+    verifyBtn: "Verify",
+    verifying: "Checking...",
+    fillNameHostToken: "Fill in the name, Tailscale IP, and token first.",
+    confirmRemove: "Remove this mini PC from the list? (This does not delete/stop the agent on the mini PC itself, only removes it from this dashboard's list.)",
+    failAdd: "Failed to add.",
+    failSave: "Failed to save changes.",
+    noNewDevices: "No new devices on the tailnet (or they're all already registered).",
+    failDiscover: (msg) => `Failed to find devices: ${msg}. (This feature needs the dashboard opened via http://localhost:8790, not a local file.)`,
+    cannotConnect: "Can't connect (check Tailscale and that the agent is still running).",
+    tokenWrong: "Wrong/rejected token.",
+    processing: "Processing...",
+    runningUpdate: "Running update, please wait...",
+    runningRollback: "Running rollback, please wait...",
+    fail: (msg) => `Failed: ${msg}`,
+    updateCancelled: (log) => `Update cancelled (the POS app was not touched):\n\n${log}`,
+    updateDone: (before, after) => `Update complete: ${before} -> ${after}`,
+    alreadyLatest: "Already on the latest version, nothing changed.",
+    failContactAgent: (msg) => `Failed to reach the agent: ${msg}`,
+    confirmUpdate: (warn, name) => `${warn}Update the POS app on "${name}" now? The app will restart briefly (a few seconds) during this process.`,
+    confirmRollback: (warn, name, hash) => `${warn}Roll back the POS app on "${name}" to commit ${hash}? The app will restart briefly, and anything after this commit will be LEFT BEHIND until you update again later.`,
+    rollbackCancelled: (log) => `Rollback cancelled (the POS app was not touched):\n\n${log}`,
+    rollbackDone: (before, after, log) => `Rollback complete: ${before} -> ${after}\n\n${log}`,
+    failCommits: (msg) => `Failed to load commit history: ${msg}`,
+    failLogs: (msg) => `Failed to load log: ${msg}`,
+    noBackups: (folder) => `No backup files yet in ${folder}.`,
+    failBackups: (msg) => `Failed to load backup list: ${msg}`,
+    busyWarning: (time) => `It's ${time} right now - the café is probably still open. Make sure no transaction is in progress before continuing.\n\n`,
+    timeNow: (time) => `It's ${time} right now.\n\n`,
+    noDeviceSearchYet: "Searching the tailnet...",
+    fileOnlyWarning: "(This feature needs the dashboard opened via http://localhost:8790, not a local file.)",
+  },
+};
+
+function getLang() {
+  try {
+    return localStorage.getItem("orulabs_dashboard_lang") || "id";
+  } catch (e) {
+    return "id";
+  }
+}
+
+function t(key, ...args) {
+  const dict = I18N[getLang()] || I18N.id;
+  const entry = dict[key] !== undefined ? dict[key] : I18N.id[key];
+  return typeof entry === "function" ? entry(...args) : entry;
+}
+
+function setLang(lang) {
+  try {
+    localStorage.setItem("orulabs_dashboard_lang", lang);
+  } catch (e) {}
+  applyStaticI18n();
+  render();
+}
+
+function applyStaticI18n() {
+  const lang = getLang();
+  document.getElementById("langBtnId").classList.toggle("active", lang === "id");
+  document.getElementById("langBtnEn").classList.toggle("active", lang === "en");
+  document.documentElement.lang = lang;
+
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.innerHTML = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+}
+
 // Daftar mini PC disimpan di server (ops/dashboard_agents.json lewat
 // dashboard_server.py), BUKAN localStorage browser - supaya "statis":
 // selalu sama isinya mau dibuka dari browser/profile apa pun, dan tidak
@@ -373,8 +611,8 @@ async function discoverDevices() {
   const btn = document.getElementById("discoverBtn");
   const resultsEl = document.getElementById("discoverResults");
   btn.disabled = true;
-  btn.textContent = "Mencari...";
-  resultsEl.innerHTML = `<div class="empty-state">Mencari device di tailnet...</div>`;
+  btn.textContent = t("searching");
+  resultsEl.innerHTML = `<div class="empty-state">${t("noDeviceSearchYet")}</div>`;
 
   try {
     // Endpoint ini dilayani oleh ops/dashboard_server.py yang sama yang
@@ -390,7 +628,7 @@ async function discoverDevices() {
     const candidates = data.devices.filter(d => !known.has(d.ip) && !d.is_self);
 
     if (!candidates.length) {
-      resultsEl.innerHTML = `<div class="empty-state">Tidak ada device baru di tailnet (atau semuanya sudah terdaftar).</div>`;
+      resultsEl.innerHTML = `<div class="empty-state">${t("noNewDevices")}</div>`;
     } else {
       resultsEl.innerHTML = candidates.map(d => `
         <div class="discover-item" data-name="${d.name}" data-ip="${d.ip}">
@@ -407,11 +645,11 @@ async function discoverDevices() {
       });
     }
   } catch (e) {
-    resultsEl.innerHTML = `<div class="empty-state">Gagal cari device: ${e.message}. (Fitur ini butuh dashboard dibuka lewat http://localhost:8790, bukan file lokal.)</div>`;
+    resultsEl.innerHTML = `<div class="empty-state">${t("failDiscover", e.message)}</div>`;
   }
 
   btn.disabled = false;
-  btn.textContent = "\u{1F50D} Cari Device di Tailscale";
+  btn.textContent = t("searchBtn");
 }
 
 async function addAgent() {
@@ -421,7 +659,7 @@ async function addAgent() {
   const token = document.getElementById("newToken").value.trim();
 
   if (!name || !host || !token) {
-    alert("Isi nama, IP Tailscale, dan token dulu.");
+    alert(t("fillNameHostToken"));
     return;
   }
 
@@ -435,7 +673,7 @@ async function addAgent() {
     });
     const data = await res.json();
     if (!res.ok) {
-      alert(data.error || "Gagal menambahkan.");
+      alert(data.error || t("failAdd"));
       return;
     }
 
@@ -452,7 +690,7 @@ async function addAgent() {
 }
 
 async function removeAgent(id) {
-  if (!confirm("Hapus mini PC ini dari daftar? (Tidak menghapus/mematikan agent di mini PC-nya, cuma dari daftar di dashboard ini.)")) return;
+  if (!confirm(t("confirmRemove"))) return;
   await fetch(`/api/agents/${id}`, { method: "DELETE" });
   await render();
 }
@@ -464,7 +702,7 @@ async function saveEditedAgent(agent, card, panel) {
   const token = panel.querySelector(".edit-token").value.trim();
 
   if (!name || !host || !token) {
-    alert("Isi nama, IP Tailscale, dan token dulu.");
+    alert(t("fillNameHostToken"));
     return;
   }
 
@@ -475,7 +713,7 @@ async function saveEditedAgent(agent, card, panel) {
   });
   const data = await res.json();
   if (!res.ok) {
-    alert(data.error || "Gagal menyimpan perubahan.");
+    alert(data.error || t("failSave"));
     return;
   }
 
@@ -498,8 +736,8 @@ function toggleEditPanel(agent, card) {
       <input type="text" class="edit-port" value="${agent.port}" placeholder="Port">
       <input type="text" class="edit-token" value="${agent.token}" placeholder="Token">
       <div class="edit-form-actions">
-        <button class="btn-primary edit-save-btn">Simpan</button>
-        <button class="btn-secondary edit-cancel-btn">Batal</button>
+        <button class="btn-primary edit-save-btn">${t("saveBtn")}</button>
+        <button class="btn-secondary edit-cancel-btn">${t("cancelBtn")}</button>
       </div>
     </div>
   `;
@@ -517,16 +755,17 @@ function fmtDate(iso) {
   // zona waktunya tanpa titik dua ("+0700"), yang bikin `new Date()`
   // browser gagal parse (Invalid Date). Susun ulang jadi ISO 8601 yang
   // benar ("+07:00") sebelum di-parse.
+  const locale = getLang() === "en" ? "en-GB" : "id-ID";
   const match = iso.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/);
   if (match) {
     const [, date, time, tzHour, tzMinute] = match;
     const parsed = new Date(`${date}T${time}${tzHour}:${tzMinute}`);
-    if (!isNaN(parsed)) return parsed.toLocaleString("id-ID");
+    if (!isNaN(parsed)) return parsed.toLocaleString(locale);
   }
   // Format lain (mis. ISO 8601 "T..." dari Python datetime.isoformat(),
   // dipakai /backups) - biasanya sudah langsung bisa di-parse browser.
   const direct = new Date(iso);
-  if (!isNaN(direct)) return direct.toLocaleString("id-ID");
+  if (!isNaN(direct)) return direct.toLocaleString(locale);
   return iso;
 }
 
@@ -539,13 +778,12 @@ function deployTimeWarning() {
   // sekarang supaya tidak ke-klik tanpa sadar pas lagi jam ramai.
   // 10:00-21:00 dipakai sebagai perkiraan umum jam operasional café
   // (bukan jadwal pasti tiap cabang), jadi ini pengingat, bukan larangan.
+  const locale = getLang() === "en" ? "en-GB" : "id-ID";
   const now = new Date();
-  const timeStr = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  const timeStr = now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   const hour = now.getHours();
   const likelyBusy = hour >= 10 && hour < 21;
-  return likelyBusy
-    ? `Sekarang jam ${timeStr} - kemungkinan masih jam operasional café. Pastikan tidak ada transaksi yang sedang berjalan sebelum lanjut.\n\n`
-    : `Sekarang jam ${timeStr}.\n\n`;
+  return likelyBusy ? t("busyWarning", timeStr) : t("timeNow", timeStr);
 }
 
 function sleep(ms) {
@@ -566,20 +804,20 @@ async function fetchStatus(agent, attempt = 1) {
       await sleep(1500);
       return fetchStatus(agent, attempt + 1);
     }
-    throw new Error("Tidak bisa terhubung (cek Tailscale & agent-nya masih hidup).");
+    throw new Error(t("cannotConnect"));
   }
-  if (res.status === 401) throw new Error("Token salah/ditolak.");
+  if (res.status === 401) throw new Error(t("tokenWrong"));
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
 async function triggerUpdate(agent, logEl, btnEl) {
-  if (!confirm(`${deployTimeWarning()}Update aplikasi POS di "${agent.name}" sekarang? Aplikasi akan restart sebentar (beberapa detik) selama proses ini.`)) return;
+  if (!confirm(t("confirmUpdate", deployTimeWarning(), agent.name))) return;
 
   btnEl.disabled = true;
-  btnEl.textContent = "Memproses...";
+  btnEl.textContent = t("processing");
   logEl.style.display = "block";
-  logEl.textContent = "Menjalankan update, mohon tunggu...";
+  logEl.textContent = t("runningUpdate");
 
   try {
     const res = await fetch(agentUrl(agent, "/update"), {
@@ -588,25 +826,25 @@ async function triggerUpdate(agent, logEl, btnEl) {
     });
     const data = await res.json();
     if (!res.ok) {
-      logEl.textContent = `Gagal: ${data.error || res.status}`;
+      logEl.textContent = t("fail", data.error || res.status);
     } else if (data.ok === false) {
       // HTTP 200 tapi deploy DIBATALKAN sebelum sempat menyentuh
       // aplikasi POS (mis. git fetch gagal/timeout) - lihat _deploy_to
       // di ops/agent.py. Bukan error fatal, cuma belum kepakai.
-      logEl.textContent = `Update dibatalkan (aplikasi POS tidak disentuh):\n\n${data.log}`;
+      logEl.textContent = t("updateCancelled", data.log);
     } else {
       logEl.textContent =
         (data.changed
-          ? `Update selesai: ${shortHash(data.before)} -> ${shortHash(data.after)}`
-          : `Sudah versi terbaru, tidak ada perubahan.`) +
+          ? t("updateDone", shortHash(data.before), shortHash(data.after))
+          : t("alreadyLatest")) +
         "\n\n" + data.log;
     }
   } catch (e) {
-    logEl.textContent = `Gagal menghubungi agent: ${e.message}`;
+    logEl.textContent = t("failContactAgent", e.message);
   }
 
   btnEl.disabled = false;
-  btnEl.textContent = "Update Sekarang";
+  btnEl.textContent = t("updateBtn");
   await refreshOne(agent.id);
 }
 
@@ -619,7 +857,7 @@ async function toggleRollbackPanel(agent, card) {
   }
 
   panel.style.display = "block";
-  panel.innerHTML = `<div class="empty-state">Memuat riwayat commit...</div>`;
+  panel.innerHTML = `<div class="empty-state">${t("loadingCommits")}</div>`;
 
   try {
     const res = await fetch(agentUrl(agent, "/commits?limit=20"), {
@@ -630,7 +868,7 @@ async function toggleRollbackPanel(agent, card) {
 
     panel.innerHTML = data.commits.map(c => `
       <div class="discover-item rollback-item" data-hash="${c.hash}">
-        <span>${c.hash === data.current ? '<span class="badge badge-ok" style="margin-right:6px;">Aktif</span>' : ''}${c.message}<br><span class="discover-item-ip">${shortHash(c.hash)} &middot; ${fmtDate(c.date)}</span></span>
+        <span>${c.hash === data.current ? `<span class="badge badge-ok" style="margin-right:6px;">${t("activeBadge")}</span>` : ''}${c.message}<br><span class="discover-item-ip">${shortHash(c.hash)} &middot; ${fmtDate(c.date)}</span></span>
       </div>
     `).join("");
 
@@ -643,17 +881,17 @@ async function toggleRollbackPanel(agent, card) {
       });
     });
   } catch (e) {
-    panel.innerHTML = `<div class="empty-state">Gagal ambil riwayat commit: ${e.message}</div>`;
+    panel.innerHTML = `<div class="empty-state">${t("failCommits", e.message)}</div>`;
   }
 }
 
 async function triggerRollback(agent, commitHash, logEl, btnEl, panel) {
-  if (!confirm(`${deployTimeWarning()}Rollback aplikasi POS di "${agent.name}" ke commit ${shortHash(commitHash)}? Aplikasi akan restart sebentar, dan versi setelah commit ini akan DITINGGALKAN sampai Anda update lagi nanti.`)) return;
+  if (!confirm(t("confirmRollback", deployTimeWarning(), agent.name, shortHash(commitHash)))) return;
 
   panel.style.display = "none";
   btnEl.disabled = true;
   logEl.style.display = "block";
-  logEl.textContent = "Menjalankan rollback, mohon tunggu...";
+  logEl.textContent = t("runningRollback");
 
   try {
     const res = await fetch(agentUrl(agent, "/rollback"), {
@@ -663,14 +901,14 @@ async function triggerRollback(agent, commitHash, logEl, btnEl, panel) {
     });
     const data = await res.json();
     if (!res.ok) {
-      logEl.textContent = `Gagal: ${data.error || res.status}`;
+      logEl.textContent = t("fail", data.error || res.status);
     } else if (data.ok === false) {
-      logEl.textContent = `Rollback dibatalkan (aplikasi POS tidak disentuh):\n\n${data.log}`;
+      logEl.textContent = t("rollbackCancelled", data.log);
     } else {
-      logEl.textContent = `Rollback selesai: ${shortHash(data.before)} -> ${shortHash(data.after)}\n\n${data.log}`;
+      logEl.textContent = t("rollbackDone", shortHash(data.before), shortHash(data.after), data.log);
     }
   } catch (e) {
-    logEl.textContent = `Gagal menghubungi agent: ${e.message}`;
+    logEl.textContent = t("failContactAgent", e.message);
   }
 
   btnEl.disabled = false;
@@ -686,7 +924,7 @@ async function toggleLogsPanel(agent, card) {
   }
 
   panel.style.display = "block";
-  panel.innerHTML = `<div class="empty-state">Memuat log...</div>`;
+  panel.innerHTML = `<div class="empty-state">${t("loadingLogs")}</div>`;
 
   try {
     const res = await fetch(agentUrl(agent, "/logs?lines=150"), {
@@ -707,7 +945,7 @@ async function toggleLogsPanel(agent, card) {
       <div class="log-tail">${(data.stdout || "").replace(/</g, "&lt;")}</div>
     `;
   } catch (e) {
-    panel.innerHTML = `<div class="empty-state">Gagal ambil log: ${e.message}</div>`;
+    panel.innerHTML = `<div class="empty-state">${t("failLogs", e.message)}</div>`;
   }
 }
 
@@ -720,7 +958,7 @@ async function toggleBackupsPanel(agent, card) {
   }
 
   panel.style.display = "block";
-  panel.innerHTML = `<div class="empty-state">Memuat daftar backup...</div>`;
+  panel.innerHTML = `<div class="empty-state">${t("loadingBackups")}</div>`;
 
   try {
     const res = await fetch(agentUrl(agent, "/backups"), {
@@ -730,14 +968,14 @@ async function toggleBackupsPanel(agent, card) {
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
     if (!data.backups.length) {
-      panel.innerHTML = `<div class="empty-state">Belum ada file backup di ${data.folder}.</div>`;
+      panel.innerHTML = `<div class="empty-state">${t("noBackups", data.folder)}</div>`;
       return;
     }
 
     panel.innerHTML = data.backups.map((b, i) => `
       <div class="backup-item" data-name="${b.name}" id="backup-${card.id}-${i}">
         <span>${b.name}<br><span class="discover-item-ip">${b.size_mb} MB &middot; ${fmtDate(b.modified)}</span></span>
-        <button class="backup-verify-btn">Verifikasi</button>
+        <button class="backup-verify-btn">${t("verifyBtn")}</button>
       </div>
     `).join("");
 
@@ -746,13 +984,13 @@ async function toggleBackupsPanel(agent, card) {
       btn.addEventListener("click", () => verifyBackup(agent, el.dataset.name, el, btn));
     });
   } catch (e) {
-    panel.innerHTML = `<div class="empty-state">Gagal ambil daftar backup: ${e.message}</div>`;
+    panel.innerHTML = `<div class="empty-state">${t("failBackups", e.message)}</div>`;
   }
 }
 
 async function verifyBackup(agent, name, itemEl, btnEl) {
   btnEl.disabled = true;
-  btnEl.textContent = "Memeriksa...";
+  btnEl.textContent = t("verifying");
 
   let existing = itemEl.querySelector(".backup-verify-result");
   if (existing) existing.remove();
@@ -771,12 +1009,12 @@ async function verifyBackup(agent, name, itemEl, btnEl) {
   } catch (e) {
     const resultEl = document.createElement("div");
     resultEl.className = "backup-verify-result backup-verify-bad";
-    resultEl.textContent = `Gagal: ${e.message}`;
+    resultEl.textContent = t("fail", e.message);
     itemEl.appendChild(resultEl);
   }
 
   btnEl.disabled = false;
-  btnEl.textContent = "Verifikasi";
+  btnEl.textContent = t("verifyBtn");
 }
 
 function statusBadge(cardEl, state) {
@@ -790,16 +1028,16 @@ function statusBadge(cardEl, state) {
   // "Mengecek..." walau data status sebenarnya berhasil dimuat.
   if (state === "loading") {
     badge.className = "badge badge-muted status-badge";
-    badge.textContent = "Mengecek...";
+    badge.textContent = t("checkingBadge");
   } else if (state === "offline") {
     badge.className = "badge badge-danger status-badge";
-    badge.textContent = "Tidak terhubung";
+    badge.textContent = t("offlineBadge");
   } else if (state === "uptodate") {
     badge.className = "badge badge-ok status-badge";
-    badge.textContent = "Sudah terbaru";
+    badge.textContent = t("uptodateBadge");
   } else if (state === "outdated") {
     badge.className = "badge badge-warn status-badge";
-    badge.textContent = "Ada update";
+    badge.textContent = t("outdatedBadge");
   }
 }
 
@@ -813,27 +1051,27 @@ function renderAgentCard(agent) {
         <div class="agent-name">${agent.name}</div>
         <div class="agent-host">${agent.host}:${agent.port}</div>
       </div>
-      <span class="badge badge-muted status-badge">Mengecek...</span>
+      <span class="badge badge-muted status-badge">${t("checkingBadge")}</span>
     </div>
     <div class="commit-body">
-      <div class="empty-state">Memuat status...</div>
+      <div class="empty-state">${t("loadingStatus")}</div>
     </div>
     <div class="action-groups">
       <div class="action-group">
-        <div class="action-group-label">Deploy</div>
+        <div class="action-group-label">${t("deployGroup")}</div>
         <div class="actions">
-          <button class="btn-primary update-btn">Update Sekarang</button>
-          <button class="btn-secondary rollback-toggle-btn">Rollback</button>
-          <button class="btn-secondary logs-toggle-btn">Log</button>
-          <button class="btn-secondary backups-toggle-btn">Backup</button>
+          <button class="btn-primary update-btn">${t("updateBtn")}</button>
+          <button class="btn-secondary rollback-toggle-btn">${t("rollbackBtn")}</button>
+          <button class="btn-secondary logs-toggle-btn">${t("logBtn")}</button>
+          <button class="btn-secondary backups-toggle-btn">${t("backupBtn")}</button>
         </div>
       </div>
       <div class="action-group">
-        <div class="action-group-label">Kelola</div>
+        <div class="action-group-label">${t("manageGroup")}</div>
         <div class="actions">
-          <button class="btn-secondary refresh-btn">Refresh</button>
-          <button class="btn-secondary edit-toggle-btn">Edit</button>
-          <button class="btn-danger remove-btn">Hapus</button>
+          <button class="btn-secondary refresh-btn">${t("refreshBtn")}</button>
+          <button class="btn-secondary edit-toggle-btn">${t("editBtn")}</button>
+          <button class="btn-danger remove-btn">${t("removeBtn")}</button>
         </div>
       </div>
     </div>
@@ -893,19 +1131,19 @@ async function refreshOne(agentId) {
 
     body.innerHTML = `
       <div class="commit-row">
-        <span class="commit-label">Jalan</span>
+        <span class="commit-label">${t("runningLabel")}</span>
         <span class="commit-msg">${data.current.message}<br><span class="commit-hash">${shortHash(data.current.hash)} &middot; ${fmtDate(data.current.date)}</span></span>
       </div>
       <div class="commit-row">
-        <span class="commit-label">Terbaru</span>
+        <span class="commit-label">${t("latestLabel")}</span>
         <span class="commit-msg">${data.latest.message}<br><span class="commit-hash">${shortHash(data.latest.hash)} &middot; ${fmtDate(data.latest.date)}</span></span>
       </div>
       <div class="commit-row">
-        <span class="commit-label">Service</span>
+        <span class="commit-label">${t("serviceLabel")}</span>
         <span class="commit-msg">${data.service_status || "-"}</span>
       </div>
       ${pendingHtml}
-      <div class="checked-at">Dicek: ${fmtDate(data.checked_at)}</div>
+      <div class="checked-at">${t("checkedAt", fmtDate(data.checked_at))}</div>
     `;
   } catch (e) {
     statusBadge(card, "offline");
@@ -930,7 +1168,7 @@ async function render() {
     return;
   }
   empty.style.display = "none";
-  count.textContent = `${agents.length} mini PC terdaftar`;
+  count.textContent = t("deviceCount", agents.length);
 
   agents.forEach(agent => {
     list.appendChild(renderAgentCard(agent));
@@ -938,6 +1176,7 @@ async function render() {
   refreshAll();
 }
 
+applyStaticI18n();
 render();
 // Auto-refresh tiap 60 detik.
 setInterval(refreshAll, 60000);
