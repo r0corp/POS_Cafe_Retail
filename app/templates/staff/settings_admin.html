@@ -442,54 +442,34 @@
                       <i class="bi bi-qr-code fs-3"></i>
                     </div>
                   </div>
-                </div>
 
-              </div>
+                  <hr class="my-3">
 
-              <div class="row g-4 mt-0">
-                <div class="col-12">
-                  <div class="settings-section-title">
-                    <span class="settings-section-num">4</span> {{ _('Notifikasi Pembayaran QRIS') }}
+                  <p class="text-muted small mb-2">
+                    {{ _('Notifikasi "uang QRIS masuk" - dengar notifikasi BCA Merchant di tablet kasir. Tempel token ini sekali ke pengaturan APK.') }}
+                  </p>
+                  <div class="input-group input-group-sm mb-3">
+                    <input type="text" class="form-control" id="paymentNotifyToken" value="{{ payment_notify_token }}" readonly>
+                    <button type="button" class="btn btn-outline-secondary" id="copyPaymentTokenBtn" title="{{ _('Salin') }}">
+                      <i class="bi bi-clipboard"></i>
+                    </button>
                   </div>
-                  <div class="card">
-                    <div class="card-body system-card-body">
-                      <p class="text-muted small">
-                        {{ _('Token ini dipakai tablet kasir (fitur dengar notifikasi BCA Merchant) supaya bisa lapor "uang QRIS masuk" ke server ini. Cukup ditempel sekali ke pengaturan APK di tablet - tidak perlu diketik ulang setelahnya.') }}
-                      </p>
-                      <div class="input-group" style="max-width: 480px;">
-                        <input type="text" class="form-control" id="paymentNotifyToken" value="{{ payment_notify_token }}" readonly>
-                        <button type="button" class="btn btn-outline-secondary" id="copyPaymentTokenBtn">
-                          <i class="bi bi-clipboard"></i> {{ _('Salin') }}
-                        </button>
-                      </div>
 
-                      <hr class="my-3">
-
-                      <div class="d-flex align-items-center gap-3 mb-3">
-                        <label class="small fw-semibold mb-0" for="paymentVoiceEnabled">{{ _('Suara Ucapkan Nominal') }}</label>
-                        <div class="form-check form-switch mb-0">
-                          <input class="form-check-input" type="checkbox" role="switch" name="payment_voice_enabled" value="1"
-                                 id="paymentVoiceEnabled"
-                                 {% if settings.payment_voice_enabled %}checked{% endif %}>
-                        </div>
-                      </div>
-
-                      <div class="form-field-row mb-2" style="--form-field-label-width: 160px;">
-                        <label class="form-label form-field-label small">{{ _('Kalimat (Bahasa Indonesia)') }}</label>
-                        <input type="text" name="payment_voice_template_id" class="form-control"
-                               value="{{ settings.payment_voice_template_id }}">
-                      </div>
-                      <div class="form-field-row mb-2" style="--form-field-label-width: 160px;">
-                        <label class="form-label form-field-label small">{{ _('Kalimat (Bahasa Inggris)') }}</label>
-                        <input type="text" name="payment_voice_template_en" class="form-control"
-                               value="{{ settings.payment_voice_template_en }}">
-                      </div>
-                      <p class="text-muted small mb-0">
-                        {{ _('Tulisan <code>{nominal}</code> akan diganti otomatis dengan nominal yang terucap (mis. "lima puluh ribu") - kalimatnya bebas diubah, dipilih otomatis sesuai Bahasa Indonesia/Inggris yang sedang aktif. Matikan toggle di atas kalau cuma mau bunyi "ting" tanpa suara ngomong.') }}
-                      </p>
+                  <div class="d-flex align-items-center gap-3 mb-2">
+                    <label class="small fw-semibold mb-0" for="paymentVoiceEnabled">{{ _('Suara Ucapkan Nominal') }}</label>
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input" type="checkbox" role="switch" name="payment_voice_enabled" value="1"
+                             id="paymentVoiceEnabled"
+                             {% if settings.payment_voice_enabled %}checked{% endif %}>
                     </div>
                   </div>
+                  <input type="text" name="payment_voice_template_id" class="form-control form-control-sm mb-2"
+                         value="{{ settings.payment_voice_template_id }}" placeholder="{{ _('Kalimat (ID)') }}">
+                  <input type="text" name="payment_voice_template_en" class="form-control form-control-sm mb-2"
+                         value="{{ settings.payment_voice_template_en }}" placeholder="{{ _('Kalimat (EN)') }}">
+                  <div class="form-text mt-0">{{ _('<code>{nominal}</code> = nominal terucap.') }}</div>
                 </div>
+
               </div>
             </div>
 
