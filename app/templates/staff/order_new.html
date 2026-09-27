@@ -6,7 +6,7 @@
 
 <form method="post" id="orderForm">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <input type="hidden" name="order_type" id="orderTypeInput" value="{{ ORDER_TYPE_DINE_IN }}">
+  <input type="hidden" name="order_type" id="orderTypeInput" value="{{ ORDER_TYPE_DINE_IN if site_settings.uses_tables else ORDER_TYPE_TAKEAWAY }}">
   <input type="hidden" name="channel_id" id="channelIdInput" value="">
 
   <div class="row g-3 mb-4">
@@ -16,6 +16,7 @@
 
           <label class="form-label fw-semibold small">{{ _('Jenis Pesanan') }}</label>
           <div class="order-type-grid">
+            {% if site_settings.uses_tables %}
             <button type="button" class="order-type-card active" data-order-type="{{ ORDER_TYPE_DINE_IN }}">
               <span class="order-type-icon"><i class="bi bi-shop"></i></span>
               <span class="order-type-text">
@@ -23,7 +24,8 @@
                 <small>{{ _('Pilih meja') }}</small>
               </span>
             </button>
-            <button type="button" class="order-type-card" data-order-type="{{ ORDER_TYPE_TAKEAWAY }}">
+            {% endif %}
+            <button type="button" class="order-type-card{{ ' active' if not site_settings.uses_tables }}" data-order-type="{{ ORDER_TYPE_TAKEAWAY }}">
               <span class="order-type-icon"><i class="bi bi-bag"></i></span>
               <span class="order-type-text">
                 <span class="order-type-name">{{ _('Bawa Pulang') }}</span>
@@ -50,10 +52,10 @@
           <div class="order-setup-divider"></div>
 
           <div class="order-setup-row">
-            <div class="order-setup-col-table" id="tableSelectWrap">
+            <div class="order-setup-col-table{{ ' d-none' if not site_settings.uses_tables }}" id="tableSelectWrap">
               <div class="order-inline-field">
                 <label class="order-inline-label" for="tableSelect">{{ _('Meja') }}</label>
-                <select name="table_id" id="tableSelect" class="form-select" data-elegant-select required {% if not tables %}disabled{% endif %}>
+                <select name="table_id" id="tableSelect" class="form-select" data-elegant-select {% if site_settings.uses_tables %}required{% endif %} {% if not tables %}disabled{% endif %}>
                   <option value="">{{ _('-- Pilih Meja --') }}</option>
                   {% for table in tables %}
                     <option value="{{ table.id }}" {% if preselected_table_id == table.id %}selected{% endif %}>{{ table.label }} ({{ table.floor_label }})</option>

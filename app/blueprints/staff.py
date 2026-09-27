@@ -710,6 +710,14 @@ def new_order():
         table = None
         channel = None
 
+        # Kartu "Makan di Tempat" memang sudah disembunyikan di halaman
+        # ini kalau toko matikan "Pakai Meja" (lihat order_new.html), tapi
+        # tetap ditolak juga di sini - jaga-jaga request yang dipaksa
+        # lewat luar form biasa (bukan skenario yang wajar, cuma jaga-jaga).
+        if order_type == ORDER_TYPE_DINE_IN and not get_settings().uses_tables:
+            flash(_("Toko ini tidak pakai meja."), "danger")
+            return redirect(url_for("staff.new_order"))
+
         if order_type == ORDER_TYPE_DINE_IN:
             table_id = request.form.get("table_id", type=int)
             table = Table.query.get(table_id)
@@ -2657,6 +2665,7 @@ def admin_settings():
         navbar_display = request.form.get("navbar_display", "both")
 
         settings.shop_name = shop_name
+        settings.uses_tables = request.form.get("uses_tables") == "1"
         settings.app_logo_choice = app_logo_choice if app_logo_choice in ("square", "wide") else "square"
         settings.login_logo_choice = login_logo_choice if login_logo_choice in ("square", "wide") else "square"
         settings.receipt_logo_choice = receipt_logo_choice if receipt_logo_choice in ("square", "wide") else "wide"

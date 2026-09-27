@@ -15,6 +15,9 @@ NAV_ITEMS = [
         "icon": "bi-grid-3x3-gap-fill",
         "label": _l("Meja"),
         "roles": None,
+        # Usaha tanpa meja (gerobak/kaki lima) bisa matikan ini di
+        # Pengaturan Toko - lihat inject_globals() di app/__init__.py.
+        "hide_without_tables": True,
     },
     {
         "endpoint": "staff.new_order",

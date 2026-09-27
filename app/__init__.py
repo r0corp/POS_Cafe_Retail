@@ -390,6 +390,7 @@ def create_app(config_overrides=None):
         from .holidays_id import HOLIDAYS_ID
 
         online_staff = []
+        settings = get_settings()
 
         if current_user.is_authenticated:
             is_android = os.environ.get("ORULABS_PLATFORM") == "android"
@@ -398,6 +399,7 @@ def create_app(config_overrides=None):
                 for item in NAV_ITEMS
                 if (item["roles"] is None or current_user.role in item["roles"])
                 and not (is_android and item.get("android_hidden"))
+                and not (not settings.uses_tables and item.get("hide_without_tables"))
             ]
 
             if current_user.role == ROLE_OWNER:
@@ -410,8 +412,6 @@ def create_app(config_overrides=None):
                 ]
         else:
             nav_items = []
-
-        settings = get_settings()
 
         return {
             "cafe_name": settings.shop_name,
