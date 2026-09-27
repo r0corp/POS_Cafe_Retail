@@ -3,12 +3,14 @@
     <!-- WAJIB diganti sebelum build - isi dengan alamat IP server toko
          yang sebenarnya (lihat BASE_URL di .env server ini). -->
     <string name="server_url">http://10.20.30.10:8000</string>
-    <!-- WAJIB diganti sebelum build - salin dari Pengaturan Toko > Sistem
-         > "Notifikasi Pembayaran QRIS" di server toko yang sebenarnya
-         (lihat get_payment_notify_token() di app/blueprints/staff.py).
-         Dibiarkan placeholder ini SENGAJA membuat
-         PaymentNotificationListenerService diam saja (tidak mengirim
-         apa-apa), bukan crash. -->
+    <!-- WAJIB diganti sebelum build - salin dari Pengaturan Toko > Struk &
+         Pembayaran > "Notifikasi Pembayaran QRIS" di server toko yang
+         sebenarnya (lihat get_payment_notify_token() di
+         app/blueprints/staff.py). Dibiarkan placeholder ini SENGAJA
+         membuat PaymentNotificationListenerService diam saja (tidak
+         mengirim apa-apa), bukan crash. JANGAN commit nilai token asli
+         ke git - ini rahasia per-instalasi, isi cuma di build lokal saat
+         mau bikin APK sungguhan, lalu kembalikan ke placeholder ini. -->
     <string name="payment_notify_token">REPLACE_WITH_REAL_TOKEN</string>
     <string name="offline_message">Tidak bisa terhubung ke server toko. Pastikan HP/tablet terhubung ke WiFi toko, lalu coba lagi.</string>
     <string name="retry">Coba Lagi</string>
