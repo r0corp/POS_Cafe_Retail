@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Inventory') }}{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><span class="page-title-icon"><i class="bi bi-boxes"></i></span>{{ _('Inventory Bahan Baku') }}</h4>
+
+<div class="row g-4">
+  <div class="col-sm-4">
+    <div class="card">
+      <div class="card-body">
+        <h6 class="mb-3">{{ _('Tambah Bahan Baku') }}</h6>
+        <form method="post" style="--form-field-label-width: 130px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2 form-field-row">
+            <label class="form-label form-field-label small">{{ _('Nama Bahan') }}</label>
+            <input type="text" name="name" class="form-control" placeholder="{{ _('Misal: Kopi Bubuk') }}" required>
+          </div>
+          <div class="mb-2 form-field-row">
+            <label class="form-label form-field-label small">{{ _('Satuan') }}</label>
+            <input type="text" name="unit" class="form-control" placeholder="{{ _('Gram, ml, pcs') }}" required>
+          </div>
+          <div class="mb-2 form-field-row">
+            <label class="form-label form-field-label small">{{ _('Stok Awal') }}</label>
+            <input type="number" step="0.01" min="0" name="stock_quantity" class="form-control" required>
+          </div>
+          <div class="mb-1 form-field-row">
+            <label class="form-label form-field-label small">{{ _('Batas Stok Menipis') }}</label>
+            <input type="number" step="0.01" min="0" name="low_stock_threshold" class="form-control" placeholder="0">
+          </div>
+          <div class="form-text mb-3">{{ _('Diberi peringatan kalau stok sudah di bawah atau sama dengan angka ini.') }}</div>
+          <button class="btn btn-accent w-100" type="submit"><i class="bi bi-plus-circle"></i> {{ _('Tambah Bahan') }}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-8">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <h6 class="mb-0">{{ _('Daftar Bahan Baku') }}</h6>
+          <div class="export-groups-row">
+            <div class="dropdown">
+              <button class="export-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-file-earmark-text"></i> {{ _('Semua Bahan') }} <i class="bi bi-chevron-down export-dropdown-caret"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_excel', scope='full') }}"><i class="bi bi-filetype-xlsx"></i> Excel</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_pdf', scope='full') }}"><i class="bi bi-filetype-pdf"></i> PDF</a></li>
+              </ul>
+            </div>
+            <div class="dropdown">
+              <button class="export-dropdown-btn export-dropdown-btn-danger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-exclamation-triangle"></i> {{ _('Stok Menipis') }} <i class="bi bi-chevron-down export-dropdown-caret"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_excel', scope='low-stock') }}"><i class="bi bi-filetype-xlsx"></i> Excel</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('staff.export_inventory_pdf', scope='low-stock') }}"><i class="bi bi-filetype-pdf"></i> PDF</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        {% if ingredients %}
+          <div class="ingredient-list">
+            {% for ingredient in ingredients %}
+              <div class="ingredient-row {{ 'is-low-stock' if ingredient.is_low_stock }}">
+                <div class="ingredient-row-icon">
+                  <i class="bi {{ 'bi-exclamation-triangle-fill' if ingredient.is_low_stock else 'bi-box-seam' }}"></i>
+                </div>
+                <div class="ingredient-row-main">
+                  <div class="ingredient-row-name">
+                    {{ ingredient.name }}
+                    {% if ingredient.is_low_stock %}
+                      <span class="badge-soft badge-low-stock">{{ _('Menipis') }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="ingredient-row-meta">
+                    {{ _('Stok') }}: <strong>{{ "{:g}".format(ingredient.stock_quantity) }} {{ ingredient.unit }}</strong>
+                    &middot; {{ _('Batas menipis') }}: {{ "{:g}".format(ingredient.low_stock_threshold) }} {{ ingredient.unit }}
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <form method="post" action="{{ url_for('staff.restock_ingredient', ingredient_id=ingredient.id) }}" class="d-flex gap-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="number" step="0.01" min="0" name="amount" class="form-control form-control-sm" style="width: 130px;" placeholder="{{ _('Tambah stok') }}" required>
+                    <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plus-lg"></i></button>
+                  </form>
+                  <form method="post" action="{{ url_for('staff.delete_ingredient', ingredient_id=ingredient.id) }}"
+                        data-confirm="{{ _('Hapus %(name)s? Tidak bisa dibatalkan.', name=ingredient.name) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="icon-btn-danger" title="{{ _('Hapus Bahan') }}">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0">{{ _('Belum ada bahan baku. Tambahkan lewat form di samping.') }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <p class="text-muted small mt-3">
+      <i class="bi bi-info-circle"></i>
+      {{ _('Untuk mengatur resep (bahan baku apa saja & berapa jumlahnya untuk 1 porsi menu), buka menu Kelola Menu lalu klik foto item menunya.') }}
+    </p>
+  </div>
+</div>
+{% endblock %}

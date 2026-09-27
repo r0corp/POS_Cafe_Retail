@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Daftar Meja') }}{% endblock %}
+
+{% block content %}
+<h4 class="mb-3"><span class="page-title-icon"><i class="bi bi-grid-3x3-gap-fill"></i></span>{{ _('Daftar Meja') }}</h4>
+
+{% if is_owner %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h6 class="mb-0">{{ _('Tambah Meja Baru') }}</h6>
+        <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">
+          {{ _('%(available)s / %(total)s kosong', available=available_count, total=total_count) }}
+        </span>
+      </div>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-2 align-items-end">
+          <div class="col-sm-3">
+            <div class="form-field-row" style="--form-field-label-width: 74px;">
+              <label class="form-label form-field-label small">{{ _('Label Meja') }}</label>
+              <input type="text" name="label" class="form-control" style="flex: 1 1 70px; min-width: 0;" placeholder="{{ _('Contoh: Meja 4') }}" required>
+            </div>
+          </div>
+          <div class="col-sm-3">
+            <div class="form-field-row" style="--form-field-label-width: 42px;">
+              <label class="form-label form-field-label small">{{ _('Lantai') }}</label>
+              <div style="flex: 1 1 70px; min-width: 0;">
+                <select name="floor" class="form-select" data-elegant-select required {% if not available_floors %}disabled{% endif %}>
+                  {% if not available_floors %}
+                    <option value="" selected disabled>{{ _('Tambah lantai dulu di Pengaturan') }}</option>
+                  {% endif %}
+                  {% for floor in available_floors %}
+                    <option value="{{ floor.number }}">{{ floor_display_name(floor.number) }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-3">
+            <div class="form-field-row" style="--form-field-label-width: 70px;">
+              <label class="form-label form-field-label small">{{ _('Kode Unik') }}</label>
+              <div class="input-group" style="flex: 1 1 70px; min-width: 0;">
+                <span class="input-group-text postab-prefix">postab-</span>
+                <input type="text" name="code" class="form-control" placeholder="001" required>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-3">
+            <button class="btn btn-accent w-100 text-nowrap" type="submit">
+              <i class="bi bi-plus-circle"></i> {{ _('Tambah Meja') }}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+{% else %}
+  <div class="d-flex justify-content-end mb-4">
+    <span class="badge-soft" style="background: var(--color-accent-light); color: var(--color-accent);">
+      {{ _('%(available)s / %(total)s kosong', available=available_count, total=total_count) }}
+    </span>
+  </div>
+{% endif %}
+
+{% if not floors %}
+  <div class="empty-state card">
+    <i class="bi bi-grid"></i>
+    <div class="fw-semibold">{{ _('Belum ada meja') }}</div>
+    <div class="small">{{ _('Tambahkan meja lewat tombol "Tambah Meja" di atas.') if is_owner else _('Hubungi Owner untuk menambahkan meja.') }}</div>
+    <p class="text-muted small mt-3 mb-0">
+      <span class="legend-dot" style="background: var(--color-primary);"></span>{{ _('Kosong') }} &middot;
+      <span class="legend-dot" style="background: var(--color-warning);"></span>{{ _('Terisi') }}
+      {% if is_owner %}&middot; <i class="bi bi-qr-code"></i> {{ _('lihat QR / hapus meja') }}{% endif %}
+    </p>
+  </div>
+{% endif %}
+
+{% for floor_number, items in floors %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+        <h6 class="mb-0">{{ floor_display_name(floor_number) }}</h6>
+        <span class="floor-legend-sep" aria-hidden="true"></span>
+        <span class="text-muted small">
+          <span class="legend-dot" style="background: var(--color-primary);"></span>{{ _('Kosong') }} &middot;
+          <span class="legend-dot" style="background: var(--color-warning);"></span>{{ _('Terisi') }}
+          {% if is_owner %}&middot; <i class="bi bi-qr-code"></i> {{ _('lihat QR / hapus meja') }}{% endif %}
+        </span>
+        {% if is_owner %}
+          <a href="{{ url_for('staff.floor_qr_print', floor_number=floor_number) }}" class="btn btn-sm btn-outline-secondary ms-auto text-nowrap">
+            <i class="bi bi-printer"></i> {{ _('Cetak Semua QR') }}
+          </a>
+        {% endif %}
+      </div>
+      <div class="seat-grid">
+        {% for entry in items %}
+          {% set table = entry.table %}
+          {% set order = entry.order %}
+          <div class="seat {{ 'seat-occupied' if order else 'seat-available' }}">
+            <div class="seat-top-row">
+              <div class="seat-status-row">
+                <span class="seat-status-dot" aria-hidden="true"></span>
+                <span class="seat-status-text">{{ _('Terisi') if order else _('Kosong') }}</span>
+              </div>
+              {% if is_owner %}
+                <button type="button" class="seat-qr-btn" data-bs-toggle="modal" data-bs-target="#qrModal{{ table.id }}" title="{{ _('Detail meja') }}" aria-label="{{ _('Detail meja') }}">
+                  <svg class="seat-qr-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"></circle>
+                    <rect x="4.5" y="4.5" width="5" height="5" rx="0.6" stroke="currentColor" stroke-width="1.4"></rect>
+                    <rect x="14.5" y="4.5" width="5" height="5" rx="0.6" stroke="currentColor" stroke-width="1.4"></rect>
+                    <rect x="4.5" y="14.5" width="5" height="5" rx="0.6" stroke="currentColor" stroke-width="1.4"></rect>
+                    <rect x="6.4" y="6.4" width="1.4" height="1.4" fill="currentColor"></rect>
+                    <rect x="16.4" y="6.4" width="1.4" height="1.4" fill="currentColor"></rect>
+                    <rect x="6.4" y="16.4" width="1.4" height="1.4" fill="currentColor"></rect>
+                    <rect x="13.3" y="13.3" width="1.6" height="1.6" fill="currentColor"></rect>
+                    <rect x="16.2" y="13.3" width="1.6" height="1.6" fill="currentColor"></rect>
+                    <rect x="13.3" y="16.2" width="1.6" height="1.6" fill="currentColor"></rect>
+                    <rect x="16.2" y="16.8" width="1.4" height="1.4" fill="currentColor"></rect>
+                  </svg>
+                </button>
+              {% endif %}
+            </div>
+
+            <div class="seat-table-row">
+              <span class="seat-label">{{ table.label }}</span>
+            </div>
+
+            {% if not order %}
+              <div class="seat-empty-icon" aria-hidden="true">
+                <svg width="46" height="34" viewBox="0 0 60 44">
+                  <rect x="4" y="2" width="8" height="8" rx="2"></rect>
+                  <rect x="48" y="2" width="8" height="8" rx="2"></rect>
+                  <rect x="4" y="34" width="8" height="8" rx="2"></rect>
+                  <rect x="48" y="34" width="8" height="8" rx="2"></rect>
+                  <rect x="14" y="12" width="32" height="20" rx="4"></rect>
+                </svg>
+              </div>
+            {% endif %}
+            {% if order %}
+              <div class="seat-sub">
+                {{ _('Pesanan #%(id)s', id=order.id) }}
+                {% if order.pin %}&middot; PIN {{ order.pin }}{% endif %}
+              </div>
+              <div class="seat-price">Rp {{ "{:,}".format(order.grand_total).replace(",", ".") }}</div>
+            {% endif %}
+
+            {% if order and can_use_cashier %}
+              <div class="seat-actions">
+                <a href="{{ url_for('staff.cashier') }}" class="seat-btn seat-btn-cashier">
+                  <i class="bi bi-cash-coin"></i> {{ _('Ke Kasir') }}
+                </a>
+              </div>
+            {% elif not order and can_order %}
+              <div class="seat-actions">
+                <a href="{{ url_for('staff.new_order', table_id=table.id) }}" class="seat-btn seat-btn-order">
+                  <i class="bi bi-plus-circle"></i> {{ _('Pesan') }}
+                </a>
+              </div>
+            {% endif %}
+          </div>
+
+          {% if is_owner %}
+            <div class="modal fade" id="qrModal{{ table.id }}" tabindex="-1">
+              <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h6 class="modal-title">{{ _('Detail Meja') }} - {{ table.label }}</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body text-center">
+                    <img src="{{ url_for('static', filename='qrcodes/' + table.code + '.png') }}"
+                         class="img-fluid mb-2" style="max-width: 220px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px;"
+                         alt="QR {{ table.label }}" onerror="this.style.display='none'">
+                    <div class="text-muted small mb-3">/t/{{ table.code }}</div>
+                    <a href="{{ url_for('staff.table_qr_print', table_id=table.id) }}" target="_blank" class="btn btn-sm btn-accent">
+                      <i class="bi bi-printer"></i> {{ _('Cetak QR untuk Meja') }}
+                    </a>
+                  </div>
+                  <div class="modal-footer justify-content-center">
+                    {% if table.orders %}
+                      <span class="text-muted small">
+                        <i class="bi bi-lock"></i> {{ _('Tidak bisa dihapus - sudah punya riwayat pesanan') }}
+                      </span>
+                    {% else %}
+                      <form method="post" action="{{ url_for('staff.delete_table', table_id=table.id) }}"
+                            data-confirm="{{ _('Hapus %(label)s? QR code-nya juga akan terhapus.', label=table.label) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                          <i class="bi bi-trash"></i> {{ _('Hapus Meja') }}
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Auto-refresh halaman Meja begitu ada perubahan data dari server
+  // (meja baru terisi/kosong dari device lain) - silent, tanpa suara,
+  // supaya tampilan di HP pelayan/kasir selalu sinkron sama kondisi
+  // sebenarnya tanpa perlu reload manual.
+  (function () {
+    let lastSnapshot = null;
+
+    function snapshotOf(data) {
+      return data.tables.map(function (t) { return t.id + ":" + (t.order_id || ""); }).join(",");
+    }
+
+    function poll() {
+      fetch("{{ url_for('staff.tables_status') }}")
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          const snapshot = snapshotOf(data);
+          if (lastSnapshot === null) {
+            lastSnapshot = snapshot;
+            return;
+          }
+          if (snapshot !== lastSnapshot) {
+            window.location.reload();
+          }
+        })
+        .catch(function () {});
+    }
+
+    poll();
+    setInterval(poll, 8000);
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Terjadi Kesalahan') }}{% endblock %}
+{% block nav %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="maintenance-page-wrap">
+  <div class="maintenance-card">
+    <div class="maintenance-logo-wrap">
+      {% if site_settings.login_logo_filename %}
+        <img class="maintenance-logo-float" src="{{ url_for('static', filename='uploads/branding/' + site_settings.login_logo_filename) }}" alt="{{ cafe_name }}">
+      {% else %}
+        <div class="maintenance-logo-float maintenance-logo-fallback"><i class="bi bi-cup-hot-fill"></i></div>
+      {% endif %}
+    </div>
+
+    <div class="maintenance-signal-bars">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <h3 class="maintenance-title">{{ _('Terjadi Kesalahan') }}</h3>
+    <p class="maintenance-message">
+      {{ _('Server toko mengalami gangguan. Coba lagi dalam beberapa saat, atau panggil pelayan kalau masih berlanjut.') }}
+    </p>
+    <div class="maintenance-error-code">500</div>
+  </div>
+</div>
+{% endblock %}

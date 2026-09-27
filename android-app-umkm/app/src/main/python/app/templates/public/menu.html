@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Menu') }} - {{ table.label }}{% endblock %}
+
+{% block nav %}{% include "public/_navbar.html" %}{% endblock %}
+
+{% block content %}
+{% if editing_order %}
+  <div class="alert alert-info small border-0 shadow-sm" style="background: var(--color-info-bg); color: var(--color-info);">
+    <i class="bi bi-pencil-square"></i>
+    {{ _('Menambah menu ke Pesanan #%(id)s yang sudah ada. Item yang Anda pilih di sini akan ditambahkan ke pesanan, bukan menggantinya.', id=editing_order.id) }}
+  </div>
+{% else %}
+  <div class="alert alert-info small border-0 shadow-sm" style="background: var(--color-info-bg); color: var(--color-info);">
+    <i class="bi bi-info-circle"></i>
+    {{ _('Pilih menu & jumlah, lalu kirim pesanan di bagian bawah. Kalau tidak nyaman pesan sendiri, cukup panggil pelayan dan sebutkan pesanan Anda.') }}
+  </div>
+{% endif %}
+
+{% if not has_orderable_menu %}
+  <div class="empty-state card">
+    <i class="bi bi-cup-hot"></i>
+    <div class="fw-semibold">{{ _('Menu belum tersedia') }}</div>
+    <div class="small">{{ _('Silakan panggil pelayan untuk memesan langsung.') }}</div>
+  </div>
+{% else %}
+
+<div class="category-nav">
+  {% for category in categories %}
+    {% if category.items | selectattr('is_orderable') | list %}
+      <a href="#cat-{{ category.id }}">{{ category.name }}</a>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<form method="post" action="{{ url_for('public.add_to_order', code=table.code, order_id=editing_order.id) if editing_order else url_for('public.submit_order', code=table.code) }}" id="orderForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% for category in categories %}
+    {% set available_items = category.items | selectattr('is_orderable') | list %}
+    {% if available_items %}
+      <h6 id="cat-{{ category.id }}" class="mt-4 mb-2">{{ category.name }}</h6>
+      <div class="menu-grid mb-3">
+        {% for item in available_items %}
+          <div class="menu-item-card">
+            {% if item.photo %}
+              <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#viewPhotoModal{{ item.id }}" title="{{ _('Perbesar foto') }}">
+                <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                <i class="bi bi-arrows-fullscreen thumb-hint-icon"></i>
+                <div class="menu-item-overlay">
+                  <div class="menu-item-name">{{ item.name }}</div>
+                  <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                </div>
+              </button>
+            {% else %}
+              <div class="menu-item-thumb w-100">
+                <i class="bi bi-cup-hot"></i>
+                <div class="menu-item-plain-info">
+                  <div class="menu-item-plain-name">{{ item.name }}</div>
+                  <div class="menu-item-plain-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                </div>
+              </div>
+            {% endif %}
+            <div class="menu-item-footer">
+              <div class="qty-stepper" data-price="{{ item.price }}">
+                <button type="button" class="qty-minus"><i class="bi bi-dash"></i></button>
+                <input type="number" class="qty-input" name="qty_{{ item.id }}" value="0" min="0" inputmode="numeric" readonly>
+                <button type="button" class="qty-plus"><i class="bi bi-plus"></i></button>
+              </div>
+            </div>
+          </div>
+
+          {% if item.photo %}
+            <div class="modal fade" id="viewPhotoModal{{ item.id }}" tabindex="-1">
+              <div class="modal-dialog modal-dialog-centered photo-zoom-dialog">
+                <div class="modal-content">
+                  <div class="modal-body p-0">
+                    <div class="photo-preview-zoom">
+                      <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                      <div class="menu-item-overlay">
+                        <div class="menu-item-name">{{ item.name }}</div>
+                        <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  <div class="cart-bar-spacer"></div>
+  <div class="cart-bar">
+    <div>
+      <div class="cart-total" id="cartTotal">Rp 0</div>
+      <div class="cart-count" id="cartCount">{{ _('Belum ada item dipilih') }}</div>
+    </div>
+    <button type="submit" class="btn btn-accent btn-lg" id="submitBtn" disabled>
+      {% if editing_order %}
+        <i class="bi bi-plus-circle"></i> {{ _('Tambah ke Pesanan') }}
+      {% else %}
+        <i class="bi bi-send"></i> {{ _('Kirim Pesanan') }}
+      {% endif %}
+    </button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function formatRupiah(n) {
+    return "Rp " + n.toLocaleString("id-ID");
+  }
+
+  function updateCart() {
+    const cartTotalEl = document.getElementById("cartTotal");
+    if (!cartTotalEl) return;
+
+    let total = 0;
+    let count = 0;
+
+    document.querySelectorAll(".qty-stepper").forEach((stepper) => {
+      const price = parseInt(stepper.dataset.price, 10);
+      const qty = parseInt(stepper.querySelector(".qty-input").value, 10) || 0;
+      total += price * qty;
+      count += qty;
+    });
+
+    cartTotalEl.textContent = formatRupiah(total);
+    document.getElementById("cartCount").textContent =
+      count > 0 ? count + " {{ _('item dipilih') }}" : "{{ _('Belum ada item dipilih') }}";
+    document.getElementById("submitBtn").disabled = count === 0;
+    if (window.adjustFooterClearance) window.adjustFooterClearance();
+  }
+
+  document.querySelectorAll(".qty-stepper").forEach((stepper) => {
+    const input = stepper.querySelector(".qty-input");
+
+    stepper.querySelector(".qty-plus").addEventListener("click", () => {
+      input.value = (parseInt(input.value, 10) || 0) + 1;
+      updateCart();
+    });
+
+    stepper.querySelector(".qty-minus").addEventListener("click", () => {
+      input.value = Math.max(0, (parseInt(input.value, 10) || 0) - 1);
+      updateCart();
+    });
+  });
+
+  updateCart();
+</script>
+{% endblock %}

@@ -1,0 +1,80 @@
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+android {
+    namespace 'id.orulabs.umkm'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "id.orulabs.umkm"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "0.1-proto"
+
+        // Cuma ARM (HP asli) - x86/x86_64 cuma perlu buat emulator, dan
+        // kita tidak punya emulator buat testing, jadi tidak usah
+        // diikutkan (APK jadi lebih kecil & build lebih cepat).
+        ndk {
+            abiFilters "arm64-v8a", "armeabi-v7a"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Purwarupa (proof-of-concept) tahap 1: cuma Flask polos buat pastikan
+// mekanisme "Python jalan di dalam HP lewat Chaquopy, WebView buka
+// localhost" ini benar-benar berfungsi di device asli, SEBELUM kode
+// aplikasi POS yang sesungguhnya (app/) ditanam ke sini.
+chaquopy {
+    defaultConfig {
+        // "app" (kode POS yang ditanam) taruh file APA ADANYA di disk
+        // (bukan cuma di-zip) - dia punya static/template/data file
+        // (CSS, foto, .mo, dst) yang dibaca lewat path filesystem biasa
+        // (Jinja FileSystemLoader, open(), shutil.copytree), bukan
+        // lewat mekanisme import Python - itu tidak akan pernah
+        // ke-extract kalau cuma di-zip.
+        extractPackages "app"
+
+        pip {
+            // Tanpa pin versi dulu - Chaquopy pakai Python 3.8, tidak semua
+            // versi terbaru di requirements.txt (yang disiapkan untuk
+            // Python versi baru di server) kompatibel. Purwarupa tahap 2:
+            // cari tahu versi mana yang benar-benar bisa jalan di Android
+            // dulu, baru dikunci di build.gradle setelah ketemu yang cocok.
+            install "flask"
+            install "flask-sqlalchemy"
+            install "flask-migrate"
+            install "flask-login"
+            install "flask-wtf"
+            install "flask-babel"
+            install "pytz"
+            install "python-dotenv"
+            install "qrcode"
+            install "pillow"
+            install "reportlab"
+            install "openpyxl"
+        }
+    }
+}
+
+configurations.all {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+}

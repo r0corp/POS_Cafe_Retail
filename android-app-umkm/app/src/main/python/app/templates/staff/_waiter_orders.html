@@ -1,0 +1,41 @@
+{% if not orders %}
+  <div class="empty-state card">
+    <i class="bi bi-check2-circle"></i>
+    <div class="fw-semibold">{{ _('Tidak ada pesanan yang perlu diantar') }}</div>
+    <div class="small">{{ _('Pesanan yang sudah ditandai Siap oleh Dapur akan muncul di sini.') }}</div>
+  </div>
+{% else %}
+<div class="row g-3">
+  {% for order in orders %}
+    <div class="col-sm-6 col-md-4">
+      <div class="card kitchen-order-card h-100" style="border-left: 4px solid var(--color-success);">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="mb-0 d-flex align-items-center gap-1">
+              {% if order.channel and order.channel.logo %}
+                <img src="{{ url_for('static', filename='uploads/branding/' + order.channel.logo) }}" alt="{{ order.channel.name }}" class="order-channel-badge">
+              {% endif %}
+              {{ order.display_label }} <span class="text-muted small">({{ order.display_sublabel }})</span>
+            </h6>
+            <span class="badge-soft badge-status-{{ order.status }}">{{ order.status_label }}</span>
+          </div>
+
+          <ul class="list-unstyled small mb-3">
+            {% for item in order.items %}
+              <li><i class="bi bi-dot"></i>{{ item.quantity }}x {{ item.name_snapshot }}</li>
+            {% endfor %}
+          </ul>
+
+          <form method="post" action="{{ url_for('staff.advance_status', order_id=order.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="from_status" value="ready">
+            <button type="submit" class="btn btn-accent w-100">
+              <i class="bi bi-truck"></i> {{ _('Tandai Sudah Diantar') }}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}

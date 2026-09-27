@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Sedang Dalam Perbaikan') }}{% endblock %}
+{% block nav %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<meta http-equiv="refresh" content="30">
+
+<div class="maintenance-page-wrap">
+  <div class="maintenance-card">
+    <div class="maintenance-logo-wrap">
+      {% if site_settings.login_logo_filename %}
+        <img class="maintenance-logo-float" src="{{ url_for('static', filename='uploads/branding/' + site_settings.login_logo_filename) }}" alt="{{ cafe_name }}">
+      {% else %}
+        <div class="maintenance-logo-float maintenance-logo-fallback"><i class="bi bi-cup-hot-fill"></i></div>
+      {% endif %}
+    </div>
+
+    <div class="maintenance-signal-bars">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <h3 class="maintenance-title">{{ _('Mode Perbaikan') }}</h3>
+    <p class="maintenance-subtitle">{{ _('Sedang Dalam Perbaikan') }}</p>
+    <p class="maintenance-message">
+      {{ _('Kami sedang melakukan pembaruan sistem untuk meningkatkan layanan. Mohon tunggu beberapa saat, aplikasi akan kembali normal secepatnya.') }}
+    </p>
+  </div>
+</div>
+{% endblock %}

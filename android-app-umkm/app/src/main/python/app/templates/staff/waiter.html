@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Siap Diantar') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0"><span class="page-title-icon"><i class="bi bi-bell"></i></span>{{ _('Siap Diantar') }}</h4>
+  <button type="button" id="muteTogglePelayan" class="sound-toggle-btn">
+    <i id="muteIconPelayan" class="bi bi-volume-up-fill"></i>
+  </button>
+</div>
+
+<div id="waiterOrdersContainer">
+  {% include "staff/_waiter_orders.html" %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Poller "Siap Diantar" sudah global di base.html (window.globalPelayanPoller)
+  // - di sini cukup daftarkan fungsi refresh daftar & tombol mute-nya.
+  function refreshWaiterList() {
+    fetch("{{ url_for('staff.waiter_list') }}")
+      .then(function (res) {
+        if (!res.ok || res.redirected) throw new Error("refresh failed");
+        return res.text();
+      })
+      .then(function (html) {
+        document.getElementById("waiterOrdersContainer").innerHTML = html;
+      })
+      .catch(function () {});
+  }
+  window.refreshWaiterList = refreshWaiterList;
+
+  if (window.globalPelayanPoller) {
+    wireMuteToggle("muteTogglePelayan", "muteIconPelayan", window.globalPelayanPoller);
+  }
+</script>
+{% endblock %}

@@ -42,5 +42,12 @@ android-ops-dashboard/local.properties
 android-ops-dashboard/*.iml
 android-ops-dashboard/.idea/
 
+# Android app - APK UMKM (purwarupa, Python jalan lokal via Chaquopy)
+android-app-umkm/app/build/
+android-app-umkm/.gradle/
+android-app-umkm/local.properties
+android-app-umkm/*.iml
+android-app-umkm/.idea/
+
 # Dibuat ulang otomatis oleh tools/buat_shortcut_desktop.ps1 tiap dijalankan.
 tools/*.ico
