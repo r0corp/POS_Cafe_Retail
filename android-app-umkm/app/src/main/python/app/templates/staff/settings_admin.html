@@ -387,6 +387,19 @@
                     <div class="form-text mt-1 mb-0">
                       {{ _('Nama PERSIS seperti tertera di Printers &amp; Scanners Windows di mini PC toko - dipakai server untuk cetak langsung ke printer itu, supaya tombol Cetak Struk tetap tercetak dengan benar walau ditekan dari tablet/HP. Kosongkan untuk pakai printer default Windows.') }}
                     </div>
+
+                    <div class="form-field-row mt-2" id="bluetoothPrinterRow" style="--form-field-label-width: 110px; display:none;">
+                      <label class="form-label form-field-label small">{{ _('Printer Bluetooth') }}</label>
+                      <div style="flex: 0 0 220px; max-width: 220px;">
+                        <select name="receipt_bluetooth_mac" class="form-select" id="bluetoothPrinterSelect" data-elegant-select>
+                          <option value="">{{ _('Tidak dipilih') }}</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-text mt-1 mb-0" id="bluetoothPrinterHint" style="display:none;">
+                      {{ _('Pasangkan (pairing) printer-nya dulu lewat menu Bluetooth Android biasa, baru pilih dari daftar di sini.') }}
+                      <a href="#" onclick="reloadBluetoothPrinters(); return false;">{{ _('Muat ulang daftar') }}</a>
+                    </div>
                   </div>
                 </div>
 
@@ -1317,5 +1330,45 @@
       });
     });
   })();
+</script>
+<script>
+  // Dropdown "Printer Bluetooth" cuma muncul di APK UMKM (Android) -
+  // endpoint-nya sendiri yang bilang "supported: false" kalau ini bukan
+  // build Android (lihat list_bluetooth_printers di staff.py), jadi
+  // baris ini aman dipanggil dari halaman Pengaturan versi server juga.
+  const bluetoothMacSelected = "{{ settings.receipt_bluetooth_mac or '' }}";
+
+  function reloadBluetoothPrinters() {
+    const row = document.getElementById("bluetoothPrinterRow");
+    const hint = document.getElementById("bluetoothPrinterHint");
+    const select = document.getElementById("bluetoothPrinterSelect");
+
+    fetch("{{ url_for('staff.list_bluetooth_printers') }}")
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.supported) {
+          row.style.display = "none";
+          hint.style.display = "none";
+          return;
+        }
+        row.style.display = "";
+        hint.style.display = "";
+
+        select.innerHTML = '<option value="">{{ _("Tidak dipilih") }}</option>';
+        (data.printers || []).forEach(function (p) {
+          const opt = document.createElement("option");
+          opt.value = p.address;
+          opt.textContent = p.name;
+          if (p.address === bluetoothMacSelected) opt.selected = true;
+          select.appendChild(opt);
+        });
+      })
+      .catch(function () {
+        row.style.display = "none";
+        hint.style.display = "none";
+      });
+  }
+
+  reloadBluetoothPrinters();
 </script>
 {% endblock %}

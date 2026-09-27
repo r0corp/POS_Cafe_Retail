@@ -172,6 +172,13 @@ class Settings(db.Model):
     # sendiri. Kosong = pakai printer default Windows di mini PC.
     receipt_printer_name = db.Column(db.String(100))
 
+    # Cuma dipakai di APK UMKM (versi Android standalone, lihat
+    # android-app-umkm/) - alamat MAC printer thermal Bluetooth yang
+    # dipilih owner di Pengaturan. Kosong di server/mini PC (tidak
+    # relevan, cetak di sana tetap lewat receipt_printer_name/win32print
+    # di atas).
+    receipt_bluetooth_mac = db.Column(db.String(20))
+
     # Ketebalan teks struk ("thin"/"normal"/"bold", lihat
     # RECEIPT_PRINT_WEIGHTS) - printer thermal yang head-nya sudah agak
     # aus sering mencetak terlalu tipis/pudar walau tintanya (panasnya)

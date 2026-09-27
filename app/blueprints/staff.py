@@ -1293,14 +1293,17 @@ def _print_receipt_to_printer(order, settings):
     ini, device apa pun yang menekan "Cetak Struk" tetap mencetak ke
     printer yang sama (yang di server), karena eksekusi print-nya di sini,
     bukan di browser si penekan tombol."""
-    try:
-        import win32print
-    except ImportError:
-        raise RuntimeError(
-            _("Modul pywin32 belum terpasang di server - jalankan 'pip install pywin32'.")
-        )
+    is_android = os.environ.get("ORULABS_PLATFORM") == "android"
 
-    printer_name = settings.receipt_printer_name or win32print.GetDefaultPrinter()
+    if not is_android:
+        try:
+            import win32print
+        except ImportError:
+            raise RuntimeError(
+                _("Modul pywin32 belum terpasang di server - jalankan 'pip install pywin32'.")
+            )
+        printer_name = settings.receipt_printer_name or win32print.GetDefaultPrinter()
+
     text = "\n".join(_receipt_text_lines(order, settings)) + "\n"
     body = text.encode("ascii", errors="replace")
 
@@ -1320,6 +1323,16 @@ def _print_receipt_to_printer(order, settings):
     # ("POS-58" dkk). Kalau printernya tidak dukung, byte ini biasanya
     # cuma diabaikan (tidak bikin macet), bukan ikut tercetak jadi teks.
     data = body + b"\x1d\x56\x00"
+
+    # APK UMKM (Android standalone) tidak punya printer USB Windows -
+    # cetak lewat Bluetooth (lihat android_bluetooth_printer.py). Server/
+    # mini PC tidak pernah set env var ini, jadi baris ini tidak
+    # berpengaruh sama sekali di situ.
+    if is_android:
+        from ..android_bluetooth_printer import send_escpos
+
+        send_escpos(data, settings.receipt_bluetooth_mac)
+        return
 
     handle = win32print.OpenPrinter(printer_name)
     try:
@@ -1352,6 +1365,28 @@ def print_receipt(order_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
     return jsonify({"ok": True})
+
+
+@staff_bp.route("/admin/settings/bluetooth-printers")
+@roles_required(ROLE_OWNER)
+def list_bluetooth_printers():
+    """Dipanggil lewat fetch() dari halaman Pengaturan Toko - cuma
+    berfungsi di APK UMKM (Android), lihat android_bluetooth_printer.py.
+    Device harus sudah dipasangkan (paired) lebih dulu lewat menu
+    Bluetooth Android biasa - endpoint ini cuma menampilkan yang sudah
+    dipasangkan, tidak melakukan scan/pairing baru."""
+
+    if os.environ.get("ORULABS_PLATFORM") != "android":
+        return jsonify({"printers": [], "supported": False})
+
+    from ..android_bluetooth_printer import list_paired_printers
+
+    try:
+        printers = list_paired_printers()
+    except Exception as e:
+        return jsonify({"printers": [], "supported": True, "error": str(e)})
+
+    return jsonify({"printers": printers, "supported": True})
 
 
 @staff_bp.route("/orders/<int:order_id>/receipt")
@@ -2636,6 +2671,7 @@ def admin_settings():
         paper_width = request.form.get("receipt_paper_width", "58")
         settings.receipt_paper_width = paper_width if paper_width in RECEIPT_PAPER_WIDTHS else "58"
         settings.receipt_printer_name = request.form.get("receipt_printer_name", "").strip() or None
+        settings.receipt_bluetooth_mac = request.form.get("receipt_bluetooth_mac", "").strip() or None
 
         print_weight = request.form.get("receipt_print_weight", "normal")
         settings.receipt_print_weight = print_weight if print_weight in RECEIPT_PRINT_WEIGHTS else "normal"

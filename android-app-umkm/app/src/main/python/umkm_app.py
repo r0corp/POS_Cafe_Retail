@@ -74,6 +74,11 @@ def run(port, files_dir):
     os.environ["BASE_URL"] = "http://127.0.0.1:%d" % port
     os.environ.setdefault("CAFE_NAME", "Toko Saya")
 
+    # Dibaca oleh _print_receipt_to_printer (app/blueprints/staff.py) buat
+    # milih jalur cetak Bluetooth (android_bluetooth_printer.py) alih-alih
+    # win32print - lihat komentar di sana.
+    os.environ["ORULABS_PLATFORM"] = "android"
+
     # "app" (paket kode POS) baru benar-benar ke-extract ke disk oleh
     # Chaquopy begitu DI-IMPORT (lihat extractPackages di build.gradle) -
     # WAJIB import dulu baru boleh baca app.root_path, bukan ditebak dari
