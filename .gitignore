@@ -41,3 +41,6 @@ android-ops-dashboard/.gradle/
 android-ops-dashboard/local.properties
 android-ops-dashboard/*.iml
 android-ops-dashboard/.idea/
+
+# Dibuat ulang otomatis oleh tools/buat_shortcut_desktop.ps1 tiap dijalankan.
+tools/*.ico
