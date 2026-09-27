@@ -85,6 +85,7 @@ def run(port, files_dir):
     # path file ini sendiri.
     from app import create_app, db
     from app.models import ROLE_OWNER, User
+    import licensing
 
     app = create_app()
 
@@ -99,5 +100,10 @@ def run(port, files_dir):
             owner.set_password("owner123")
             db.session.add(owner)
             db.session.commit()
+
+    # Blokir semua halaman POS sampai HP ini diaktivasi - lihat
+    # licensing.py buat alur lengkapnya (kode aktivasi per HP, tanpa
+    # server pusat).
+    licensing.install_activation_gate(app, data_dir)
 
     app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False, threaded=True)
