@@ -2763,6 +2763,13 @@ def admin_settings():
 
         settings.shop_name = shop_name
         settings.uses_tables = request.form.get("uses_tables") == "1"
+        settings.payment_voice_enabled = request.form.get("payment_voice_enabled") == "1"
+        settings.payment_voice_template_id = (
+            request.form.get("payment_voice_template_id", "").strip() or "Uang masuk, {nominal} rupiah"
+        )
+        settings.payment_voice_template_en = (
+            request.form.get("payment_voice_template_en", "").strip() or "Payment received, {nominal} rupiah"
+        )
         settings.app_logo_choice = app_logo_choice if app_logo_choice in ("square", "wide") else "square"
         settings.login_logo_choice = login_logo_choice if login_logo_choice in ("square", "wide") else "square"
         settings.receipt_logo_choice = receipt_logo_choice if receipt_logo_choice in ("square", "wide") else "wide"

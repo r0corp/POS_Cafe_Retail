@@ -224,6 +224,27 @@ class Settings(db.Model):
     # server_default yang sama buat semua baris lama.
     payment_notify_token = db.Column(db.String(64))
 
+    # Suara pengucapan nominal ("Uang masuk, lima puluh ribu rupiah") lewat
+    # Text-to-Speech, terpisah dari suara 'ting' notifikasi biasa
+    # (notification_enabled) - ada yang suka bunyi tanda saja tanpa suara
+    # ngomong. Default AKTIF - server_default WAJIB ada (bukan cuma
+    # default=) supaya baris Settings lama ikut ter-backfill True.
+    payment_voice_enabled = db.Column(db.Boolean, nullable=False, default=True, server_default=db.text("1"))
+
+    # Kalimat yang diucapkan TTS - Owner bebas ubah kata-katanya sendiri.
+    # "{nominal}" di dalam teks diganti ke angka terucap ("lima puluh ribu")
+    # sebelum dikirim ke mesin suara - lihat speakPaymentAmount() di
+    # notify.js. Dipisah 2 bahasa supaya otomatis ikut Bahasa
+    # Indonesia/Inggris yang sedang aktif di aplikasi.
+    payment_voice_template_id = db.Column(
+        db.String(255), nullable=False, default="Uang masuk, {nominal} rupiah",
+        server_default="Uang masuk, {nominal} rupiah",
+    )
+    payment_voice_template_en = db.Column(
+        db.String(255), nullable=False, default="Payment received, {nominal} rupiah",
+        server_default="Payment received, {nominal} rupiah",
+    )
+
     # Sebagian usaha (gerobak/kaki lima/booth) tidak punya meja sama
     # sekali - matikan ini supaya menu "Meja", opsi "Makan di Tempat" di
     # Buat Pesanan, dan bagian "Lantai Toko" di Pengaturan tidak usah

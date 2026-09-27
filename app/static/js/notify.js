@@ -263,6 +263,155 @@ function startOrderPoller(options) {
   return { isMuted: isMuted, setMuted: setMuted };
 }
 
+// Ubah angka jadi kata Bahasa Indonesia ("50000" -> "lima puluh ribu"),
+// dipakai speakPaymentAmount() di bawah supaya TTS mengucapkan nominal
+// secara alami, bukan dieja digit-per-digit oleh mesin suaranya.
+const _ONES_ID = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan"];
+
+function _threeDigitsToWordsID(n) {
+  const parts = [];
+  const hundreds = Math.floor(n / 100);
+  const rest = n % 100;
+
+  if (hundreds > 0) parts.push(hundreds === 1 ? "seratus" : _ONES_ID[hundreds] + " ratus");
+
+  if (rest > 0) {
+    if (rest === 10) {
+      parts.push("sepuluh");
+    } else if (rest === 11) {
+      parts.push("sebelas");
+    } else if (rest < 10) {
+      parts.push(_ONES_ID[rest]);
+    } else if (rest < 20) {
+      parts.push(_ONES_ID[rest - 10] + " belas");
+    } else {
+      const tens = Math.floor(rest / 10);
+      const ones = rest % 10;
+      parts.push(_ONES_ID[tens] + " puluh");
+      if (ones > 0) parts.push(_ONES_ID[ones]);
+    }
+  }
+
+  return parts.join(" ");
+}
+
+function numberToWordsID(n) {
+  if (n === 0) return "nol";
+
+  const groups = [
+    [1000000000000, "triliun"],
+    [1000000000, "miliar"],
+    [1000000, "juta"],
+    [1000, "ribu"],
+  ];
+  const parts = [];
+  let remaining = Math.round(n);
+
+  groups.forEach(function (group) {
+    const value = group[0];
+    const name = group[1];
+    if (remaining >= value) {
+      const count = Math.floor(remaining / value);
+      remaining %= value;
+      parts.push(value === 1000 && count === 1 ? "seribu" : _threeDigitsToWordsID(count) + " " + name);
+    }
+  });
+
+  if (remaining > 0) parts.push(_threeDigitsToWordsID(remaining));
+
+  return parts.join(" ");
+}
+
+// Versi Inggris - dipakai kalau bahasa aplikasi sedang di-set ke English
+// (document.documentElement.lang), lihat speakPaymentAmount().
+const _ONES_EN = [
+  "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+  "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+];
+const _TENS_EN = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+function _threeDigitsToWordsEN(n) {
+  const parts = [];
+  const hundreds = Math.floor(n / 100);
+  const rest = n % 100;
+
+  if (hundreds > 0) parts.push(_ONES_EN[hundreds] + " hundred");
+
+  if (rest > 0) {
+    if (rest < 20) {
+      parts.push(_ONES_EN[rest]);
+    } else {
+      const tens = Math.floor(rest / 10);
+      const ones = rest % 10;
+      parts.push(_TENS_EN[tens] + (ones > 0 ? "-" + _ONES_EN[ones] : ""));
+    }
+  }
+
+  return parts.join(" ");
+}
+
+function numberToWordsEN(n) {
+  if (n === 0) return "zero";
+
+  const groups = [
+    [1000000000000, "trillion"],
+    [1000000000, "billion"],
+    [1000000, "million"],
+    [1000, "thousand"],
+  ];
+  const parts = [];
+  let remaining = Math.round(n);
+
+  groups.forEach(function (group) {
+    const value = group[0];
+    const name = group[1];
+    if (remaining >= value) {
+      const count = Math.floor(remaining / value);
+      remaining %= value;
+      parts.push(_threeDigitsToWordsEN(count) + " " + name);
+    }
+  });
+
+  if (remaining > 0) parts.push(_threeDigitsToWordsEN(remaining));
+
+  return parts.join(" ");
+}
+
+// Ucapkan "Uang masuk, lima puluh ribu rupiah" (atau versi Inggrisnya)
+// lewat Text-to-Speech - lewat jembatan Android (window.AndroidTTS, lihat
+// MainActivity.java) kalau dibuka dari APK Hotatos, atau lewat
+// speechSynthesis bawaan browser sebagai cadangan (dipakai kalau halaman
+// ini dibuka dari laptop/browser biasa, bukan tablet). Diam saja (tidak
+// error) kalau dua-duanya tidak tersedia - toast & bunyi 'ting' tetap
+// jalan normal tanpa suara ini.
+function speakPaymentAmount(amount, templateID, templateEN) {
+  const isEn = (document.documentElement.lang || "id").toLowerCase().startsWith("en");
+  const langTag = isEn ? "en-US" : "id-ID";
+
+  let text;
+  if (amount != null) {
+    const words = isEn ? numberToWordsEN(amount) : numberToWordsID(amount);
+    const template = (isEn ? templateEN : templateID) || (isEn ? "Payment received, {nominal} rupiah" : "Uang masuk, {nominal} rupiah");
+    text = template.replace("{nominal}", words);
+  } else {
+    text = isEn ? "New QRIS payment received" : "Ada pembayaran QRIS baru";
+  }
+
+  try {
+    if (window.AndroidTTS && window.AndroidTTS.speak) {
+      window.AndroidTTS.speak(text, langTag);
+      return;
+    }
+    if (window.speechSynthesis) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = langTag;
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (e) {
+    // Mesin TTS tidak tersedia/gagal - abaikan, bukan fitur penting.
+  }
+}
+
 // Poll berkala endpoint JSON berisi {payments: [{id, amount, created_at}]}
 // (notifikasi "uang QRIS masuk" dari listener BCA Merchant di tablet -
 // lihat receive_payment_notification() di staff.py), bunyikan chime +
@@ -321,6 +470,9 @@ function startPaymentNotificationPoller(options) {
                 : (options.unreadableLabel || "Ada notifikasi pembayaran QRIS baru (nominal tidak terbaca)"),
               "success"
             );
+          }
+          if (options.voiceEnabled !== false) {
+            speakPaymentAmount(p.amount, options.voiceTemplateID, options.voiceTemplateEN);
           }
         });
       })

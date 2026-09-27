@@ -445,6 +445,52 @@
                 </div>
 
               </div>
+
+              <div class="row g-4 mt-0">
+                <div class="col-12">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">4</span> {{ _('Notifikasi Pembayaran QRIS') }}
+                  </div>
+                  <div class="card">
+                    <div class="card-body system-card-body">
+                      <p class="text-muted small">
+                        {{ _('Token ini dipakai tablet kasir (fitur dengar notifikasi BCA Merchant) supaya bisa lapor "uang QRIS masuk" ke server ini. Cukup ditempel sekali ke pengaturan APK Hotatos di tablet - tidak perlu diketik ulang setelahnya.') }}
+                      </p>
+                      <div class="input-group" style="max-width: 480px;">
+                        <input type="text" class="form-control" id="paymentNotifyToken" value="{{ payment_notify_token }}" readonly>
+                        <button type="button" class="btn btn-outline-secondary" id="copyPaymentTokenBtn">
+                          <i class="bi bi-clipboard"></i> {{ _('Salin') }}
+                        </button>
+                      </div>
+
+                      <hr class="my-3">
+
+                      <div class="d-flex align-items-center gap-3 mb-3">
+                        <label class="small fw-semibold mb-0" for="paymentVoiceEnabled">{{ _('Suara Ucapkan Nominal') }}</label>
+                        <div class="form-check form-switch mb-0">
+                          <input class="form-check-input" type="checkbox" role="switch" name="payment_voice_enabled" value="1"
+                                 id="paymentVoiceEnabled"
+                                 {% if settings.payment_voice_enabled %}checked{% endif %}>
+                        </div>
+                      </div>
+
+                      <div class="form-field-row mb-2" style="--form-field-label-width: 160px;">
+                        <label class="form-label form-field-label small">{{ _('Kalimat (Bahasa Indonesia)') }}</label>
+                        <input type="text" name="payment_voice_template_id" class="form-control"
+                               value="{{ settings.payment_voice_template_id }}">
+                      </div>
+                      <div class="form-field-row mb-2" style="--form-field-label-width: 160px;">
+                        <label class="form-label form-field-label small">{{ _('Kalimat (Bahasa Inggris)') }}</label>
+                        <input type="text" name="payment_voice_template_en" class="form-control"
+                               value="{{ settings.payment_voice_template_en }}">
+                      </div>
+                      <p class="text-muted small mb-0">
+                        {{ _('Tulisan <code>{nominal}</code> akan diganti otomatis dengan nominal yang terucap (mis. "lima puluh ribu") - kalimatnya bebas diubah, dipilih otomatis sesuai Bahasa Indonesia/Inggris yang sedang aktif. Matikan toggle di atas kalau cuma mau bunyi "ting" tanpa suara ngomong.') }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- ============ NOTIFIKASI ============ -->
@@ -942,27 +988,6 @@
                       <i class="bi bi-eraser-fill"></i> {{ _('Reset ke Mode Pabrik') }}
                     </button>
                   </form>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-4 mt-0">
-          <div class="col-12 d-flex flex-column">
-            <div class="settings-section-title">
-              <span class="settings-section-num">6</span> {{ _('Notifikasi Pembayaran QRIS') }}
-            </div>
-            <div class="card flex-grow-1">
-              <div class="card-body system-card-body">
-                <p class="text-muted small">
-                  {{ _('Token ini dipakai tablet kasir (fitur dengar notifikasi BCA Merchant) supaya bisa lapor "uang QRIS masuk" ke server ini. Cukup ditempel sekali ke pengaturan APK Hotatos di tablet - tidak perlu diketik ulang setelahnya.') }}
-                </p>
-                <div class="input-group" style="max-width: 480px;">
-                  <input type="text" class="form-control" id="paymentNotifyToken" value="{{ payment_notify_token }}" readonly>
-                  <button type="button" class="btn btn-outline-secondary" id="copyPaymentTokenBtn">
-                    <i class="bi bi-clipboard"></i> {{ _('Salin') }}
-                  </button>
                 </div>
               </div>
             </div>

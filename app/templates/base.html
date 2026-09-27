@@ -601,6 +601,9 @@
   const CUSTOM_SOUND_URL = "{{ url_for('static', filename='uploads/branding/' + site_settings.notification_sound_file) if site_settings.notification_sound_file else '' }}";
   const NOTIF_ENABLED = {{ 'true' if site_settings.notification_enabled else 'false' }};
   const NOTIF_VOLUME = {{ site_settings.notification_volume }};
+  const PAYMENT_VOICE_ENABLED = {{ 'true' if site_settings.payment_voice_enabled else 'false' }};
+  const PAYMENT_VOICE_TEMPLATE_ID = {{ site_settings.payment_voice_template_id|tojson }};
+  const PAYMENT_VOICE_TEMPLATE_EN = {{ site_settings.payment_voice_template_en|tojson }};
 
   {% if current_user.role in ('owner', 'dapur') %}
     window.globalKitchenPoller = startOrderPoller({
@@ -682,6 +685,9 @@
       customSoundUrl: CUSTOM_SOUND_URL,
       volume: NOTIF_VOLUME,
       enabled: NOTIF_ENABLED,
+      voiceEnabled: PAYMENT_VOICE_ENABLED,
+      voiceTemplateID: PAYMENT_VOICE_TEMPLATE_ID,
+      voiceTemplateEN: PAYMENT_VOICE_TEMPLATE_EN,
     });
   {% endif %}
 </script>

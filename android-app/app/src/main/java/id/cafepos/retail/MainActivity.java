@@ -10,7 +10,10 @@ import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
 import android.provider.Settings;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
@@ -32,6 +35,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import java.util.Locale;
+
 /**
  * Wrapper WebView sederhana yang selalu membuka alamat server toko
  * (kasir/dapur/pelayan pakai app ini seperti aplikasi Android biasa,
@@ -46,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private FrameLayout offlineLayout;
     private ValueCallback<Uri[]> filePathCallback;
     private ActivityResultLauncher<String> fileChooserLauncher;
+    private TextToSpeech textToSpeech;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +83,12 @@ public class MainActivity extends AppCompatActivity {
                     filePathCallback = null;
                 }
         );
+
+        textToSpeech = new TextToSpeech(this, status -> {
+            if (status != TextToSpeech.SUCCESS) {
+                Log.w("MainActivity", "TextToSpeech gagal diinisialisasi, status=" + status);
+            }
+        });
 
         setupWebView(serverUrl);
 
@@ -213,6 +225,12 @@ public class MainActivity extends AppCompatActivity {
         // printCurrentPage() & PrintBridge di bawah.
         webView.addJavascriptInterface(new PrintBridge(), "AndroidPrint");
 
+        // Jembatan buat notify.js (speakPaymentAmount()) mengucapkan nominal
+        // "uang QRIS masuk" lewat mesin Text-to-Speech Android asli - jauh
+        // lebih bisa diandalkan daripada speechSynthesis bawaan WebView
+        // (yang dukungannya tidak konsisten antar versi Android/WebView).
+        webView.addJavascriptInterface(new TtsBridge(), "AndroidTTS");
+
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> callback,
@@ -281,5 +299,61 @@ public class MainActivity extends AppCompatActivity {
         public void requestPrint() {
             runOnUiThread(MainActivity.this::printCurrentPage);
         }
+    }
+
+    /** Dipanggil dari notify.js (speakPaymentAmount()) - langCode "id-ID"
+     * atau "en-US" mengikuti bahasa aplikasi yang sedang aktif. Diam saja
+     * (tidak Toast/error) kalau paket suara bahasa itu belum terpasang di
+     * HP-nya - fitur ini sifatnya pelengkap, toast & bunyi 'ting' tetap
+     * harus jalan normal walau TTS gagal. */
+    private class TtsBridge {
+        @JavascriptInterface
+        public void speak(String text, String langCode) {
+            if (textToSpeech == null) return;
+
+            runOnUiThread(() -> {
+                Locale locale = "en-US".equals(langCode) ? Locale.US : new Locale("id", "ID");
+                int result = textToSpeech.setLanguage(locale);
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.w("MainActivity", "Paket suara TTS untuk " + langCode + " belum terpasang di HP ini.");
+                    return;
+                }
+
+                // Defaultnya mesin TTS Android sering pilih suara "embedded"
+                // yang murah/robotic - cari suara berkualitas PALING TINGGI
+                // yang sudah terpasang buat bahasa ini (banyak HP modern
+                // sudah punya suara "network"/neural Google yang jauh lebih
+                // manusiawi, cuma tidak dipakai kalau tidak diminta manual
+                // begini). Diam-diam pakai default kalau tidak ketemu yang
+                // lebih baik - tidak fatal, cuma kurang jernih.
+                Voice bestVoice = null;
+                for (Voice voice : textToSpeech.getVoices()) {
+                    if (voice.getLocale() == null || !voice.getLocale().getLanguage().equals(locale.getLanguage())) {
+                        continue;
+                    }
+                    if (voice.getFeatures() != null
+                            && voice.getFeatures().contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)) {
+                        continue;
+                    }
+                    if (bestVoice == null || voice.getQuality() > bestVoice.getQuality()) {
+                        bestVoice = voice;
+                    }
+                }
+                if (bestVoice != null) {
+                    textToSpeech.setVoice(bestVoice);
+                }
+
+                textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null, "payment_notif_" + System.currentTimeMillis());
+            });
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+            textToSpeech.shutdown();
+        }
+        super.onDestroy();
     }
 }
