@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
@@ -391,10 +392,12 @@ def create_app(config_overrides=None):
         online_staff = []
 
         if current_user.is_authenticated:
+            is_android = os.environ.get("ORULABS_PLATFORM") == "android"
             nav_items = [
                 item
                 for item in NAV_ITEMS
-                if item["roles"] is None or current_user.role in item["roles"]
+                if (item["roles"] is None or current_user.role in item["roles"])
+                and not (is_android and item.get("android_hidden"))
             ]
 
             if current_user.role == ROLE_OWNER:

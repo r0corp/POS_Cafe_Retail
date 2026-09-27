@@ -27,6 +27,9 @@ NAV_ITEMS = [
         "icon": "bi-egg-fried",
         "label": _l("Dapur"),
         "roles": [ROLE_OWNER, ROLE_DAPUR],
+        # Toko 1-orang (APK UMKM) tidak punya staf dapur terpisah - lihat
+        # inject_globals() di app/__init__.py.
+        "android_hidden": True,
     },
     {
         "endpoint": "staff.waiter",
