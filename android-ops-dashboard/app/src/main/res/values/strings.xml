@@ -7,4 +7,6 @@
     <string name="server_url">http://100.0.0.1:8790</string>
     <string name="offline_message">Tidak bisa terhubung ke dashboard. Pastikan Tailscale di HP ini aktif dan laptop kontrolnya menyala, lalu coba lagi.</string>
     <string name="retry">Coba Lagi</string>
+    <string name="open_tailscale">Buka Tailscale</string>
+    <string name="tailscale_not_installed">Tailscale belum terpasang di HP ini - install dulu dari Play Store.</string>
 </resources>

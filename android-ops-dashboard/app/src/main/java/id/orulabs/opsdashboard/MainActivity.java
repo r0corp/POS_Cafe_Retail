@@ -1,5 +1,7 @@
 package id.orulabs.opsdashboard;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Bundle;
 import android.view.View;
@@ -13,10 +15,22 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+/*
+ * Catatan soal "gabung dengan Tailscale jadi 1 aplikasi": TIDAK bisa
+ * secara teknis - Tailscale itu aplikasi VPN pihak ketiga (pakai
+ * VpnService Android-nya sendiri, bukan library yang bisa ditempel ke
+ * APK lain). Yang bisa dilakukan cuma mempermudah lompat ke sana lewat
+ * tombol di layar offline (lihat openTailscale() di bawah) - solusi
+ * yang lebih permanen sebenarnya fitur "Always-on VPN" bawaan Tailscale
+ * sendiri di Pengaturan Android, supaya Tailscale otomatis nyala tanpa
+ * perlu dibuka manual sama sekali.
+ */
 
 /**
  * Wrapper WebView sederhana buat Dashboard Kontrol Deploy (ops/dashboard.html)
@@ -44,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
         swipeRefresh = findViewById(R.id.swipeRefresh);
         offlineLayout = findViewById(R.id.offlineLayout);
         Button retryButton = findViewById(R.id.retryButton);
+        Button openTailscaleButton = findViewById(R.id.openTailscaleButton);
 
         offlineWebView.getSettings().setAllowFileAccess(true);
         offlineWebView.getSettings().setJavaScriptEnabled(true);
@@ -61,6 +76,8 @@ public class MainActivity extends AppCompatActivity {
             webView.setVisibility(View.VISIBLE);
             webView.loadUrl(serverUrl);
         });
+
+        openTailscaleButton.setOnClickListener(v -> openTailscale());
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -124,6 +141,31 @@ public class MainActivity extends AppCompatActivity {
                 showOffline(null);
             }
         });
+    }
+
+    private static final String TAILSCALE_PACKAGE = "com.tailscale.ipn";
+
+    /** Buka app Tailscale langsung ke layar utamanya (kalau sudah
+     * terpasang), atau ke listing Play Store-nya (kalau belum) - dipanggil
+     * dari tombol "Buka Tailscale" di layar offline. Tidak bisa membuat
+     * Tailscale otomatis nyambung tanpa disentuh sama sekali (itu perlu
+     * diaktifkan sendiri lewat fitur "Always-on VPN" Tailscale di
+     * Pengaturan Android), tapi setidaknya user tidak perlu cari-cari
+     * ikonnya sendiri di antara semua app di HP. */
+    private void openTailscale() {
+        Intent launchIntent = getPackageManager().getLaunchIntentForPackage(TAILSCALE_PACKAGE);
+        if (launchIntent != null) {
+            startActivity(launchIntent);
+            return;
+        }
+
+        Toast.makeText(this, getString(R.string.tailscale_not_installed), Toast.LENGTH_LONG).show();
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + TAILSCALE_PACKAGE)));
+        } catch (Exception e) {
+            startActivity(new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://play.google.com/store/apps/details?id=" + TAILSCALE_PACKAGE)));
+        }
     }
 
     private void showOffline(Integer httpErrorCode) {
