@@ -66,7 +66,43 @@
     {% for category in categories %}
       <div class="card mb-3 menu-category-section" data-category-id="{{ category.id }}">
         <div class="card-body">
-          <h6 class="mb-3">{{ category.name }}</h6>
+          <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
+            <h6 class="mb-0">{{ category.name }}</h6>
+            <div class="d-flex gap-2">
+              <button type="button" class="icon-btn" data-bs-toggle="modal" data-bs-target="#editCategoryModal{{ category.id }}" title="{{ _('Ubah nama kategori') }}">
+                <i class="bi bi-pencil-fill"></i>
+              </button>
+              <form method="post" action="{{ url_for('staff.delete_category', category_id=category.id) }}" id="deleteCategoryForm{{ category.id }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              </form>
+              <button type="button" class="icon-btn-danger" title="{{ _('Hapus kategori') }}"
+                      data-confirm-message="{{ _('Hapus kategori %(name)s? Kategori cuma bisa dihapus kalau sudah tidak ada menu di dalamnya.', name=category.name) }}"
+                      onclick="if(confirm(this.dataset.confirmMessage)) document.getElementById('deleteCategoryForm{{ category.id }}').submit()">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="modal fade" id="editCategoryModal{{ category.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <form method="post" action="{{ url_for('staff.edit_category', category_id=category.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title">{{ _('Ubah Nama Kategori') }}</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <input type="text" name="name" class="form-control" value="{{ category.name }}" required>
+                  </div>
+                  <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">{{ _('Batal') }}</button>
+                    <button type="submit" class="btn btn-sm btn-primary">{{ _('Simpan') }}</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
           {% if category.items %}
             <div class="menu-grid">
               {% for item in category.items %}

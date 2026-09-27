@@ -1621,6 +1621,46 @@ def admin_menu():
     )
 
 
+@staff_bp.route("/admin/menu/category/<int:category_id>/edit", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def edit_category(category_id):
+    category = Category.query.get_or_404(category_id)
+    name = request.form.get("name", "").strip()
+
+    if not name:
+        flash(_("Nama kategori tidak boleh kosong."), "warning")
+    else:
+        category.name = name
+        db.session.commit()
+        flash(_("Kategori diubah jadi \"%(name)s\".", name=name), "success")
+
+    return redirect(url_for("staff.admin_menu"))
+
+
+@staff_bp.route("/admin/menu/category/<int:category_id>/delete", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def delete_category(category_id):
+    category = Category.query.get_or_404(category_id)
+
+    if category.items:
+        flash(
+            _(
+                "Kategori %(name)s tidak bisa dihapus karena masih punya menu "
+                "di dalamnya. Pindahkan atau hapus dulu semua menu di kategori "
+                "ini.",
+                name=category.name,
+            ),
+            "danger",
+        )
+        return redirect(url_for("staff.admin_menu"))
+
+    name = category.name
+    db.session.delete(category)
+    db.session.commit()
+    flash(_("Kategori %(name)s dihapus.", name=name), "success")
+    return redirect(url_for("staff.admin_menu"))
+
+
 @staff_bp.route("/admin/menu/<int:item_id>/toggle", methods=["POST"])
 @roles_required(ROLE_OWNER)
 def toggle_menu_item(item_id):
