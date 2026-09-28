@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+android {
+    namespace 'id.orulabs.licensegen'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "id.orulabs.licensegen"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "0.1"
+
+        // Cuma ARM (HP asli) - dipakai langsung di HP penjual, bukan
+        // emulator.
+        ndk {
+            abiFilters "arm64-v8a", "armeabi-v7a"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// App INTERNAL buat penjual sendiri (bukan buat dibagikan ke pembeli) -
+// generate Kode Aktivasi APK UMKM pakai private key yang ditanam di
+// private_key.py (lihat komentar di file itu - SENGAJA TIDAK ikut git).
+// Cuma butuh Flask polos + stdlib (sqlite3/hashlib buat DB & PIN), tidak
+// perlu SQLAlchemy/WTF/dst seperti aplikasi POS yang sesungguhnya.
+chaquopy {
+    defaultConfig {
+        pip {
+            install "flask"
+        }
+    }
+}
+
+configurations.all {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.biometric:biometric:1.1.0'
+}

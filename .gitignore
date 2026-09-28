@@ -53,5 +53,14 @@ android-app-umkm/.idea/
 # cuma boleh ada di laptop penjual (lihat android-app-umkm/licensing_tool/).
 android-app-umkm/licensing_tool/private_key.json
 
+# Android app - Generator Lisensi (private key sama seperti di atas, versi
+# HP - lihat android-app-license-generator/app/src/main/python/private_key.py)
+android-app-license-generator/app/build/
+android-app-license-generator/.gradle/
+android-app-license-generator/local.properties
+android-app-license-generator/*.iml
+android-app-license-generator/.idea/
+android-app-license-generator/app/src/main/python/private_key.py
+
 # Dibuat ulang otomatis oleh tools/buat_shortcut_desktop.ps1 tiap dijalankan.
 tools/*.ico

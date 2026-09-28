@@ -7,9 +7,10 @@ Alur:
   1. HP belum aktivasi -> semua halaman dialihkan ke "/__activation",
      nampilin "Kode Perangkat" (diturunkan dari ANDROID_ID).
   2. Pembeli kirim Kode Perangkat itu ke penjual (WA/dst).
-  3. Penjual jalankan licensing_tool/generate_activation_code.py di
-     laptop sendiri (private key TIDAK PERNAH ikut ke APK ini) buat
-     bikin "Kode Aktivasi", dikirim balik ke pembeli.
+  3. Penjual generate "Kode Aktivasi" - baik lewat
+     licensing_tool/generate_activation_code.py di laptop, ATAU lewat
+     APK Generator Lisensi terpisah (private key TIDAK PERNAH ikut ke
+     APK UMKM ini) - dikirim balik ke pembeli.
   4. Pembeli tempel Kode Aktivasi -> diverifikasi pakai PUBLIC key di
      bawah -> kalau cocok, tersimpan permanen di
      data_dir/activation.json dan APK langsung bisa dipakai seterusnya
@@ -18,21 +19,30 @@ Alur:
 Kenapa aman walau APK ini di-unzip & source-nya dibaca semua orang:
 yang ditanam di sini CUMA public key (PUBLIC_KEY_N/E) - itu memang
 tidak rahasia. Signature RSA cuma bisa dibuat pakai private key yang
-cuma disimpan di laptop penjual (licensing_tool/private_key.json,
-sengaja TIDAK ikut di folder ini/APK ini sama sekali), jadi orang yang
-bongkar APK paling jauh cuma bisa baca CARA verifikasinya, tidak bisa
-bikin Kode Aktivasi baru buat HP lain.
+cuma disimpan di perangkat penjual (licensing_tool/private_key.json /
+APK Generator Lisensi, sengaja TIDAK ikut di folder ini/APK ini sama
+sekali), jadi orang yang bongkar APK paling jauh cuma bisa baca CARA
+verifikasinya, tidak bisa bikin Kode Aktivasi baru buat HP lain.
 
-_SIGN_SALT di bawah HARUS PERSIS SAMA dengan yang di
-licensing_tool/generate_activation_code.py - itu 2 salinan yang sengaja
-dipisah (skrip generate tidak pernah ikut ke dalam APK), jangan diubah
-salah satu doang.
+Format kode ada 2, supaya kode yang sudah terlanjur dikirim ke pembeli
+SEBELUM fitur sewa/kedaluwarsa ini ada tetap sah (tidak perlu aktivasi
+ulang):
+  - Lama (tanpa titik): signature murni atas device_id saja -> selalu
+    dianggap PERMANENT (beli putus).
+  - Baru: "<expiry_token>.<signature>" - expiry_token "PERMANENT" (beli
+    putus) atau tanggal "YYYYMMDD" (sewa, kedaluwarsa tanggal itu).
+
+_SIGN_SALT di bawah HARUS PERSIS SAMA dengan yang dipakai buat generate
+kode (generate_activation_code.py / APK Generator Lisensi) - itu
+salinan-salinan terpisah (skrip/app generate tidak pernah ikut ke
+dalam APK ini), jangan diubah salah satu doang.
 """
 
 import base64
 import hashlib
 import json
 import os
+from datetime import date
 
 from flask import redirect, render_template_string, request
 
@@ -84,52 +94,118 @@ def get_device_id():
     return device_id
 
 
-def _hash_to_int(device_id):
+def _hash_to_int_legacy(device_id):
+    """Format kode LAMA (sebelum ada sewa/kedaluwarsa) - cuma device_id,
+    tidak ada expiry_token sama sekali. Jangan diubah - kode yang sudah
+    beredar pakai persamaan ini persis."""
     digest = hashlib.sha256(_SIGN_SALT + device_id.encode()).digest()
     return int.from_bytes(digest, "big")
 
 
+def _hash_to_int(device_id, expiry_token):
+    digest = hashlib.sha256(_SIGN_SALT + device_id.encode() + b"|" + expiry_token.encode()).digest()
+    return int.from_bytes(digest, "big")
+
+
+def _verify_signature(message_int, signature_int):
+    return pow(signature_int, PUBLIC_KEY_E, PUBLIC_KEY_N) == message_int % PUBLIC_KEY_N
+
+
+def _is_expired(expiry_token):
+    try:
+        year, month, day = int(expiry_token[0:4]), int(expiry_token[4:6]), int(expiry_token[6:8])
+        return date.today() > date(year, month, day)
+    except (ValueError, IndexError):
+        return True  # Format tanggal aneh - anggap kedaluwarsa, lebih aman daripada salah loloskan.
+
+
 def verify_activation_code(device_id, code):
+    """Return "PERMANENT" atau expiry_token "YYYYMMDD" kalau signature-nya
+    valid, None kalau tidak valid sama sekali (tidak cek kedaluwarsa di
+    sini - itu tanggung jawab pemanggil, supaya kode yang signature-nya
+    sah tapi sudah lewat tanggal tetap bisa dibedakan dari kode yang
+    memang dipalsukan/salah ketik)."""
+
     if PUBLIC_KEY_N == 0:
-        return False
+        return None
+
+    code = code.strip()
+
+    if "." in code:
+        expiry_token, _, sig_part = code.partition(".")
+        expiry_token = expiry_token.strip().upper()
+        try:
+            signature_int = int.from_bytes(_b32decode(sig_part), "big")
+        except Exception:
+            signature_int = None
+        if signature_int is not None and _verify_signature(_hash_to_int(device_id, expiry_token), signature_int):
+            return expiry_token
+
+    # Format lama (tanpa titik) - lihat _hash_to_int_legacy().
     try:
         signature_int = int.from_bytes(_b32decode(code), "big")
     except Exception:
-        return False
-
-    expected = _hash_to_int(device_id) % PUBLIC_KEY_N
-    actual = pow(signature_int, PUBLIC_KEY_E, PUBLIC_KEY_N)
-    return actual == expected
+        return None
+    if _verify_signature(_hash_to_int_legacy(device_id), signature_int):
+        return "PERMANENT"
+    return None
 
 
 def _activation_file(data_dir):
     return os.path.join(data_dir, "activation.json")
 
 
-def is_activated(data_dir):
-    if _activation_ok_cache["ok"]:
-        return True
+def _read_activation_record(data_dir, device_id):
+    """None kalau tidak ada file/rusak/device_id tidak cocok (disalin
+    dari HP lain). Kalau ada, return expiry_token hasil verify_activation_code
+    (bisa None kalau signature-nya sendiri tidak valid/dipalsukan)."""
 
     path = _activation_file(data_dir)
     if not os.path.exists(path):
-        return False
-
+        return None
     try:
         with open(path, "r", encoding="utf-8") as f:
             record = json.load(f)
     except (OSError, ValueError):
+        return None
+    if record.get("device_id") != device_id:
+        return None
+    return verify_activation_code(device_id, record.get("code", ""))
+
+
+def is_activated(data_dir):
+    if _activation_ok_cache["ok"]:
+        return True
+
+    device_id = get_device_id()
+    expiry_token = _read_activation_record(data_dir, device_id)
+    if expiry_token is None:
+        return False
+    if expiry_token != "PERMANENT" and _is_expired(expiry_token):
         return False
 
-    # Selalu hitung ulang device_id SAAT INI, jangan percaya begitu
-    # saja field di file - kalau activation.json ini disalin ke HP
-    # lain, device_id-nya pasti beda dan verifikasi di bawah otomatis
-    # gagal (mencegah 1 aktivasi dipakai di banyak HP dengan cara
-    # nyalin file data).
-    device_id = get_device_id()
-    ok = record.get("device_id") == device_id and verify_activation_code(device_id, record.get("code", ""))
-    if ok:
+    # Kode PERMANENT tidak mungkin berubah jadi tidak sah lagi selama
+    # proses ini hidup, aman di-cache selamanya (hemat baca file/verify
+    # RSA tiap request). Kode sewa SENGAJA tidak di-cache - supaya
+    # begitu tanggalnya lewat, request berikutnya langsung ke-detect
+    # tanpa perlu tutup-buka app dulu.
+    if expiry_token == "PERMANENT":
         _activation_ok_cache["ok"] = True
-    return ok
+    return True
+
+
+def get_expired_notice(data_dir):
+    """Kalau HP ini PERNAH aktivasi sah lewat kode SEWA tapi tanggalnya
+    sudah lewat, return tanggal kedaluwarsanya (buat pesan yang beda di
+    halaman aktivasi - bukan seolah belum pernah aktivasi sama sekali).
+    None kalau tidak relevan (belum pernah aktivasi / masih PERMANENT /
+    masih berlaku)."""
+
+    device_id = get_device_id()
+    expiry_token = _read_activation_record(data_dir, device_id)
+    if expiry_token and expiry_token != "PERMANENT" and _is_expired(expiry_token):
+        return f"{expiry_token[0:4]}-{expiry_token[4:6]}-{expiry_token[6:8]}"
+    return None
 
 
 def _save_activation(data_dir, device_id, code):
@@ -160,13 +236,18 @@ _ACTIVATION_PAGE = """
   input[type=text] { width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
                       border-radius: 10px; padding: 12px; margin: 0 0 16px; font-family: monospace; font-size: 0.95rem; }
   .error { background: #7f1d1d; color: #fecaca; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.85rem; }
+  .notice { background: #78350f; color: #fed7aa; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.85rem; }
   form { margin-top: 22px; }
 </style>
 </head>
 <body>
   <div class="card">
     <h1>Aktivasi Aplikasi</h1>
-    <p>Kirim <b>Kode Perangkat</b> di bawah ini ke penjual, lalu tempel <b>Kode Aktivasi</b> yang dikirim balik.</p>
+    {% if expired_notice %}
+      <p>Masa aktif aplikasi ini sudah berakhir tanggal <b>{{ expired_notice }}</b>. Hubungi penjual untuk perpanjang, lalu tempel Kode Aktivasi baru di bawah.</p>
+    {% else %}
+      <p>Kirim <b>Kode Perangkat</b> di bawah ini ke penjual, lalu tempel <b>Kode Aktivasi</b> yang dikirim balik.</p>
+    {% endif %}
 
     <label>Kode Perangkat</label>
     <div class="device-id" id="deviceId">{{ device_id }}</div>
@@ -213,10 +294,17 @@ def install_activation_gate(app, data_dir):
 
         if request.method == "POST":
             code = request.form.get("code", "").strip()
-            if verify_activation_code(device_id, code):
+            expiry_token = verify_activation_code(device_id, code)
+            if expiry_token is not None and (expiry_token == "PERMANENT" or not _is_expired(expiry_token)):
                 _save_activation(data_dir, device_id, code)
-                _activation_ok_cache["ok"] = True
+                if expiry_token == "PERMANENT":
+                    _activation_ok_cache["ok"] = True
                 return redirect("/")
-            error = "Kode Aktivasi salah atau bukan untuk perangkat ini."
+            elif expiry_token is not None:
+                error = "Kode ini sudah kedaluwarsa - minta Kode Aktivasi baru ke penjual."
+            else:
+                error = "Kode Aktivasi salah atau bukan untuk perangkat ini."
 
-        return render_template_string(_ACTIVATION_PAGE, device_id=device_id, error=error)
+        return render_template_string(
+            _ACTIVATION_PAGE, device_id=device_id, error=error, expired_notice=get_expired_notice(data_dir)
+        )
