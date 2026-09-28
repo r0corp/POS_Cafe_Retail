@@ -203,28 +203,108 @@ _BASE_STYLE = """
   .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; background: #334155; }
 """
 
+_LOGIN_STYLE = """
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #0f172a; color: #e2e8f0;
+         margin: 0; padding: 0; min-height: 100vh; }
+  .login-page-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 32px 16px; }
+  .login-card { max-width: 330px; width: 100%; background: #1e293b; border-radius: 28px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.45); padding: 32px 26px 26px; text-align: center; }
+  .login-logo-wrap { position: relative; width: 74px; height: 74px; margin: 0 auto 16px; }
+  .login-logo-circle { width: 74px; height: 74px; border-radius: 50%; background: #0f172a;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .login-logo-circle svg { width: 34px; height: 34px; }
+  .login-dot { position: absolute; border-radius: 50%; }
+  .login-dot-1 { width: 14px; height: 14px; background: #f97316; top: -5px; right: -5px; }
+  .login-dot-2 { width: 9px; height: 9px; background: #38bdf8; bottom: 5px; left: -10px; }
+  .login-dot-3 { width: 6px; height: 6px; background: #f97316; bottom: -5px; right: 14px; opacity: 0.55; }
+  .login-title { font-weight: 700; font-size: 1.15rem; color: #e2e8f0; margin: 0 0 3px; }
+  .login-subtitle { color: #94a3b8; font-size: 0.8rem; margin: 0 0 22px; line-height: 1.5; }
+  .login-error { background: #7f1d1d; color: #fecaca; border-radius: 10px; padding: 10px 14px;
+    margin-bottom: 14px; font-size: 0.8rem; text-align: left; }
+  .login-form { text-align: left; }
+  .login-field { margin-bottom: 12px; }
+  .login-input-wrap { position: relative; }
+  .login-input { width: 100%; border: none; background: #0f172a; border-radius: 999px;
+    padding: 12px 16px; font-size: 0.9rem; color: #e2e8f0; }
+  .login-input-wrap .login-input { padding-right: 42px; }
+  .login-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(240,120,40,0.25); }
+  .login-input::placeholder { color: #64748b; }
+  .login-eye-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 28px; height: 28px; border: none; background: transparent; color: #94a3b8;
+    border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .login-eye-btn:active { background: #334155; }
+  .login-submit-btn { width: 100%; border: none; background: #f97316; color: #fff; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.8rem; padding: 13px; border-radius: 999px;
+    margin-top: 6px; box-shadow: 0 10px 22px rgba(240,120,40,0.35); display: flex; align-items: center;
+    justify-content: center; gap: 8px; }
+  .login-bio-btn { width: 100%; border: none; background: #334155; color: #e2e8f0; font-weight: 600;
+    font-size: 0.85rem; padding: 12px; border-radius: 999px; margin-top: 12px; }
+  .login-credit { margin-top: 18px; text-align: center; font-size: 0.78rem; color: #64748b; }
+"""
+
 _LOGIN_PAGE = """
 <!doctype html><html lang="id"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Masuk</title><style>{{ style }}</style></head><body>
-  <div class="card">
-    <h1>Generator Lisensi</h1>
-    <p style="color:#94a3b8; font-size:0.85rem;">App ini bisa bikin Kode Aktivasi buat HP mana pun - login dulu supaya kalau HP ini hilang, tidak sembarang orang bisa langsung pakai.</p>
-    {% if error %}<div class="error">{{ error }}</div>{% endif %}
-    <form method="post">
-      <label>Username</label>
-      <input type="text" name="username" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus required>
-      <label>Password</label>
-      <input type="password" name="password" required>
-      <button type="submit">Masuk</button>
+<title>Masuk - Generator Lisensi</title><style>{{ style }}</style></head><body>
+<div class="login-page-wrap">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <span class="login-dot login-dot-1"></span>
+      <span class="login-dot login-dot-2"></span>
+      <span class="login-dot login-dot-3"></span>
+      <div class="login-logo-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7.5" cy="10.5" r="4.5"/>
+          <path d="M10.8 13.8 20 23M16.5 17.5l2.7 2.7M19.4 14.6l2.7 2.7"/>
+        </svg>
+      </div>
+    </div>
+    <h3 class="login-title">Generator Lisensi</h3>
+    <p class="login-subtitle">Login dulu supaya kalau HP ini hilang, tidak sembarang orang bisa bikin Kode Aktivasi.</p>
+
+    {% if error %}<div class="login-error">{{ error }}</div>{% endif %}
+
+    <form method="post" class="login-form">
+      <div class="login-field">
+        <input type="text" name="username" class="login-input" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus required placeholder="Username">
+      </div>
+      <div class="login-field login-input-wrap">
+        <input type="password" id="loginPassword" name="password" class="login-input" required placeholder="Password">
+        <button type="button" id="togglePasswordBtn" class="login-eye-btn" aria-label="Tampilkan password">
+          <svg id="eyeOpen" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eyeClosed" style="display:none" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+        </button>
+      </div>
+      <button type="submit" class="login-submit-btn">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        Masuk
+      </button>
     </form>
-    <button type="button" id="bioBtn" class="btn-secondary" style="display:none;" onclick="AndroidAuth.authenticate()">Masuk pakai Sidik Jari</button>
+
+    <button type="button" id="bioBtn" class="login-bio-btn" style="display:none;" onclick="AndroidAuth.authenticate()">Masuk pakai Sidik Jari</button>
   </div>
-  <script>
-    if (window.AndroidAuth && AndroidAuth.isBiometricAvailable && AndroidAuth.isBiometricAvailable()) {
-      document.getElementById('bioBtn').style.display = 'block';
-    }
-  </script>
+  <p class="login-credit">Orulabs &copy; 2026. All rights reserved.</p>
+</div>
+<script>
+  if (window.AndroidAuth && AndroidAuth.isBiometricAvailable && AndroidAuth.isBiometricAvailable()) {
+    document.getElementById('bioBtn').style.display = 'block';
+  }
+  (function () {
+    var btn = document.getElementById("togglePasswordBtn");
+    var input = document.getElementById("loginPassword");
+    var openIcon = document.getElementById("eyeOpen");
+    var closedIcon = document.getElementById("eyeClosed");
+    if (!btn || !input) return;
+    btn.addEventListener("click", function () {
+      var showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      openIcon.style.display = showing ? "block" : "none";
+      closedIcon.style.display = showing ? "none" : "block";
+    });
+  })();
+</script>
 </body></html>
 """
 
@@ -345,7 +425,7 @@ def run(port, files_dir):
                 return redirect(url_for("index"))
             error = "Username atau password salah."
 
-        return render_template_string(_LOGIN_PAGE, style=_BASE_STYLE, error=error)
+        return render_template_string(_LOGIN_PAGE, style=_LOGIN_STYLE, error=error)
 
     @app.route("/biometric-unlock")
     def biometric_unlock():

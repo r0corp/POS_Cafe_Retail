@@ -179,19 +179,72 @@ def is_activated(data_dir):
 
     device_id = get_device_id()
     expiry_token = _read_activation_record(data_dir, device_id)
-    if expiry_token is None:
-        return False
-    if expiry_token != "PERMANENT" and _is_expired(expiry_token):
-        return False
+    if expiry_token is not None:
+        if expiry_token != "PERMANENT" and _is_expired(expiry_token):
+            # Kode SEWA yang sudah kedaluwarsa - HP ini sudah PERNAH
+            # aktivasi (bukan HP baru), jadi TIDAK jatuh balik ke masa
+            # percobaan, langsung diblokir.
+            return False
 
-    # Kode PERMANENT tidak mungkin berubah jadi tidak sah lagi selama
-    # proses ini hidup, aman di-cache selamanya (hemat baca file/verify
-    # RSA tiap request). Kode sewa SENGAJA tidak di-cache - supaya
-    # begitu tanggalnya lewat, request berikutnya langsung ke-detect
-    # tanpa perlu tutup-buka app dulu.
-    if expiry_token == "PERMANENT":
-        _activation_ok_cache["ok"] = True
-    return True
+        # Kode PERMANENT tidak mungkin berubah jadi tidak sah lagi selama
+        # proses ini hidup, aman di-cache selamanya (hemat baca file/verify
+        # RSA tiap request). Kode sewa SENGAJA tidak di-cache - supaya
+        # begitu tanggalnya lewat, request berikutnya langsung ke-detect
+        # tanpa perlu tutup-buka app dulu.
+        if expiry_token == "PERMANENT":
+            _activation_ok_cache["ok"] = True
+        return True
+
+    # Belum pernah aktivasi kode apa pun (device baru) - kasih masa
+    # percobaan gratis, lihat get_trial_info().
+    trial = get_trial_info(data_dir)
+    return not trial["expired"]
+
+
+_TRIAL_DAYS = 7
+
+
+def _trial_file(data_dir):
+    return os.path.join(data_dir, "trial_start.json")
+
+
+def _get_trial_start(data_dir):
+    """Tanggal HP ini PERTAMA KALI buka aplikasi - disimpan sekali,
+    dipakai buat hitung mundur 7 hari masa percobaan."""
+    path = _trial_file(data_dir)
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                record = json.load(f)
+            return date.fromisoformat(record["start"])
+        except (OSError, ValueError, KeyError):
+            pass  # File rusak - anggap belum pernah, buat baru di bawah.
+
+    today = date.today()
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"start": today.isoformat()}, f)
+    return today
+
+
+def get_trial_info(data_dir):
+    """None kalau HP ini sudah PERNAH ada kode aktivasi (sah ataupun
+    sudah kedaluwarsa - bukan device baru, tidak relevan lagi soal
+    trial). Kalau belum pernah sama sekali, return dict:
+      day_number - hari ke berapa sejak pertama buka (1, 2, 3, ...)
+      days_left  - sisa hari trial (0 kalau sudah habis)
+      expired    - True kalau 7 hari sudah lewat
+    """
+    device_id = get_device_id()
+    if _read_activation_record(data_dir, device_id) is not None:
+        return None
+
+    start = _get_trial_start(data_dir)
+    elapsed = (date.today() - start).days
+    return {
+        "day_number": elapsed + 1,
+        "days_left": max(0, _TRIAL_DAYS - elapsed),
+        "expired": elapsed >= _TRIAL_DAYS,
+    }
 
 
 def get_expired_notice(data_dir):
@@ -222,56 +275,151 @@ _ACTIVATION_PAGE = """
 <title>Aktivasi Aplikasi</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0;
-         margin: 0; padding: 24px 16px; min-height: 100vh; }
-  .card { max-width: 420px; margin: 32px auto; background: #1e293b; border-radius: 16px; padding: 24px; }
-  h1 { font-size: 1.2rem; margin: 0 0 10px; }
-  p { color: #94a3b8; font-size: 0.9rem; line-height: 1.55; margin: 0 0 6px; }
-  label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; font-weight: 600; }
-  .device-id { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 12px;
-               font-family: monospace; font-size: 1.05rem; letter-spacing: 1px; word-break: break-all; margin: 10px 0 12px; }
-  button { background: #f97316; color: #fff; border: none; border-radius: 10px; padding: 12px 16px;
-           font-weight: 600; font-size: 0.95rem; width: 100%; }
-  .copy-btn { background: #334155; margin-bottom: 20px; }
-  input[type=text] { width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
-                      border-radius: 10px; padding: 12px; margin: 0 0 16px; font-family: monospace; font-size: 0.95rem; }
-  .error { background: #7f1d1d; color: #fecaca; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.85rem; }
-  .notice { background: #78350f; color: #fed7aa; border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.85rem; }
-  form { margin-top: 22px; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #0f172a; color: #e2e8f0;
+         margin: 0; padding: 0; min-height: 100vh; }
+  .login-page-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 32px 16px; }
+  .login-card { max-width: 360px; width: 100%; background: #1e293b; border-radius: 28px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.45); padding: 32px 26px 26px; text-align: center; }
+  .login-logo-wrap { position: relative; width: 74px; height: 74px; margin: 0 auto 16px; }
+  .login-logo-circle { width: 74px; height: 74px; border-radius: 50%; background: #0f172a;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .login-logo-circle svg { width: 34px; height: 34px; }
+  .login-dot { position: absolute; border-radius: 50%; }
+  .login-dot-1 { width: 14px; height: 14px; background: #f97316; top: -5px; right: -5px; }
+  .login-dot-2 { width: 9px; height: 9px; background: #38bdf8; bottom: 5px; left: -10px; }
+  .login-dot-3 { width: 6px; height: 6px; background: #f97316; bottom: -5px; right: 14px; opacity: 0.55; }
+  .login-title { font-weight: 700; font-size: 1.15rem; color: #e2e8f0; margin: 0 0 3px; }
+  .login-subtitle { color: #94a3b8; font-size: 0.8rem; margin: 0 0 20px; }
+  .login-notice { background: #0f172a; border: 1px solid #334155; color: #94a3b8; border-radius: 12px;
+    padding: 10px 14px; font-size: 0.78rem; line-height: 1.5; text-align: left; margin-bottom: 18px; }
+  .login-notice-warn { background: #78350f; border-color: #92400e; color: #fed7aa; }
+  .login-notice b { color: inherit; }
+  .login-label { display: block; text-align: left; font-size: 0.78rem; color: #cbd5e1; font-weight: 600; margin-bottom: 6px; }
+  .login-code-box { background: #0f172a; border: 1px solid #334155; border-radius: 14px; padding: 12px;
+    font-family: monospace; font-size: 1rem; letter-spacing: 1px; word-break: break-all; margin-bottom: 10px; text-align: left; }
+  .login-error { background: #7f1d1d; color: #fecaca; border-radius: 10px; padding: 10px 14px;
+    margin-bottom: 14px; font-size: 0.8rem; text-align: left; }
+  .login-form { text-align: left; margin-top: 18px; }
+  .login-field { margin-bottom: 12px; }
+  .login-input { width: 100%; border: none; background: #0f172a; border-radius: 999px;
+    padding: 12px 16px; font-size: 0.9rem; color: #e2e8f0; font-family: monospace; }
+  .login-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(240,120,40,0.25); }
+  .login-input::placeholder { color: #64748b; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .login-submit-btn { width: 100%; border: none; background: #f97316; color: #fff; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.8rem; padding: 13px; border-radius: 999px;
+    margin-top: 6px; box-shadow: 0 10px 22px rgba(240,120,40,0.35); display: flex; align-items: center;
+    justify-content: center; gap: 8px; }
+  .login-bio-btn { width: 100%; border: none; background: #334155; color: #e2e8f0; font-weight: 600;
+    font-size: 0.85rem; padding: 12px; border-radius: 999px; margin-top: 12px; }
+  .login-credit { margin-top: 18px; text-align: center; font-size: 0.78rem; color: #64748b; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Aktivasi Aplikasi</h1>
-    {% if expired_notice %}
-      <p>Masa aktif aplikasi ini sudah berakhir tanggal <b>{{ expired_notice }}</b>. Hubungi penjual untuk perpanjang, lalu tempel Kode Aktivasi baru di bawah.</p>
-    {% else %}
-      <p>Kirim <b>Kode Perangkat</b> di bawah ini ke penjual, lalu tempel <b>Kode Aktivasi</b> yang dikirim balik.</p>
-    {% endif %}
+<div class="login-page-wrap">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <span class="login-dot login-dot-1"></span>
+      <span class="login-dot login-dot-2"></span>
+      <span class="login-dot login-dot-3"></span>
+      <div class="login-logo-circle">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 8h13v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z" fill="#f97316"/>
+          <path d="M17 9.5h1.2a2.3 2.3 0 0 1 0 4.6H17" stroke="#f97316" stroke-width="1.6" fill="none"/>
+          <path d="M7 3.2c0 .9-.9.9-.9 1.8M11 3.2c0 .9-.9.9-.9 1.8M15 3.2c0 .9-.9.9-.9 1.8" stroke="#f97316" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+    </div>
+    <h3 class="login-title">Oru POS GO</h3>
+    <p class="login-subtitle">
+      {% if trial_expired %}Masa percobaan sudah berakhir{% elif expired_notice %}Masa aktif sudah berakhir{% else %}Aktivasi diperlukan untuk melanjutkan{% endif %}
+    </p>
 
-    <label>Kode Perangkat</label>
-    <div class="device-id" id="deviceId">{{ device_id }}</div>
-    <button type="button" class="copy-btn" onclick="copyId()">Salin Kode Perangkat</button>
+    <div class="login-notice {{ 'login-notice-warn' if (expired_notice or trial_expired) else '' }}">
+      {% if expired_notice %}
+        Masa aktif aplikasi ini sudah berakhir tanggal <b>{{ expired_notice }}</b>. Hubungi penjual untuk perpanjang, lalu tempel Kode Aktivasi baru di bawah.
+      {% elif trial_expired %}
+        Masa percobaan 7 hari sudah berakhir. Hubungi penjual untuk berlangganan/beli, lalu tempel <b>Kode Aktivasi</b> yang dikirim ke perangkat ini.
+      {% else %}
+        Kirim <b>Kode Perangkat</b> di bawah ini ke penjual, lalu tempel <b>Kode Aktivasi</b> yang dikirim balik.
+      {% endif %}
+    </div>
 
-    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <label class="login-label">Kode Perangkat</label>
+    <div class="login-code-box" id="deviceId">{{ device_id }}</div>
+    <button type="button" class="login-bio-btn" onclick="copyId()">Salin Kode Perangkat</button>
 
-    <form method="post">
+    {% if error %}<div class="login-error" style="margin-top:16px;">{{ error }}</div>{% endif %}
+
+    <form method="post" class="login-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label>Kode Aktivasi</label>
-      <input type="text" name="code" autocapitalize="off" autocorrect="off" spellcheck="false" required
-             placeholder="Tempel Kode Aktivasi di sini">
-      <button type="submit">Aktifkan</button>
+      <div class="login-field">
+        <input type="text" name="code" class="login-input" autocapitalize="off" autocorrect="off" spellcheck="false" required
+               placeholder="Tempel Kode Aktivasi di sini">
+      </div>
+      <button type="submit" class="login-submit-btn">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        Aktifkan
+      </button>
     </form>
   </div>
-  <script>
-    function copyId() {
-      var text = document.getElementById('deviceId').innerText;
-      if (navigator.clipboard) { navigator.clipboard.writeText(text).catch(function () {}); }
-    }
-  </script>
+  <p class="login-credit">Orulabs &copy; 2026. All rights reserved.</p>
+</div>
+<script>
+  function copyId() {
+    var text = document.getElementById('deviceId').innerText;
+    if (navigator.clipboard) { navigator.clipboard.writeText(text).catch(function () {}); }
+  }
+</script>
 </body>
 </html>
 """
+
+
+_TRIAL_MODAL_TEMPLATE = """
+<div id="__trialModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);
+     z-index:99998;align-items:center;justify-content:center;padding:20px;">
+  <div style="max-width:320px;width:100%;background:#1e293b;border-radius:20px;padding:24px 20px 20px;
+       text-align:center;box-shadow:0 10px 28px rgba(0,0,0,0.5);
+       font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">
+    <div style="width:52px;height:52px;border-radius:50%;background:#0f172a;display:flex;
+         align-items:center;justify-content:center;margin:0 auto 12px;">
+      <span style="font-size:1.5rem;">&#9203;</span>
+    </div>
+    <h3 style="color:#e2e8f0;margin:0 0 6px;font-size:1.05rem;">Masa Percobaan - Hari ke-__DAY__</h3>
+    <p style="color:#94a3b8;font-size:0.85rem;line-height:1.5;margin:0 0 18px;">
+      __DAYS_LEFT_TEXT__<br>Hubungi penjual untuk berlangganan supaya aplikasi ini terus bisa dipakai.
+    </p>
+    <button onclick="document.getElementById('__trialModalOverlay').style.display='none';"
+      style="width:100%;border:none;background:#f97316;color:#fff;font-weight:700;font-size:0.85rem;
+      padding:12px;border-radius:999px;box-shadow:0 8px 18px rgba(240,120,40,0.35);">Nanti Saja</button>
+  </div>
+</div>
+<script>
+(function () {
+  try {
+    var key = "orulabsTrialNoticeDate";
+    var today = "__TODAY__";
+    if (localStorage.getItem(key) !== today) {
+      localStorage.setItem(key, today);
+      document.getElementById("__trialModalOverlay").style.display = "flex";
+    }
+  } catch (e) {}
+})();
+</script>
+"""
+
+
+def _render_trial_notice(trial):
+    if trial["days_left"] <= 1:
+        days_left_text = "Ini hari <b>TERAKHIR</b> masa percobaan."
+    else:
+        days_left_text = "Sisa <b>" + str(trial["days_left"]) + " hari</b> lagi masa percobaan."
+    html = _TRIAL_MODAL_TEMPLATE
+    html = html.replace("__DAY__", str(min(trial["day_number"], _TRIAL_DAYS)))
+    html = html.replace("__DAYS_LEFT_TEXT__", days_left_text)
+    html = html.replace("__TODAY__", date.today().isoformat())
+    return html
 
 
 def install_activation_gate(app, data_dir):
@@ -286,6 +434,35 @@ def install_activation_gate(app, data_dir):
         if is_activated(data_dir):
             return None
         return redirect("/__activation")
+
+    @app.after_request
+    def _show_trial_reminder(response):
+        """HP yang lagi jalan di masa percobaan (belum pernah masukin
+        kode aktivasi sama sekali) dikasih pop-up pengingat ini SEKALI
+        tiap hari kalender (dicek dari localStorage browser WebView-nya,
+        bukan disimpan di server) - beda dari halaman "/__activation"
+        yang MEMBLOKIR, pop-up ini cuma info, tidak mengganggu
+        pemakaian. Bukan notifikasi sistem Android (tidak minta izin
+        notifikasi apa pun) - cuma pop-up di dalam halaman itu sendiri."""
+
+        if request.path.startswith("/__activation"):
+            return response
+        if response.status_code != 200 or not response.content_type or "text/html" not in response.content_type:
+            return response
+
+        trial = get_trial_info(data_dir)
+        if trial is None or trial["expired"]:
+            return response
+
+        try:
+            body = response.get_data(as_text=True)
+        except (UnicodeDecodeError, RuntimeError):
+            return response
+        if "</body>" not in body:
+            return response
+
+        response.set_data(body.replace("</body>", _render_trial_notice(trial) + "</body>", 1))
+        return response
 
     @app.route("/__activation", methods=["GET", "POST"])
     def _activation_view():
@@ -305,6 +482,9 @@ def install_activation_gate(app, data_dir):
             else:
                 error = "Kode Aktivasi salah atau bukan untuk perangkat ini."
 
+        trial = get_trial_info(data_dir)
         return render_template_string(
-            _ACTIVATION_PAGE, device_id=device_id, error=error, expired_notice=get_expired_notice(data_dir)
+            _ACTIVATION_PAGE, device_id=device_id, error=error,
+            expired_notice=get_expired_notice(data_dir),
+            trial_expired=bool(trial and trial["expired"]),
         )
