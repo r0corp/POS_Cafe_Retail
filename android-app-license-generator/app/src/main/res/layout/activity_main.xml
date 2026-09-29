@@ -8,4 +8,40 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Nutupin WebView sampai halaman PERTAMA KALI berhasil kemuat -
+         server Flask di Chaquopy butuh beberapa saat buat mulai
+         listen, dan tanpa ini pengguna sempat lihat halaman error
+         bawaan WebView ("Web page not available") sekilas sebelum
+         auto-retry berhasil. Lihat MainActivity - baru disembunyikan
+         kalau onPageFinished() bener-bener tanpa error. -->
+    <LinearLayout
+        android:id="@+id/splashOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0F172A"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:layout_width="84dp"
+            android:layout_height="84dp"
+            android:layout_marginBottom="24dp"
+            android:src="@mipmap/ic_launcher_round"
+            android:contentDescription="@string/app_name" />
+
+        <ProgressBar
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:indeterminateTint="#F97316" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Memuat aplikasi..."
+            android:textColor="#94A3B8"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
 </FrameLayout>

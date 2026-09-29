@@ -3,12 +3,14 @@ package id.orulabs.umkm;
 import android.Manifest;
 import android.app.DownloadManager;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.JsResult;
 import android.webkit.URLUtil;
@@ -51,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
     private static volatile boolean serverStarted = false;
 
     private WebView webView;
+    private View splashOverlay;
+    private boolean pageLoadFailed = false;
     private ValueCallback<Uri[]> filePathCallback;
     private ActivityResultLauncher<String> fileChooserLauncher;
 
@@ -83,10 +87,17 @@ public class MainActivity extends AppCompatActivity {
         });
 
         webView = findViewById(R.id.webView);
+        splashOverlay = findViewById(R.id.splashOverlay);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                pageLoadFailed = false;
+            }
+
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 super.onReceivedError(view, request, error);
@@ -94,12 +105,27 @@ public class MainActivity extends AppCompatActivity {
                 // kalau ini pertama kali app dibuka - Chaquopy masih bongkar
                 // paket Python-nya dulu) - bukan error permanen, coba lagi
                 // saja sampai berhasil, bukan cuma delay tetap yang bisa
-                // meleset.
+                // meleset. splashOverlay (lihat activity_main.xml) tetap
+                // nutupin WebView selama ini, jadi pengguna tidak pernah
+                // lihat halaman error bawaan WebView berkedip sama sekali.
                 if (request.isForMainFrame()) {
+                    pageLoadFailed = true;
                     new Handler(Looper.getMainLooper()).postDelayed(
                             () -> webView.loadUrl("http://127.0.0.1:" + PORT + "/"),
                             500
                     );
+                }
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                // Baru sembunyikan splash kalau load-nya BENERAN sukses -
+                // onPageFinished tetap kepanggil walau isinya halaman error
+                // WebView, jadi wajib dicek pageLoadFailed dulu, bukan
+                // langsung sembunyikan di sini.
+                if (!pageLoadFailed) {
+                    splashOverlay.setVisibility(View.GONE);
                 }
             }
         });

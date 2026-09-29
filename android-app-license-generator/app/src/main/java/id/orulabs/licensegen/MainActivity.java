@@ -1,8 +1,10 @@
 package id.orulabs.licensegen;
 
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
@@ -36,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
     private static volatile boolean serverStarted = false;
 
     private WebView webView;
+    private View splashOverlay;
+    private boolean pageLoadFailed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,20 +59,37 @@ public class MainActivity extends AppCompatActivity {
         });
 
         webView = findViewById(R.id.webView);
+        splashOverlay = findViewById(R.id.splashOverlay);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                pageLoadFailed = false;
+            }
+
+            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 super.onReceivedError(view, request, error);
                 // Flask di thread lain butuh waktu buat mulai listen -
                 // bukan error permanen, coba lagi saja sampai berhasil.
+                // splashOverlay tetap nutupin WebView selama ini.
                 if (request.isForMainFrame()) {
+                    pageLoadFailed = true;
                     new Handler(Looper.getMainLooper()).postDelayed(
                             () -> webView.loadUrl("http://127.0.0.1:" + PORT + "/"),
                             500
                     );
+                }
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (!pageLoadFailed) {
+                    splashOverlay.setVisibility(View.GONE);
                 }
             }
         });
