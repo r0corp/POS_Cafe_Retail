@@ -1,0 +1,248 @@
+{
+  "categories": [
+    {
+      "name": "Kopi",
+      "order": 0
+    },
+    {
+      "name": "Non-Kopi",
+      "order": 1
+    },
+    {
+      "name": "Makanan Berat",
+      "order": 2
+    },
+    {
+      "name": "Snack",
+      "order": 3
+    }
+  ],
+  "ingredients": [
+    {
+      "name": "Kopi Bubuk",
+      "unit": "gram",
+      "stock_quantity": 1000.0,
+      "low_stock_threshold": 150.0
+    },
+    {
+      "name": "Susu Cair",
+      "unit": "ml",
+      "stock_quantity": 2000.0,
+      "low_stock_threshold": 250.0
+    },
+    {
+      "name": "Gula",
+      "unit": "gram",
+      "stock_quantity": 1500.0,
+      "low_stock_threshold": 150.0
+    },
+    {
+      "name": "Gula Aren Cair",
+      "unit": "ml",
+      "stock_quantity": 500.0,
+      "low_stock_threshold": 75.0
+    },
+    {
+      "name": "Teh Celup",
+      "unit": "pcs",
+      "stock_quantity": 60.0,
+      "low_stock_threshold": 10.0
+    },
+    {
+      "name": "Es Batu",
+      "unit": "gram",
+      "stock_quantity": 4000.0,
+      "low_stock_threshold": 500.0
+    },
+    {
+      "name": "Beras",
+      "unit": "gram",
+      "stock_quantity": 5000.0,
+      "low_stock_threshold": 750.0
+    },
+    {
+      "name": "Telur",
+      "unit": "pcs",
+      "stock_quantity": 50.0,
+      "low_stock_threshold": 10.0
+    },
+    {
+      "name": "Minyak Goreng",
+      "unit": "ml",
+      "stock_quantity": 3000.0,
+      "low_stock_threshold": 300.0
+    },
+    {
+      "name": "Mie Kuning",
+      "unit": "gram",
+      "stock_quantity": 1500.0,
+      "low_stock_threshold": 200.0
+    },
+    {
+      "name": "Dada Ayam",
+      "unit": "gram",
+      "stock_quantity": 2000.0,
+      "low_stock_threshold": 250.0
+    },
+    {
+      "name": "Pisang",
+      "unit": "pcs",
+      "stock_quantity": 40.0,
+      "low_stock_threshold": 5.0
+    },
+    {
+      "name": "Tepung Terigu",
+      "unit": "gram",
+      "stock_quantity": 2000.0,
+      "low_stock_threshold": 250.0
+    },
+    {
+      "name": "Tahu",
+      "unit": "pcs",
+      "stock_quantity": 40.0,
+      "low_stock_threshold": 5.0
+    },
+    {
+      "name": "Tempe",
+      "unit": "pcs",
+      "stock_quantity": 40.0,
+      "low_stock_threshold": 5.0
+    },
+    {
+      "name": "Kentang",
+      "unit": "gram",
+      "stock_quantity": 2000.0,
+      "low_stock_threshold": 250.0
+    }
+  ],
+  "menu_items": [
+    {
+      "name": "Kopi Hitam",
+      "price": 8000,
+      "category": "Kopi",
+      "photo": "menu-1.jpg",
+      "recipe": [
+        { "ingredient": "Kopi Bubuk", "qty": 18.0 },
+        { "ingredient": "Gula", "qty": 8.0 }
+      ]
+    },
+    {
+      "name": "Kopi Susu",
+      "price": 10000,
+      "category": "Kopi",
+      "photo": "menu-2.jpg",
+      "recipe": [
+        { "ingredient": "Kopi Bubuk", "qty": 18.0 },
+        { "ingredient": "Susu Cair", "qty": 100.0 },
+        { "ingredient": "Gula", "qty": 10.0 }
+      ]
+    },
+    {
+      "name": "Kopi Susu Gula Aren",
+      "price": 12000,
+      "category": "Kopi",
+      "photo": "menu-3.jpg",
+      "recipe": [
+        { "ingredient": "Kopi Bubuk", "qty": 18.0 },
+        { "ingredient": "Susu Cair", "qty": 100.0 },
+        { "ingredient": "Gula Aren Cair", "qty": 25.0 }
+      ]
+    },
+    {
+      "name": "Es Teh Manis",
+      "price": 5000,
+      "category": "Non-Kopi",
+      "photo": "menu-11.jpg",
+      "recipe": [
+        { "ingredient": "Teh Celup", "qty": 1.0 },
+        { "ingredient": "Gula", "qty": 15.0 },
+        { "ingredient": "Es Batu", "qty": 150.0 }
+      ]
+    },
+    {
+      "name": "Es Jeruk",
+      "price": 6000,
+      "category": "Non-Kopi",
+      "photo": "menu-12.jpg",
+      "recipe": [
+        { "ingredient": "Gula", "qty": 10.0 },
+        { "ingredient": "Es Batu", "qty": 150.0 }
+      ]
+    },
+    {
+      "name": "Nasi Goreng",
+      "price": 15000,
+      "category": "Makanan Berat",
+      "photo": "menu-19.jpg",
+      "recipe": [
+        { "ingredient": "Beras", "qty": 200.0 },
+        { "ingredient": "Telur", "qty": 1.0 },
+        { "ingredient": "Minyak Goreng", "qty": 20.0 }
+      ]
+    },
+    {
+      "name": "Mie Goreng",
+      "price": 12000,
+      "category": "Makanan Berat",
+      "photo": "menu-23.jpg",
+      "recipe": [
+        { "ingredient": "Mie Kuning", "qty": 150.0 },
+        { "ingredient": "Telur", "qty": 1.0 },
+        { "ingredient": "Minyak Goreng", "qty": 20.0 }
+      ]
+    },
+    {
+      "name": "Mie Ayam",
+      "price": 12000,
+      "category": "Makanan Berat",
+      "photo": "menu-24.jpg",
+      "recipe": [
+        { "ingredient": "Mie Kuning", "qty": 150.0 },
+        { "ingredient": "Dada Ayam", "qty": 60.0 }
+      ]
+    },
+    {
+      "name": "Kentang Goreng",
+      "price": 8000,
+      "category": "Snack",
+      "photo": "menu-27.jpg",
+      "recipe": [
+        { "ingredient": "Kentang", "qty": 180.0 },
+        { "ingredient": "Minyak Goreng", "qty": 30.0 }
+      ]
+    },
+    {
+      "name": "Pisang Goreng",
+      "price": 6000,
+      "category": "Snack",
+      "photo": "menu-28.jpg",
+      "recipe": [
+        { "ingredient": "Pisang", "qty": 2.0 },
+        { "ingredient": "Tepung Terigu", "qty": 40.0 },
+        { "ingredient": "Minyak Goreng", "qty": 30.0 }
+      ]
+    },
+    {
+      "name": "Tahu Crispy",
+      "price": 6000,
+      "category": "Snack",
+      "photo": "menu-29.jpg",
+      "recipe": [
+        { "ingredient": "Tahu", "qty": 4.0 },
+        { "ingredient": "Tepung Terigu", "qty": 30.0 },
+        { "ingredient": "Minyak Goreng", "qty": 25.0 }
+      ]
+    },
+    {
+      "name": "Tempe Mendoan",
+      "price": 5000,
+      "category": "Snack",
+      "photo": "menu-33.jpg",
+      "recipe": [
+        { "ingredient": "Tempe", "qty": 3.0 },
+        { "ingredient": "Tepung Terigu", "qty": 30.0 },
+        { "ingredient": "Minyak Goreng", "qty": 25.0 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "shop_name": "Kedai Kopi Bu Siti",
+  "address": "Jl. Raya Garut Kota No. 45",
+  "phone": "081234567890",
+  "opening_time": "07:00",
+  "closing_time": "21:00",
+  "instagram": "",
+  "tiktok": "",
+  "whatsapp": "081234567890",
+  "other_social": "",
+  "wifi_name": "",
+  "wifi_password": "",
+  "notification_sound_dapur": "kitchen_alarm_urgent",
+  "notification_sound_kasir": "door_bell_loud",
+  "notification_sound_pelayan": "alarm_clock"
+}

@@ -2901,12 +2901,13 @@ def _system_tab_context():
     else:
         with open(_demo_fixture_path(), encoding="utf-8") as f:
             fixture = json.load(f)
+        is_android = os.environ.get("ORULABS_PLATFORM") == "android"
         demo_stats = {
             "categories": len(fixture["categories"]),
             "menu_items": len(fixture["menu_items"]),
             "ingredients": len(fixture["ingredients"]),
-            "tables": 10,
-            "channels": len(DEMO_CHANNELS),
+            "tables": 4 if is_android else 10,
+            "channels": 0 if is_android else len(DEMO_CHANNELS),
         }
 
     channels = OrderChannel.query.order_by(OrderChannel.sort_order, OrderChannel.id).all()
@@ -3082,11 +3083,20 @@ def channel_prices(channel_id):
 
 
 def _demo_fixture_path():
-    return os.path.join(current_app.root_path, "demo_data", "fixture.json")
+    # APK GO/UMKM (lihat umkm_app.py) sasarannya toko kecil satu-device,
+    # bukan resto/cafe skala menengah kayak deployment server/mini PC -
+    # dikasih fixture terpisah yang lebih kecil (4 kategori, 12 menu,
+    # tanpa channel delivery) biar Mode Demo yang kelihatan cocok sama
+    # profil pembelinya, bukan menu ala kafe besar.
+    filename = "fixture_umkm.json" if os.environ.get("ORULABS_PLATFORM") == "android" else "fixture.json"
+    return os.path.join(current_app.root_path, "demo_data", filename)
 
 
 def _demo_settings_fixture_path():
-    return os.path.join(current_app.root_path, "demo_data", "settings_fixture.json")
+    filename = (
+        "settings_fixture_umkm.json" if os.environ.get("ORULABS_PLATFORM") == "android" else "settings_fixture.json"
+    )
+    return os.path.join(current_app.root_path, "demo_data", filename)
 
 
 SETTINGS_DEMO_TEXT_FIELDS = (
@@ -3294,6 +3304,22 @@ def _demo_make_order(
     return order, total
 
 
+def _demo_order_type_choices(demo_channels, weights_with_ojol):
+    """random.choices() buat jenis pesanan demo - "Ojol" cuma ikut
+    ditawarkan kalau ADA channel demo buat dipasangkan (APK GO/UMKM
+    sengaja tidak dikasih channel delivery demo, lihat
+    _seed_demo_data()) - kalau dipaksa tetap ikut, random.choice() atas
+    demo_channels yang kosong di pemanggil akan meledak (IndexError)."""
+    if demo_channels:
+        return random.choices(
+            [ORDER_TYPE_DINE_IN, ORDER_TYPE_TAKEAWAY, ORDER_TYPE_OJOL], weights=weights_with_ojol,
+        )[0]
+    dine_in_weight, takeaway_weight, _ = weights_with_ojol
+    return random.choices(
+        [ORDER_TYPE_DINE_IN, ORDER_TYPE_TAKEAWAY], weights=[dine_in_weight, takeaway_weight],
+    )[0]
+
+
 def _seed_demo_filler_orders(start_dt, end_dt, target_total, demo_items, demo_tables, demo_channels):
     """Isi riwayat transaksi lunas acak dalam 1 rentang waktu sampai
     totalnya kira-kira mencapai target_total - dipakai buat contoh
@@ -3311,10 +3337,7 @@ def _seed_demo_filler_orders(start_dt, end_dt, target_total, demo_items, demo_ta
         n_items = random.choices([1, 2, 3], weights=[5, 3, 2])[0]
         picks = [(random.choice(demo_items), random.randint(1, 4)) for _ in range(n_items)]
 
-        order_type = random.choices(
-            [ORDER_TYPE_DINE_IN, ORDER_TYPE_TAKEAWAY, ORDER_TYPE_OJOL],
-            weights=[55, 35, 10],
-        )[0]
+        order_type = _demo_order_type_choices(demo_channels, [55, 35, 10])
         table = random.choice(demo_tables) if order_type == ORDER_TYPE_DINE_IN else None
         channel = random.choice(demo_channels) if order_type == ORDER_TYPE_OJOL else None
 
@@ -3344,6 +3367,17 @@ def _seed_demo_orders():
     drinks = [m for m in demo_items if m.category.name in DEMO_DRINK_CATEGORIES]
     foods = [m for m in demo_items if m.category.name in DEMO_FOOD_CATEGORIES]
 
+    # Harga menu & target omzet di bawah dibuat sesuai skala tokonya -
+    # fixture_umkm.json harganya jauh lebih murah dari fixture.json
+    # (kedai kecil satu-device vs resto/cafe skala menengah), jadi target
+    # subtotal per pesanan & omzet bulanan/tahunan demo juga wajib ikut
+    # diperkecil, kalau tidak angka Laporan Penjualan-nya kelihatan tidak
+    # masuk akal buat toko sekecil itu.
+    is_android = os.environ.get("ORULABS_PLATFORM") == "android"
+    combo_target = (15_000, 40_000) if is_android else (100_000, 300_000)
+    month_revenue_target = 5_000_000 if is_android else 30_000_000
+    year_revenue_target = 55_000_000 if is_android else 370_000_000
+
     packaged_items = (
         MenuItem.query.join(MenuItemIngredient, MenuItemIngredient.menu_item_id == MenuItem.id)
         .join(Ingredient, MenuItemIngredient.ingredient_id == Ingredient.id)
@@ -3362,13 +3396,13 @@ def _seed_demo_orders():
     #    diantar pelayan), 2 sisanya masih "pending" (baru diterima).
     unpaid_tables = demo_tables[:5]
     for i, table in enumerate(unpaid_tables):
-        items = _demo_combo_items(drinks, foods)
+        items = _demo_combo_items(drinks, foods, *combo_target)
         status = "ready" if i < 3 else "pending"
         _demo_make_order(ORDER_TYPE_DINE_IN, items, table=table, status=status)
 
     # 2) 5 pesanan "Bawa Pulang" LUNAS hari ini - paket minum+makan.
     for _ in range(5):
-        items = _demo_combo_items(drinks, foods)
+        items = _demo_combo_items(drinks, foods, *combo_target)
         _demo_make_order(ORDER_TYPE_TAKEAWAY, items, is_paid=True, paid_at=_random_datetime_between(today_start, today))
 
     # 3) 5 pesanan contoh yang menu-nya memakai bahan kemasan (gelas cup/
@@ -3377,7 +3411,7 @@ def _seed_demo_orders():
     #    platform, bukan cuma 1 jenis pesanan saja.
     for _ in range(5):
         item = random.choice(packaged_items)
-        order_type = random.choice([ORDER_TYPE_DINE_IN, ORDER_TYPE_TAKEAWAY, ORDER_TYPE_OJOL])
+        order_type = _demo_order_type_choices(demo_channels, [1, 1, 1])
         table = random.choice(demo_tables) if order_type == ORDER_TYPE_DINE_IN else None
         channel = random.choice(demo_channels) if order_type == ORDER_TYPE_OJOL else None
         _demo_make_order(
@@ -3391,9 +3425,7 @@ def _seed_demo_orders():
     for _ in range(10):
         n_items = random.randint(1, 2)
         items = [(random.choice(demo_items), random.randint(1, 2)) for _ in range(n_items)]
-        order_type = random.choices(
-            [ORDER_TYPE_DINE_IN, ORDER_TYPE_TAKEAWAY, ORDER_TYPE_OJOL], weights=[50, 35, 15],
-        )[0]
+        order_type = _demo_order_type_choices(demo_channels, [50, 35, 15])
         table = random.choice(demo_tables) if order_type == ORDER_TYPE_DINE_IN else None
         channel = random.choice(demo_channels) if order_type == ORDER_TYPE_OJOL else None
         _demo_make_order(
@@ -3410,21 +3442,23 @@ def _seed_demo_orders():
     )
 
     # 5) Sisa hari di bulan berjalan (sebelum hari ini) diisi transaksi
-    #    acak sampai total bulan ini kira-kira Rp30 juta, dan 8 bulan
-    #    sebelumnya (Januari s/d bulan lalu) sampai total tahun ini
-    #    kira-kira Rp400 juta - buat contoh angka Laporan Penjualan yang
-    #    masuk akal besarnya. Random murni, tidak perlu presisi.
+    #    acak sampai total bulan ini kira-kira month_revenue_target, dan
+    #    8 bulan sebelumnya (Januari s/d bulan lalu) sampai total tahun
+    #    ini kira-kira year_revenue_target - buat contoh angka Laporan
+    #    Penjualan yang masuk akal besarnya buat skala tokonya (lihat
+    #    komentar month_revenue_target/year_revenue_target di atas).
+    #    Random murni, tidak perlu presisi.
     month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     if month_start < today_start:
         _seed_demo_filler_orders(
-            month_start, today_start, max(0, 30_000_000 - today_revenue),
+            month_start, today_start, max(0, month_revenue_target - today_revenue),
             demo_items, demo_tables, demo_channels,
         )
 
     year_start = today.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
     if year_start < month_start:
         _seed_demo_filler_orders(
-            year_start, month_start, 370_000_000,
+            year_start, month_start, year_revenue_target,
             demo_items, demo_tables, demo_channels,
         )
 
@@ -3489,18 +3523,21 @@ def _seed_demo_data():
                 )
             )
 
-    # 10 meja demo di Lantai 1 - kode pakai prefix "demo-" (bukan
-    # "postab-" seperti meja asli) supaya DIJAMIN tidak pernah tabrakan
-    # sama kode meja toko yang sungguhan, walau tokonya sudah punya meja
-    # 1-10 sendiri. Owner boleh coba alur pesanan sungguhan di meja ini
-    # buat demo - order yang kebentuk ikut dibersihkan di _clear_demo_data().
+    # 10 meja demo di Lantai 1 (4 buat APK GO/UMKM - toko satu-device
+    # kecil tidak realistis punya 10 meja) - kode pakai prefix "demo-"
+    # (bukan "postab-" seperti meja asli) supaya DIJAMIN tidak pernah
+    # tabrakan sama kode meja toko yang sungguhan, walau tokonya sudah
+    # punya meja 1-10 sendiri. Owner boleh coba alur pesanan sungguhan
+    # di meja ini buat demo - order yang kebentuk ikut dibersihkan di
+    # _clear_demo_data().
     #
     # QR code-nya digenerate di sini juga (sama seperti meja asli lewat
     # table_map()) - sebelumnya baris Table cuma ditambahkan ke DB tanpa
     # pernah memanggil _generate_table_qr(), jadi file gambar QR-nya
     # tidak pernah ada dan modal "Detail Meja" di Mode Demo selalu
     # gagal muat gambar (terlihat rusak/crash).
-    for n in range(1, 11):
+    demo_table_count = 4 if os.environ.get("ORULABS_PLATFORM") == "android" else 10
+    for n in range(1, demo_table_count + 1):
         table = Table(code=f"demo-{n:02d}", label=f"Meja {n}", floor=1, is_demo=True)
         db.session.add(table)
         _generate_table_qr(table)
@@ -3540,11 +3577,16 @@ def _seed_demo_data():
     # contoh sebelum ganti sendiri ke platform & angka yang sungguhan
     # dipakai tokonya. Logo lencana contoh ikut disalin dari
     # app/demo_data/branding/ (sama pola-nya dengan _apply_demo_settings()).
+    #
+    # KOSONG di APK GO/UMKM - toko satu-device kecil sasaran produk ini
+    # realistisnya belum kerja sama sama platform delivery online, jadi
+    # Mode Demo di sana tidak usah pura-pura sudah punya kemitraan itu.
     branding_dir = os.path.join(current_app.static_folder, "uploads", "branding")
     os.makedirs(branding_dir, exist_ok=True)
     demo_branding_dir = os.path.join(current_app.root_path, "demo_data", "branding")
 
-    for i, (name, markup, badge_filename) in enumerate(DEMO_CHANNELS, start=1):
+    demo_channels = [] if os.environ.get("ORULABS_PLATFORM") == "android" else DEMO_CHANNELS
+    for i, (name, markup, badge_filename) in enumerate(demo_channels, start=1):
         channel = OrderChannel(
             name=name,
             pricing_mode=CHANNEL_PRICING_PERCENT,
