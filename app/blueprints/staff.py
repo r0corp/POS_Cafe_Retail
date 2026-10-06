@@ -2227,6 +2227,16 @@ def _period_report(start, end):
     ppn_collected = sum(order.ppn_amount or 0 for order in orders)
     transaction_count = len(orders)
 
+    # Uang masuk per metode bayar - pakai grand_total (yang benar-benar
+    # dibayar tamu, sudah termasuk PPN kalau aktif), jadi total semua
+    # metode = Total Penjualan + PPN Terkumpul.
+    payment_totals = {method: {"count": 0, "amount": 0} for method in PAYMENT_METHODS}
+    for order in orders:
+        bucket = payment_totals.get(order.payment_method)
+        if bucket is not None:
+            bucket["count"] += 1
+            bucket["amount"] += order.grand_total
+
     item_counts = {}
     items_sold = 0
 
@@ -2251,6 +2261,7 @@ def _period_report(start, end):
     return {
         "total_sales": total_sales,
         "ppn_collected": ppn_collected,
+        "payment_totals": payment_totals,
         "transaction_count": transaction_count,
         "items_sold": items_sold,
         "avg_per_transaction": (total_sales / transaction_count) if transaction_count else 0,
@@ -2393,6 +2404,10 @@ def export_report_excel(period_key):
         (_("Transaksi"), data["transaction_count"], "0"),
         (_("Rata-rata/Transaksi"), round(data["avg_per_transaction"]), rupiah_format),
         (_("Item Terjual"), data["items_sold"], "0"),
+        (_("Pembayaran Tunai (%(count)s transaksi)", count=data["payment_totals"]["cash"]["count"]),
+         data["payment_totals"]["cash"]["amount"], rupiah_format),
+        (_("Pembayaran QRIS (%(count)s transaksi)", count=data["payment_totals"]["qris"]["count"]),
+         data["payment_totals"]["qris"]["amount"], rupiah_format),
     ]
     row = 4
     for label, value, num_format in summary_rows:
@@ -2523,8 +2538,12 @@ def export_report_pdf(period_key):
         [_("Transaksi"), str(data["transaction_count"])],
         [_("Rata-rata/Transaksi"), f"Rp {data['avg_per_transaction']:,.0f}".replace(",", ".")],
         [_("Item Terjual"), str(data["items_sold"])],
+        [_("Pembayaran Tunai (%(count)s transaksi)", count=data["payment_totals"]["cash"]["count"]),
+         f"Rp {data['payment_totals']['cash']['amount']:,}".replace(",", ".")],
+        [_("Pembayaran QRIS (%(count)s transaksi)", count=data["payment_totals"]["qris"]["count"]),
+         f"Rp {data['payment_totals']['qris']['amount']:,}".replace(",", ".")],
     ]
-    summary_table = Table(summary_rows, colWidths=[55 * mm, 45 * mm])
+    summary_table = Table(summary_rows, colWidths=[70 * mm, 45 * mm])
     summary_table.setStyle(TableStyle([
         ("FONTSIZE", (0, 0), (-1, -1), 9),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
