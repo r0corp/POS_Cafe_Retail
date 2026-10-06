@@ -413,22 +413,28 @@ _ACTIVATION_PAGE = """
 
 
 _TRIAL_MODAL_TEMPLATE = """
-<div id="__trialModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);
+<div id="__trialModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,0.6);
      z-index:99998;align-items:center;justify-content:center;padding:20px;">
-  <div style="max-width:320px;width:100%;background:#1e293b;border-radius:20px;padding:24px 20px 20px;
-       text-align:center;box-shadow:0 10px 28px rgba(0,0,0,0.5);
-       font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">
-    <div style="width:52px;height:52px;border-radius:50%;background:#0f172a;display:flex;
-         align-items:center;justify-content:center;margin:0 auto 12px;">
-      <span style="font-size:1.5rem;">&#9203;</span>
+  <div role="dialog" aria-modal="true" style="max-width:340px;width:100%;
+       background:var(--color-surface,#1e293b);border-radius:24px;padding:26px 22px 22px;text-align:center;
+       box-shadow:0 14px 34px rgba(0,0,0,0.5);font-family:var(--font-body,'Inter',system-ui,sans-serif);">
+    <div style="width:56px;height:56px;border-radius:50%;background:var(--color-bg,#0f172a);display:flex;
+         align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 2px 6px rgba(240,120,40,0.28);">
+      <i class="bi bi-hourglass-split" style="font-size:1.5rem;color:var(--color-accent,#f97316);"></i>
     </div>
-    <h3 style="color:#e2e8f0;margin:0 0 6px;font-size:1.05rem;">Masa Percobaan - Hari ke-__DAY__</h3>
-    <p style="color:#94a3b8;font-size:0.85rem;line-height:1.5;margin:0 0 18px;">
-      __DAYS_LEFT_TEXT__<br>Hubungi penjual untuk berlangganan supaya aplikasi ini terus bisa dipakai.
+    <h3 style="font-family:var(--font-heading,'Poppins',sans-serif);font-weight:700;font-size:1.05rem;
+        color:var(--color-heading,#e2e8f0);margin:0 0 8px;">__TITLE__</h3>
+    <p style="color:var(--color-muted,#94a3b8);font-size:0.82rem;line-height:1.55;margin:0 0 20px;">
+      __BODY__
     </p>
-    <button onclick="document.getElementById('__trialModalOverlay').style.display='none';"
-      style="width:100%;border:none;background:#f97316;color:#fff;font-weight:700;font-size:0.85rem;
-      padding:12px;border-radius:999px;box-shadow:0 8px 18px rgba(240,120,40,0.35);">Nanti Saja</button>
+    <a href="/__activation" class="btn btn-accent"
+       style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;
+       font-size:0.8rem;text-transform:uppercase;letter-spacing:0.4px;text-decoration:none;">
+      <i class="bi bi-patch-check"></i> __ACTIVATE__
+    </a>
+    <button type="button" class="btn btn-outline-secondary"
+      onclick="document.getElementById('__trialModalOverlay').style.display='none';"
+      style="width:100%;margin-top:10px;padding:10px;font-size:0.8rem;">__LATER__</button>
   </div>
 </div>
 <script>
@@ -445,15 +451,48 @@ _TRIAL_MODAL_TEMPLATE = """
 </script>
 """
 
+_TRIAL_TEXT = {
+    "id": {
+        "title": "Masa Percobaan - Hari ke-%(day)s",
+        "left_many": "Sisa <b>%(days)s hari</b> lagi masa percobaan.",
+        "left_last": "Ini hari <b>TERAKHIR</b> masa percobaan.",
+        "body": "Hubungi penjual untuk berlangganan supaya aplikasi ini terus bisa dipakai.",
+        "activate": "Aktifkan Lisensi",
+        "later": "Nanti",
+    },
+    "en": {
+        "title": "Free Trial - Day %(day)s",
+        "left_many": "<b>%(days)s days</b> left in your free trial.",
+        "left_last": "Today is the <b>LAST</b> day of your free trial.",
+        "body": "Contact the seller to subscribe so you can keep using this app.",
+        "activate": "Activate License",
+        "later": "Later",
+    },
+}
 
-def _render_trial_notice(trial):
+
+def _current_language():
+    """Bahasa yang sedang dipilih di aplikasi (tombol bendera di halaman login);
+    fallback Indonesia kalau tidak bisa ditentukan."""
+    try:
+        from flask_babel import get_locale
+        locale = get_locale()
+        return "en" if locale is not None and str(locale).lower().startswith("en") else "id"
+    except Exception:
+        return "id"
+
+
+def _render_trial_notice(trial, lang=None):
+    text = _TRIAL_TEXT[lang or _current_language()]
     if trial["days_left"] <= 1:
-        days_left_text = "Ini hari <b>TERAKHIR</b> masa percobaan."
+        left = text["left_last"]
     else:
-        days_left_text = "Sisa <b>" + str(trial["days_left"]) + " hari</b> lagi masa percobaan."
+        left = text["left_many"] % {"days": trial["days_left"]}
     html = _TRIAL_MODAL_TEMPLATE
-    html = html.replace("__DAY__", str(min(trial["day_number"], _TRIAL_DAYS)))
-    html = html.replace("__DAYS_LEFT_TEXT__", days_left_text)
+    html = html.replace("__TITLE__", text["title"] % {"day": min(trial["day_number"], _TRIAL_DAYS)})
+    html = html.replace("__BODY__", left + "<br>" + text["body"])
+    html = html.replace("__ACTIVATE__", text["activate"])
+    html = html.replace("__LATER__", text["later"])
     html = html.replace("__TODAY__", date.today().isoformat())
     return html
 

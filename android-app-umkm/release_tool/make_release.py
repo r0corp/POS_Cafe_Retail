@@ -14,6 +14,7 @@ v<versionName>, lalu commit + push version.json di repo rilis.
 """
 
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -43,6 +44,72 @@ def sha256_of(path):
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+PAGE_TEMPLATE = """# Oru POS GO
+
+**Aplikasi kasir (POS) untuk warung, kedai, dan toko kecil - jalan langsung di HP / tablet Android.**
+*Point-of-sale app for small shops and cafes - runs right on your Android phone or tablet.*
+
+[![Download](https://img.shields.io/badge/%E2%AC%87%20Download%20APK-v{version}-f97316?style=for-the-badge)]({apk_url})
+
+> **{version}** &middot; {size_mb} MB &middot; Android 7.0+ &middot; {date}
+
+<p align="center"><img src="download-qr.png" width="220" alt="QR download"><br><sub>Scan untuk mengunduh / Scan to download</sub></p>
+
+## Yang didapat / What you get
+
+- Kasir dengan pembayaran **Tunai** dan **QRIS**, struk (printer Bluetooth), dan riwayat transaksi
+- Menu & kategori, stok bahan baku, laporan harian / mingguan / bulanan (Excel & PDF)
+- Beberapa akun staf dengan hak akses berbeda
+- Dua bahasa (Indonesia / English), tema terang / gelap
+- Data tersimpan di perangkat Anda sendiri, **tanpa langganan server**
+- **Coba gratis 7 hari**, lanjut dengan kode aktivasi dari penjual
+
+## Cara pasang / How to install
+
+1. Buka link unduhan di HP Android Anda, lalu unduh file APK. Kalau peramban memperingatkan file APK, pilih **Tetap unduh**.
+2. Buka file yang terunduh. Android akan meminta izin **"Instal dari sumber ini"** - izinkan satu kali untuk peramban Anda.
+3. Tekan **Instal**, lalu buka **Oru POS GO**. Login awal ada di petunjuk dari penjual.
+4. Masa percobaan 7 hari langsung berjalan. Untuk lanjut setelahnya, buka **Aktifkan Lisensi**, kirim **Kode Perangkat** ke penjual, lalu tempel **Kode Aktivasi** yang Anda terima.
+
+Pembaruan aplikasi muncul otomatis di dalam aplikasi (Pengaturan &rarr; Sistem &rarr; Cek Pembaruan). Tidak perlu mengunduh ulang dari sini.
+
+## Keamanan file / File integrity
+
+SHA-256 `{sha256}`
+
+APK ini ditandatangani **Orulabs** (sidik jari sertifikat SHA-256 `{cert}`). Android hanya mau memperbarui aplikasi ini dengan APK bertanda tangan yang sama.
+
+---
+&copy; Orulabs
+"""
+
+# Sidik jari sertifikat penanda tangan rilis (keystore Orulabs) - tampil di halaman unduh.
+CERT_SHA256 = "5ed6b68757b0c2092cd75e43bccc89028c58f1d61b203441c0fe75d460eb40aa"
+
+
+def write_download_page(out_dir, manifest, repo):
+    """README.md di repo rilis = halaman unduh yang dibagikan ke calon customer
+    (https://github.com/<repo>) + QR menuju link unduhan langsung."""
+    page = PAGE_TEMPLATE.format(
+        version=manifest["versionName"],
+        apk_url=manifest["apkUrl"],
+        size_mb="%.0f" % (manifest["sizeBytes"] / 1048576.0),
+        date=datetime.date.today().strftime("%d-%m-%Y"),
+        sha256=manifest["sha256"],
+        cert=CERT_SHA256,
+    )
+    with open(os.path.join(out_dir, "README.md"), "w", encoding="utf-8", newline="\n") as f:
+        f.write(page)
+    try:
+        import qrcode
+        img = qrcode.QRCode(box_size=10, border=3)
+        img.add_data(manifest["apkUrl"])
+        img.make(fit=True)
+        img.make_image(fill_color="black", back_color="white").save(os.path.join(out_dir, "download-qr.png"))
+    except ImportError:
+        print("(qrcode tidak terpasang - QR tidak dibuat; jalankan dengan python venv POS)")
 
 
 def main():
@@ -91,14 +158,17 @@ def main():
         json.dump(manifest, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
+    write_download_page(args.out, manifest, args.repo)
     print("APK       :", target)
     print("version   : %s (kode %d)" % (name, code))
     print("SHA-256   :", manifest["sha256"])
     print("manifest  :", manifest_path)
+    print("halaman unduh:", os.path.join(args.out, "README.md"), "(+ download-qr.png)")
     print()
     print("Langkah berikutnya (lihat RILIS.md):")
     if args.host == "repo":
-        print("  Di folder repo rilis: git add version.json apk && git commit && git push")
+        print("  Di folder repo rilis: git add version.json README.md download-qr.png apk && git commit && git push")
+        print("  Link untuk calon customer: https://github.com/%s" % args.repo)
     else:
         print("  1. GitHub > %s > Releases > Draft a new release, tag v%s," % (args.repo, name))
         print("     unggah file %s lalu Publish." % apk_name)

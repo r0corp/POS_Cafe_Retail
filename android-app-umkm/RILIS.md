@@ -25,7 +25,8 @@ mengunduh APK dari GitHub Releases dan memeriksa SHA-256 sebelum memasang.
    `python release_tool/make_release.py --notes "Catatan perubahan" --out "D:/10.  PROJECT/oru-go-releases"`
    (tambah `--mandatory` kalau semua pelanggan WAJIB update; atau
    `--min-supported <versionCode>` untuk memaksa update di bawah kode tertentu)
-4. Di folder repo rilis: `git add version.json apk`, `git commit`, `git push`.
+4. Di folder repo rilis: `git add version.json README.md download-qr.png apk`, `git commit`, `git push`.
+   (Skrip juga membuat ulang `README.md` = halaman unduh untuk calon customer, dan `download-qr.png`.)
    APK dan `version.json` naik dalam satu push, jadi aplikasi tidak pernah
    melihat update yang filenya belum ada.
 5. Cek: buka `https://raw.githubusercontent.com/r0corp/oru-go-releases/main/version.json`
@@ -36,6 +37,13 @@ makin besar tiap versi (±52 MB per rilis). Kalau APK mendekati 100 MB atau
 repo sudah ratusan MB, pindah ke GitHub Releases: jalankan skrip dengan
 `--host release`, unggah APK sebagai Release (tag `v<versionName>`) dulu,
 baru push `version.json`.
+
+## Link untuk calon customer
+
+Bagikan **https://github.com/r0corp/oru-go-releases** - halaman itu berisi tombol unduh APK versi
+terbaru, cara pasang, hash file, dan QR (`download-qr.png`, bisa dicetak/ditempel di materi promosi).
+Halaman ini ikut diperbarui otomatis tiap rilis (lewat `make_release.py`), jadi link-nya tidak perlu diganti.
+Link unduhan langsung ada di tombol pada halaman itu dan di `version.json` (`apkUrl`).
 
 ## Yang terjadi di HP pelanggan
 
