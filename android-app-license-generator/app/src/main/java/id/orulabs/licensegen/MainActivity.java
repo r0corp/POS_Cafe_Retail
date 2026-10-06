@@ -1,11 +1,13 @@
 package id.orulabs.licensegen;
 
+import android.animation.ValueAnimator;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
@@ -41,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private View splashOverlay;
+    private ValueAnimator splashAnimator;
     private boolean pageLoadFailed = false;
     private boolean lockedOnLeave = false;
 
@@ -63,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
 
         webView = findViewById(R.id.webView);
         splashOverlay = findViewById(R.id.splashOverlay);
+        startSplashAnimation();
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -93,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageFinished(view, url);
                 if (!pageLoadFailed) {
                     splashOverlay.setVisibility(View.GONE);
+                    stopSplashAnimation();
                 }
             }
         });
@@ -146,6 +151,33 @@ public class MainActivity extends AppCompatActivity {
         }
 
         webView.loadUrl("http://127.0.0.1:" + PORT + "/");
+    }
+
+    /** Bar "LOADING..." yang geser terus - sama dengan layar loading POS GO. */
+    private void startSplashAnimation() {
+        final View fill = findViewById(R.id.splashFill);
+        if (fill == null) return;
+        final float barWidth = 88f * getResources().getDisplayMetrics().density;
+        splashAnimator = ValueAnimator.ofFloat(-barWidth, barWidth * 3.5f);
+        splashAnimator.setDuration(1100);
+        splashAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+        splashAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        splashAnimator.setRepeatMode(ValueAnimator.RESTART);
+        splashAnimator.addUpdateListener(a -> fill.setTranslationX((float) a.getAnimatedValue()));
+        splashAnimator.start();
+    }
+
+    private void stopSplashAnimation() {
+        if (splashAnimator != null) {
+            splashAnimator.cancel();
+            splashAnimator = null;
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        stopSplashAnimation();
+        super.onDestroy();
     }
 
     /** Bahasa tampilan yang dipilih di aplikasi (tombol bendera) - dialog native ikut. */

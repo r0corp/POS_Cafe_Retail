@@ -18,29 +18,36 @@
         android:id="@+id/splashOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0F172A"
+        android:background="@drawable/splash_bg"
         android:orientation="vertical"
         android:gravity="center">
 
-        <ImageView
-            android:layout_width="84dp"
-            android:layout_height="84dp"
-            android:layout_marginBottom="24dp"
-            android:src="@mipmap/ic_launcher_round"
-            android:contentDescription="@string/app_name" />
-
-        <ProgressBar
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:indeterminateTint="#F97316" />
-
+        <!-- Sama dengan layar loading POS GO (teks LOADING... + bar yang geser
+             terus, mode gelap). Animasinya digerakkan dari MainActivity. -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Memuat aplikasi..."
-            android:textColor="#94A3B8"
-            android:textSize="14sp" />
+            android:text="LOADING..."
+            android:textColor="#38BDF8"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="0.2" />
+
+        <FrameLayout
+            android:id="@+id/splashTrack"
+            android:layout_width="220dp"
+            android:layout_height="10dp"
+            android:layout_marginTop="28dp"
+            android:background="@drawable/splash_track"
+            android:clipToOutline="true">
+
+            <View
+                android:id="@+id/splashFill"
+                android:layout_width="88dp"
+                android:layout_height="10dp"
+                android:background="@drawable/splash_fill" />
+        </FrameLayout>
 
     </LinearLayout>
 

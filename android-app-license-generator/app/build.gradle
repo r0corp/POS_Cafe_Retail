@@ -3,6 +3,16 @@ plugins {
     id 'com.chaquo.python'
 }
 
+// Tanda tangan rilis memakai keystore YANG SAMA dengan Oru POS GO
+// (D:\10.  PROJECT\orugo-keystore). Detailnya dibaca dari keystore.properties
+// (di-gitignore, jangan pernah di-commit). Tanpa file ini build rilis tidak
+// ditandatangani dan tidak bisa dipasang.
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file('keystore.properties')
+if (keystoreFile.exists()) {
+    keystoreFile.withInputStream { keystoreProps.load(it) }
+}
+
 android {
     namespace 'id.orulabs.licensegen'
     compileSdk 34
@@ -11,8 +21,8 @@ android {
         applicationId "id.orulabs.licensegen"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "0.1"
+        versionCode 2
+        versionName "1.0.0"
 
         // Cuma ARM (HP asli) - dipakai langsung di HP penjual, bukan
         // emulator.
@@ -21,9 +31,23 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            if (keystoreProps['storeFile']) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            if (keystoreProps['storeFile']) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
