@@ -1812,17 +1812,14 @@ def toggle_menu_item(item_id):
 def delete_menu_item(item_id):
     item = MenuItem.query.get_or_404(item_id)
 
-    if item.order_items:
-        flash(
-            _(
-                "Menu %(name)s tidak bisa dihapus karena sudah punya riwayat "
-                "pesanan (dipakai di laporan/struk). Tandai \"Habis\" saja kalau "
-                "sudah tidak dijual.",
-                name=item.name,
-            ),
-            "danger",
-        )
-        return redirect(url_for("staff.admin_menu"))
+    # Menu yang sudah punya riwayat pesanan TETAP boleh dihapus Owner:
+    # OrderItem menyimpan snapshot nama & harga sendiri (name_snapshot/
+    # price_snapshot), jadi laporan & struk lama tidak butuh barisnya -
+    # cukup dilepas (menu_item_id jadi NULL, sama seperti baris tanpa
+    # menu yang sudah ditangani di app/inventory.py).
+    OrderItem.query.filter_by(menu_item_id=item.id).update(
+        {"menu_item_id": None}, synchronize_session=False
+    )
 
     _remove_logo(item, "photo", subfolder="menu")
 
@@ -1873,8 +1870,9 @@ def add_recipe_item(item_id):
     ingredient = Ingredient.query.get(ingredient_id) if ingredient_id else None
 
     if not ingredient or not quantity_used or quantity_used <= 0:
-        flash(_("Pilih bahan baku dan isi jumlah pemakaian dengan benar."), "warning")
-        return redirect(url_for("staff.admin_menu"))
+        return _recipe_response(
+            item, _("Pilih bahan baku dan isi jumlah pemakaian dengan benar."), "warning"
+        )
 
     existing = MenuItemIngredient.query.filter_by(
         menu_item_id=item.id, ingredient_id=ingredient.id
@@ -1892,8 +1890,9 @@ def add_recipe_item(item_id):
         )
 
     db.session.commit()
-    flash(_("Resep %(name)s berhasil diperbarui.", name=item.name), "success")
-    return redirect(url_for("staff.admin_menu"))
+    return _recipe_response(
+        item, _("Resep %(name)s berhasil diperbarui.", name=item.name), "success"
+    )
 
 
 @staff_bp.route("/admin/menu/<int:item_id>/recipe/<int:ingredient_id>/remove", methods=["POST"])
@@ -1902,9 +1901,28 @@ def remove_recipe_item(item_id, ingredient_id):
     row = MenuItemIngredient.query.filter_by(
         menu_item_id=item_id, ingredient_id=ingredient_id
     ).first_or_404()
+    item = row.menu_item
     db.session.delete(row)
     db.session.commit()
-    return redirect(url_for("staff.admin_menu"))
+    return _recipe_response(item, _("Bahan dihapus dari resep %(name)s.", name=item.name), "success")
+
+
+def _recipe_response(item, message, category):
+    """Balasan add/remove resep. Dari fetch (header X-Requested-With: fetch,
+    lihat menu_admin.html) balas JSON berisi HTML blok resep yang sudah
+    diperbarui supaya modal menu di halaman tidak ketutup; submit form
+    biasa (tanpa JS) tetap flash + redirect seperti dulu."""
+
+    if request.headers.get("X-Requested-With") != "fetch":
+        flash(message, category)
+        return redirect(url_for("staff.admin_menu"))
+
+    ingredients = Ingredient.query.order_by(Ingredient.name).all()
+    return jsonify(
+        message=message,
+        category=category,
+        html=render_template("staff/_menu_recipe.html", item=item, ingredients=ingredients),
+    )
 
 
 # ============================================================

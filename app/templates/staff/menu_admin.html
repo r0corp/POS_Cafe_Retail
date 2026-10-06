@@ -171,47 +171,8 @@
 
                       <hr class="my-3" style="border-color: var(--color-border);">
 
-                      <div class="text-start">
-                        <h6 class="small fw-semibold mb-2">
-                          <i class="bi bi-clipboard-data"></i> {{ _('Resep Bahan Baku') }}
-                          {% if item.recipe and not item.is_in_stock %}
-                            <span class="badge-soft badge-status-served">{{ _('Stok bahan habis') }}</span>
-                          {% endif %}
-                        </h6>
-                        {% if item.recipe %}
-                          <ul class="list-unstyled small mb-2">
-                            {% for row in item.recipe %}
-                              <li class="d-flex justify-content-between align-items-center mb-1">
-                                <span>
-                                  {{ row.ingredient.name }}
-                                  <span class="text-muted">- {{ _('%(qty)s %(unit)s/porsi', qty="{:g}".format(row.quantity_used), unit=row.ingredient.unit) }}</span>
-                                  {% if row.ingredient.stock_quantity < row.quantity_used %}
-                                    <i class="bi bi-exclamation-triangle-fill" style="color: var(--color-danger);" title="{{ _('Stok tidak cukup') }}"></i>
-                                  {% endif %}
-                                </span>
-                                <form method="post" action="{{ url_for('staff.remove_recipe_item', item_id=item.id, ingredient_id=row.ingredient.id) }}">
-                                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                  <button type="submit" class="icon-btn-danger" title="{{ _('Hapus dari resep') }}">
-                                    <i class="bi bi-x"></i>
-                                  </button>
-                                </form>
-                              </li>
-                            {% endfor %}
-                          </ul>
-                        {% else %}
-                          <p class="text-muted small mb-2">{{ _('Belum ada resep - item ini dianggap selalu tersedia (tidak dibatasi stok).') }}</p>
-                        {% endif %}
-                        <form method="post" action="{{ url_for('staff.add_recipe_item', item_id=item.id) }}" class="d-flex gap-2">
-                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                          <select name="ingredient_id" class="form-select form-select-sm" data-elegant-select required>
-                            <option value="">{{ _('-- Bahan --') }}</option>
-                            {% for ingredient in ingredients %}
-                              <option value="{{ ingredient.id }}">{{ ingredient.name }} ({{ ingredient.unit }})</option>
-                            {% endfor %}
-                          </select>
-                          <input type="number" step="0.01" min="0" name="quantity_used" class="form-control form-control-sm" style="max-width: 90px;" placeholder="{{ _('Jumlah') }}" required>
-                          <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plus-lg"></i></button>
-                        </form>
+                      <div class="text-start" id="menuRecipe{{ item.id }}">
+                        {% include 'staff/_menu_recipe.html' %}
                       </div>
                     </div>
                     <div class="modal-footer d-flex align-items-center justify-content-center flex-wrap gap-2">
@@ -221,19 +182,18 @@
                           {{ _('Tersedia') if item.is_available else _('Habis') }}
                         </button>
                       </form>
-                      {% if item.order_items %}
-                        <span class="text-muted small">
-                          <i class="bi bi-lock"></i> {{ _('Tidak bisa dihapus - sudah punya riwayat pesanan') }}
-                        </span>
-                      {% else %}
-                        <form method="post" action="{{ url_for('staff.delete_menu_item', item_id=item.id) }}"
-                              data-confirm="{{ _('Hapus %(name)s? Tidak bisa dibatalkan.', name=item.name) }}">
-                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                          <button type="submit" class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-trash"></i> {{ _('Hapus Menu') }}
-                          </button>
-                        </form>
-                      {% endif %}
+                      {% set history_count = item.order_items | length %}
+                      <form method="post" action="{{ url_for('staff.delete_menu_item', item_id=item.id) }}"
+                            {% if history_count %}
+                              data-confirm="{{ _('Hapus %(name)s? Menu ini sudah ada di %(count)s item pesanan. Riwayat, laporan, dan struk lama tetap utuh (nama & harga saat itu tersimpan), tapi menunya hilang dari daftar dan tidak bisa dibatalkan.', name=item.name, count=history_count) }}"
+                            {% else %}
+                              data-confirm="{{ _('Hapus %(name)s? Tidak bisa dibatalkan.', name=item.name) }}"
+                            {% endif %}>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                          <i class="bi bi-trash"></i> {{ _('Hapus Menu') }}
+                        </button>
+                      </form>
                     </div>
                   </div>
                 </div>
@@ -263,6 +223,40 @@
         section.classList.toggle("d-none", !match);
       });
     });
+  });
+
+  // Tambah/hapus bahan di resep dikirim lewat fetch dan cuma bagian resep
+  // di modal yang diganti - modal-nya tetap terbuka. Delegasi di document
+  // karena isi #menuRecipe<id> diganti ulang tiap selesai. Tanpa JS, form
+  // tetap submit biasa (redirect ke halaman ini).
+  document.addEventListener("submit", function (event) {
+    var form = event.target.closest("form.recipe-ajax-form");
+    if (!form) return;
+    event.preventDefault();
+
+    var container = form.closest("[id^='menuRecipe']");
+    var button = form.querySelector("button[type=submit]");
+    if (button) button.disabled = true;
+
+    fetch(form.action, {
+      method: "POST",
+      body: new FormData(form),
+      headers: { "X-Requested-With": "fetch" },
+      credentials: "same-origin",
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error(response.status);
+        return response.json();
+      })
+      .then(function (data) {
+        container.innerHTML = data.html;
+        if (window.enhanceElegantSelect) window.enhanceElegantSelect(container);
+        if (window.showToast) window.showToast(data.message, data.category);
+      })
+      .catch(function () {
+        if (button) button.disabled = false;
+        if (window.showToast) window.showToast({{ _('Gagal memperbarui resep. Muat ulang halaman lalu coba lagi.')|tojson }}, "danger");
+      });
   });
 </script>
 {% endblock %}
