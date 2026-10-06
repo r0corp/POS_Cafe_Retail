@@ -3346,7 +3346,8 @@ textarea.form-control {
 .seat-btn,
 .seat-qr-btn,
 .login-eye-btn,
-.qty-stepper button {
+.qty-stepper button,
+.pay-method-btn {
   border-radius: 999px;
 }
 
@@ -3370,7 +3371,8 @@ textarea.form-control {
 .seat-btn,
 .seat-qr-btn,
 .login-eye-btn,
-.qty-stepper button {
+.qty-stepper button,
+.pay-method-btn {
   box-shadow: var(--shadow-btn);
   transition: box-shadow 0.15s ease, transform 0.15s ease, background 0.15s ease;
 }
@@ -3390,7 +3392,8 @@ textarea.form-control {
 .seat-btn:hover,
 .seat-qr-btn:hover,
 .login-eye-btn:hover,
-.qty-stepper button:hover {
+.qty-stepper button:hover,
+.pay-method-btn:hover {
   box-shadow: var(--shadow-btn-hover);
 }
 
@@ -3425,7 +3428,6 @@ textarea.form-control {
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
 }
 
 .cash-pay-form .pay-method-btn.active {
