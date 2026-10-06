@@ -85,23 +85,9 @@ chaquopy {
         extractPackages "app"
 
         pip {
-            // Tanpa pin versi dulu - Chaquopy pakai Python 3.8, tidak semua
-            // versi terbaru di requirements.txt (yang disiapkan untuk
-            // Python versi baru di server) kompatibel. Purwarupa tahap 2:
-            // cari tahu versi mana yang benar-benar bisa jalan di Android
-            // dulu, baru dikunci di build.gradle setelah ketemu yang cocok.
-            install "flask"
-            install "flask-sqlalchemy"
-            install "flask-migrate"
-            install "flask-login"
-            install "flask-wtf"
-            install "flask-babel"
-            install "pytz"
-            install "python-dotenv"
-            install "qrcode"
-            install "pillow"
-            install "reportlab"
-            install "openpyxl"
+            // Versi dikunci di requirements-go.txt (lihat komentar di sana) supaya
+            // build di waktu berbeda menghasilkan APK dengan paket yang sama.
+            install "-r", "requirements-go.txt"
         }
     }
 }

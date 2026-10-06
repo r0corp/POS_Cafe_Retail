@@ -1,0 +1,41 @@
+# Versi paket Python yang DIKUNCI untuk APK Oru POS GO (Chaquopy, Python 3.8).
+# Dibuat dari paket yang benar-benar terpasang di build rilis 1.0.0 (6 Okt 2026).
+# Tujuan: build di waktu berbeda menghasilkan APK dengan paket yang sama persis,
+# bukan versi terbaru yang bisa saja mengubah perilaku aplikasi.
+#
+# Mengubah/menaikkan versi di sini = perubahan besar: build ulang, tes lengkap
+# di emulator (login, kasir, laporan Excel/PDF, QR), baru rilis.
+
+# --- paket utama ---
+flask==3.0.3
+flask-sqlalchemy==3.1.1
+flask-migrate==4.1.0
+flask-login==0.6.3
+flask-wtf==1.2.1
+flask-babel==4.0.0
+pytz==2026.5
+python-dotenv==1.0.1
+qrcode==7.4.2
+pillow==9.2.0
+reportlab==4.4.3
+openpyxl==3.1.5
+
+# --- turunan (ikut dikunci supaya tidak bergeser sendiri) ---
+alembic==1.14.1
+babel==2.18.0
+blinker==1.8.2
+charset-normalizer==3.5.2
+click==8.1.8
+et-xmlfile==2.0.0
+importlib-metadata==8.5.0
+importlib-resources==6.4.5
+itsdangerous==2.2.0
+jinja2==3.1.6
+mako==1.3.12
+markupsafe==2.1.5
+pypng==0.20220715.0
+sqlalchemy==2.0.54
+typing-extensions==4.13.2
+werkzeug==3.0.6
+wtforms==3.1.2
+zipp==3.20.2

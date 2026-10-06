@@ -54,6 +54,7 @@ di folder berisi `version.json` + APK uji, buka app di emulator.
 
 ## Catatan
 
-- Dependensi Python di `app/build.gradle` (`pip { install ... }`) belum
-  dipatok versinya, jadi build di waktu berbeda bisa membawa versi paket
-  berbeda. Sebaiknya dipatok sebelum rilis ke banyak pelanggan.
+- Versi paket Python APK dikunci di `app/requirements-go.txt` (32 paket, termasuk
+  turunan). Build ulang 1.0.0 dengan kunci ini menghasilkan isi APK yang identik
+  (456 file, CRC sama) dengan yang sudah dirilis. Menaikkan versi paket di file itu
+  = perubahan besar: build ulang, tes lengkap di emulator, baru rilis versi baru.
