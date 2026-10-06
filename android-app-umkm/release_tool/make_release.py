@@ -7,7 +7,7 @@ Dipakai SETELAH build rilis (./gradlew.bat assembleRelease). Skrip ini:
   4. menulis version.json (yang dibaca aplikasi GO di HP pelanggan).
 
 Contoh:
-  python release_tool/make_release.py --notes "Perbaikan kasir QRIS" --out "D:/10.  PROJECT/oru-go-releases"
+  python release_tool/make_release.py --notes "Perbaikan kasir QRIS" --out "D:/10.  PROJECT/r0corp-oru-go-releases"
 
 Setelah itu (lihat RILIS.md): unggah APK sebagai Release di GitHub dengan tag
 v<versionName>, lalu commit + push version.json di repo rilis.
@@ -25,7 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
 GRADLE = os.path.join(PROJECT, "app", "build.gradle")
 DEFAULT_APK = os.path.join(PROJECT, "app", "build", "outputs", "apk", "release", "app-release.apk")
-DEFAULT_REPO = "r0corp/oru-go-releases"
+DEFAULT_REPO = "r0corp/r0corp-oru-go-releases"
 
 
 def read_version():

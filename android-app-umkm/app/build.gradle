@@ -15,7 +15,7 @@ if (keystoreFile.exists()) {
 // Alamat manifest update (version.json) di repo rilis publik. Build debug
 // (emulator) membaca dari PC pengembang lewat 10.0.2.2 supaya alur update
 // bisa dites tanpa menerbitkan apa pun.
-def releaseManifestUrl = "https://raw.githubusercontent.com/r0corp/oru-go-releases/main/version.json"
+def releaseManifestUrl = "https://raw.githubusercontent.com/r0corp/r0corp-oru-go-releases/main/version.json"
 
 android {
     namespace 'id.orulabs.umkm'

@@ -1,6 +1,6 @@
 # Rilis & update Oru POS GO
 
-Update APK GO diambil aplikasi dari repo **publik** `r0corp/oru-go-releases`
+Update APK GO diambil aplikasi dari repo **publik** `r0corp/r0corp-oru-go-releases`
 (bukan dari repo POS yang private). Aplikasi membaca `version.json`, lalu
 mengunduh APK dari GitHub Releases dan memeriksa SHA-256 sebelum memasang.
 
@@ -22,10 +22,10 @@ mengunduh APK dari GitHub Releases dan memeriksa SHA-256 sebelum memasang.
    `./gradlew.bat assembleRelease`
    (hasil: `app/build/outputs/apk/release/app-release.apk`)
 3. Siapkan file rilis:
-   `python release_tool/make_release.py --notes "Catatan perubahan" --out "D:/10.  PROJECT/oru-go-releases"`
+   `python release_tool/make_release.py --notes "Catatan perubahan" --out "D:/10.  PROJECT/r0corp-oru-go-releases"`
    (tambah `--mandatory` kalau semua pelanggan WAJIB update; atau
    `--min-supported <versionCode>` untuk memaksa update di bawah kode tertentu)
-4. GitHub -> repo `oru-go-releases` -> **Releases -> Draft a new release**:
+4. GitHub -> repo `r0corp-oru-go-releases` -> **Releases -> Draft a new release**:
    tag `v<versionName>`, unggah `apk/oru-go-<versionName>.apk`, **Publish**.
 5. Di folder repo rilis: `git add version.json apk` (APK tidak perlu di-commit
    kalau sudah diunggah sebagai Release; lihat `.gitignore` repo rilis),
