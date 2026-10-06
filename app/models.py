@@ -715,6 +715,10 @@ class Order(db.Model):
     def display_sublabel(self):
         if self.table:
             return self.table.floor_label
+        if self.order_type == ORDER_TYPE_DINE_IN:
+            # Makan di Tempat tanpa meja (tamu langsung ke kasir) - label-nya
+            # sudah "Makan di Tempat", jadi sublabel jangan diulang.
+            return str(_l("Tanpa meja"))
         return str(ORDER_TYPE_LABELS.get(self.order_type, ""))
 
     def __repr__(self):

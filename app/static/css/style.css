@@ -2243,6 +2243,16 @@ textarea.form-control {
   color: var(--color-muted);
 }
 
+/* Di HP kartu cuma selebar setengah layar - "Makan di Tempat" terpotong
+   jadi "Makan di Te..." kalau dipaksa satu baris, jadi boleh turun baris. */
+@media (max-width: 575.98px) {
+  .order-type-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+
 .order-type-card:hover {
   border-left-color: var(--color-accent);
 }

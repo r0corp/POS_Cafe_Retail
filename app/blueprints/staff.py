@@ -737,25 +737,24 @@ def new_order():
         table = None
         channel = None
 
-        # Kartu "Makan di Tempat" memang sudah disembunyikan di halaman
-        # ini kalau toko matikan "Pakai Meja" (lihat order_new.html), tapi
-        # tetap ditolak juga di sini - jaga-jaga request yang dipaksa
-        # lewat luar form biasa (bukan skenario yang wajar, cuma jaga-jaga).
-        if order_type == ORDER_TYPE_DINE_IN and not get_settings().uses_tables:
-            flash(_("Toko ini tidak pakai meja."), "danger")
-            return redirect(url_for("staff.new_order"))
-
-        if order_type == ORDER_TYPE_DINE_IN:
+        # Makan di Tempat boleh TANPA meja - tamu yang langsung ke kasir
+        # (tidak scan QR meja) tetap dicatat makan di tempat, bukan dipaksa
+        # "Bawa Pulang". Meja cuma dipakai kalau toko pakai meja DAN kasir
+        # memilihnya; kalau dipilih, aturannya sama seperti dulu (harus
+        # valid & belum terisi).
+        if order_type == ORDER_TYPE_DINE_IN and get_settings().uses_tables:
             table_id = request.form.get("table_id", type=int)
-            table = Table.query.get(table_id)
 
-            if not table:
-                flash(_("Meja tidak valid."), "danger")
-                return redirect(url_for("staff.new_order"))
+            if table_id:
+                table = Table.query.get(table_id)
 
-            if table.id in occupied_table_ids:
-                flash(_("Meja %(label)s sudah terisi pesanan lain.", label=table.label), "danger")
-                return redirect(url_for("staff.new_order"))
+                if not table:
+                    flash(_("Meja tidak valid."), "danger")
+                    return redirect(url_for("staff.new_order"))
+
+                if table.id in occupied_table_ids:
+                    flash(_("Meja %(label)s sudah terisi pesanan lain.", label=table.label), "danger")
+                    return redirect(url_for("staff.new_order"))
 
         elif order_type == ORDER_TYPE_OJOL:
             channel_id = request.form.get("channel_id", type=int)
@@ -817,8 +816,9 @@ def new_order():
             return redirect(url_for("staff.new_order"))
 
         flash(_("Pesanan untuk %(label)s berhasil dibuat.", label=order.display_label), "success")
-        if order_type in (ORDER_TYPE_OJOL, ORDER_TYPE_TAKEAWAY):
-            # Tamu/driver biasanya langsung menunggu di kasir - arahkan
+        if order_type in (ORDER_TYPE_OJOL, ORDER_TYPE_TAKEAWAY) or table is None:
+            # Tamu/driver (atau tamu makan di tempat tanpa meja) biasanya
+            # langsung menunggu di kasir - arahkan
             # langsung ke situ supaya kasir bisa langsung proses bayar &
             # cetak, tidak perlu muter dulu lewat Dashboard.
             return redirect(url_for("staff.cashier"))

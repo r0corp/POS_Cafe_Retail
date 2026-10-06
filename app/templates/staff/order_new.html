@@ -16,15 +16,16 @@
 
           <label class="form-label fw-semibold small">{{ _('Jenis Pesanan') }}</label>
           <div class="order-type-grid">
-            {% if site_settings.uses_tables %}
-            <button type="button" class="order-type-card active" data-order-type="{{ ORDER_TYPE_DINE_IN }}">
+            {# Makan di Tempat selalu tersedia - tamu yang langsung ke kasir
+               (tidak scan QR meja) tetap bisa dicatat makan di tempat, meja
+               boleh dikosongkan. #}
+            <button type="button" class="order-type-card{{ ' active' if site_settings.uses_tables }}" data-order-type="{{ ORDER_TYPE_DINE_IN }}">
               <span class="order-type-icon"><i class="bi bi-shop"></i></span>
               <span class="order-type-text">
                 <span class="order-type-name">{{ _('Makan di Tempat') }}</span>
-                <small>{{ _('Pilih meja') }}</small>
+                <small>{{ _('Meja opsional') if site_settings.uses_tables else _('Tanpa meja') }}</small>
               </span>
             </button>
-            {% endif %}
             <button type="button" class="order-type-card{{ ' active' if not site_settings.uses_tables }}" data-order-type="{{ ORDER_TYPE_TAKEAWAY }}">
               <span class="order-type-icon"><i class="bi bi-bag"></i></span>
               <span class="order-type-text">
@@ -55,8 +56,8 @@
             <div class="order-setup-col-table{{ ' d-none' if not site_settings.uses_tables }}" id="tableSelectWrap">
               <div class="order-inline-field">
                 <label class="order-inline-label" for="tableSelect">{{ _('Meja') }}</label>
-                <select name="table_id" id="tableSelect" class="form-select" data-elegant-select {% if site_settings.uses_tables %}required{% endif %} {% if not tables %}disabled{% endif %}>
-                  <option value="">{{ _('-- Pilih Meja --') }}</option>
+                <select name="table_id" id="tableSelect" class="form-select" data-elegant-select {% if not tables %}disabled{% endif %}>
+                  <option value="">{{ _('-- Tanpa Meja --') }}</option>
                   {% for table in tables %}
                     <option value="{{ table.id }}" {% if preselected_table_id == table.id %}selected{% endif %}>{{ table.label }} ({{ table.floor_label }})</option>
                   {% endfor %}
@@ -64,7 +65,7 @@
               </div>
               {% if not tables %}
                 <div class="small mt-2" style="color: var(--color-danger);">
-                  <i class="bi bi-exclamation-triangle-fill"></i> {{ _('Semua meja sedang terisi - tunggu salah satu kosong dulu.') }}
+                  <i class="bi bi-exclamation-triangle-fill"></i> {{ _('Semua meja sedang terisi - pesanan tetap bisa dibuat tanpa meja.') }}
                 </div>
               {% endif %}
             </div>
@@ -188,6 +189,7 @@
   const CART_EMPTY_LABEL = {{ _('Belum ada item dipilih')|tojson }};
   const CART_REMOVE_LABEL = {{ _('Hapus')|tojson }};
   const ORDER_TYPE_DINE_IN = {{ ORDER_TYPE_DINE_IN|tojson }};
+  const USES_TABLES = {{ site_settings.uses_tables|tojson }};
 
   let currentChannelId = null;
 
@@ -313,9 +315,8 @@
       currentChannelId = channelId || null;
 
       const isDineIn = orderType === ORDER_TYPE_DINE_IN;
-      tableSelectWrap.classList.toggle("d-none", !isDineIn);
-      tableSelect.required = isDineIn;
-      if (!isDineIn) tableSelect.value = "";
+      tableSelectWrap.classList.toggle("d-none", !(isDineIn && USES_TABLES));
+      if (!isDineIn || !USES_TABLES) tableSelect.value = "";
 
       refreshPriceLabels();
       updateCart();
