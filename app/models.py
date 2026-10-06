@@ -606,6 +606,16 @@ class Order(db.Model):
             unique=True,
             sqlite_where=db.text("is_paid = 0 AND table_id IS NOT NULL"),
         ),
+        # Query yang paling sering: laporan & dashboard (lunas dalam rentang
+        # paid_at), kasir (belum lunas), dapur/pelayan (status != served).
+        # Tanpa ini semuanya SCAN seluruh tabel orders, makin lambat seiring
+        # riwayat transaksi menumpuk berbulan-bulan.
+        db.Index("ix_orders_paid_at", "is_paid", "paid_at"),
+        db.Index("ix_orders_status", "status"),
+        # "status != 'served'" (dapur, pelayan, dashboard - di-polling terus)
+        # tidak bisa pakai index biasa; index parsial ini cuma berisi pesanan
+        # yang masih aktif, jadi kecil walau riwayat pesanan sudah ribuan.
+        db.Index("ix_orders_active", "created_at", sqlite_where=db.text("status != 'served'")),
         # AUTOINCREMENT supaya ID pesanan yang dibatalkan (dihapus) tidak
         # pernah dipakai ulang - tanpa ini SQLite kasih pesanan berikutnya
         # max(id)+1, dan HP tamu lama yang masih buka halaman status
@@ -729,8 +739,8 @@ class OrderItem(db.Model):
     __tablename__ = "order_items"
 
     id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"), nullable=False)
-    menu_item_id = db.Column(db.Integer, db.ForeignKey("menu_items.id"))
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id"), nullable=False, index=True)
+    menu_item_id = db.Column(db.Integer, db.ForeignKey("menu_items.id"), index=True)
 
     # Snapshot nama & harga saat order dibuat, supaya laporan lama tetap
     # akurat walau harga/nama menu berubah belakangan.
@@ -822,7 +832,7 @@ class MenuItemIngredient(db.Model):
     __tablename__ = "menu_item_ingredients"
 
     id = db.Column(db.Integer, primary_key=True)
-    menu_item_id = db.Column(db.Integer, db.ForeignKey("menu_items.id"), nullable=False)
+    menu_item_id = db.Column(db.Integer, db.ForeignKey("menu_items.id"), nullable=False, index=True)
     ingredient_id = db.Column(db.Integer, db.ForeignKey("ingredients.id"), nullable=False)
     quantity_used = db.Column(db.Float, nullable=False)
 

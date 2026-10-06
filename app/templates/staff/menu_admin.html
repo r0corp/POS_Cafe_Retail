@@ -109,7 +109,7 @@
                 <div class="menu-item-card">
                   <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#menuPhotoModal{{ item.id }}" title="{{ _('Ubah foto menu') }}">
                     {% if item.photo %}
-                      <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                      <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}" loading="lazy" decoding="async">
                       <i class="bi bi-camera-fill thumb-hint-icon"></i>
                       <div class="menu-item-overlay">
                         <div class="menu-item-name">{{ item.name }}</div>
@@ -136,7 +136,7 @@
                     <div class="modal-body text-center pt-2">
                       <div class="photo-preview-lg mx-auto">
                         {% if item.photo %}
-                          <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                          <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}" loading="lazy" decoding="async">
                         {% else %}
                           <i class="bi bi-image"></i>
                         {% endif %}

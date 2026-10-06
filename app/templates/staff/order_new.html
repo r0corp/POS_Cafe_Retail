@@ -107,7 +107,7 @@
                   <div class="menu-item-card">
                     {% if item.photo %}
                       <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#viewPhotoModal{{ item.id }}" title="{{ _('Perbesar foto') }}">
-                        <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                        <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}" loading="lazy" decoding="async">
                         <i class="bi bi-arrows-fullscreen thumb-hint-icon"></i>
                         <div class="menu-item-overlay">
                           <div class="menu-item-name">{{ item.name }}</div>
@@ -138,7 +138,7 @@
                         <div class="modal-content">
                           <div class="modal-body p-0">
                             <div class="photo-preview-zoom">
-                              <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                              <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}" loading="lazy" decoding="async">
                               <div class="menu-item-overlay">
                                 <div class="menu-item-name">{{ item.name }}</div>
                                 <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>

@@ -1,8 +1,11 @@
 import os
+import sqlite3
 from datetime import datetime
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user, logout_user
 from flask_babel import Babel
@@ -10,6 +13,28 @@ from flask_babel import lazy_gettext as _l
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import CSRFError
 from sqlalchemy.exc import OperationalError
+
+@event.listens_for(Engine, "connect")
+def _tune_sqlite_connection(dbapi_connection, _connection_record):
+    """busy_timeout 15 detik (default pysqlite 5 detik): beberapa tablet/HP
+    polling status tiap beberapa detik sambil kasir menyimpan pembayaran -
+    kalau ada kunci tulis yang tertahan sebentar (backup, ekspor laporan),
+    tunggu lebih lama daripada langsung error "database is locked".
+
+    Sengaja TIDAK mengubah journal_mode (WAL): diuji dengan beban polling +
+    penulisan bersamaan di salinan database kafe, hasilnya tidak ada
+    perbedaan terukur, sedangkan WAL mengubah file database di mesin
+    produksi (file -wal/-shm, salin-file-manual jadi tidak aman)."""
+
+    if not isinstance(dbapi_connection, sqlite3.Connection):
+        return
+
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("PRAGMA busy_timeout=15000")
+    finally:
+        cursor.close()
+
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -144,8 +169,12 @@ def _ensure_schema():
                     cur.execute("DROP TABLE orders")
                     cur.execute("ALTER TABLE orders__new RENAME TO orders")
 
-                for index in Order.__table__.indexes:
-                    cur.execute(str(CreateIndex(index, if_not_exists=True).compile(db.engine)))
+                # Semua tabel, bukan cuma orders - index baru di model (mis.
+                # ix_order_items_order_id) tidak dibuat db.create_all() untuk
+                # tabel yang SUDAH ada di database lama.
+                for table in db.metadata.sorted_tables:
+                    for index in table.indexes:
+                        cur.execute(str(CreateIndex(index, if_not_exists=True).compile(db.engine)))
 
                 cur.execute("COMMIT")
             except Exception:

@@ -250,6 +250,50 @@ def _branding_upload_folder():
     return _upload_folder("branding")
 
 
+MENU_PHOTO_MAX_SIDE = 900
+
+
+def _shrink_uploaded_photo(path, max_side):
+    """Kecilkan foto hasil upload (sisi terpanjang max_side px, tidak pernah
+    diperbesar). Foto langsung dari kamera HP biasanya 3-6 MB, padahal
+    halaman menu memuat banyak foto sekaligus lewat WiFi kafe - berat &
+    lambat di HP tamu. Aman kalau gagal: file asli dibiarkan apa adanya
+    (gambar rusak/format aneh/animasi), dan hasil yang ternyata tidak lebih
+    kecil dari aslinya tidak dipakai."""
+
+    from PIL import Image, ImageOps
+
+    extension = os.path.splitext(path)[1].lower()
+    tmp_path = path + ".tmp"
+
+    try:
+        with Image.open(path) as opened:
+            if getattr(opened, "is_animated", False):
+                return
+
+            # Foto HP menyimpan orientasi di EXIF - harus dibakar ke piksel
+            # dulu, karena simpan ulang membuang EXIF-nya.
+            img = ImageOps.exif_transpose(opened)
+            img.thumbnail((max_side, max_side), Image.LANCZOS)
+
+            if extension in (".jpg", ".jpeg"):
+                img.convert("RGB").save(tmp_path, "JPEG", quality=82, optimize=True, progressive=True)
+            elif extension == ".png":
+                img.save(tmp_path, "PNG", optimize=True)
+            elif extension == ".webp":
+                img.save(tmp_path, "WEBP", quality=82)
+            else:
+                return
+
+        if os.path.getsize(tmp_path) < os.path.getsize(path):
+            os.replace(tmp_path, path)
+    except (OSError, ValueError, Image.DecompressionBombError):
+        pass
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
 def _save_logo(
     file_field_name,
     obj,
@@ -284,7 +328,10 @@ def _save_logo(
     if old_filename and old_filename != new_filename:
         _delete_file_after_commit(os.path.join(upload_folder, old_filename))
 
-    logo_file.save(os.path.join(upload_folder, new_filename))
+    saved_path = os.path.join(upload_folder, new_filename)
+    logo_file.save(saved_path)
+    if subfolder == "menu":
+        _shrink_uploaded_photo(saved_path, MENU_PHOTO_MAX_SIDE)
     setattr(obj, model_field, new_filename)
 
     return None
@@ -975,15 +1022,23 @@ def cashier():
     start = datetime.combine(today, time.min)
     end = datetime.combine(today, time.max)
 
+    # Dua query berurutan di sesi yang sama: kalau kasir lain menyelesaikan
+    # pembayaran DI ANTARA keduanya, objek Order yang sama sudah termuat
+    # sebagai "belum lunas" (paid_at kosong) lalu ikut keluar lagi di query
+    # ini - tanpa populate_existing() atributnya TIDAK diperbarui, dan
+    # cashier.html error 500 di order.paid_at.strftime(). populate_existing
+    # menyegarkan objek itu; sisanya dibuang dari daftar belum-lunas.
     paid_today = (
         Order.query.filter(
             Order.is_paid.is_(True),
             Order.paid_at >= start,
             Order.paid_at <= end,
         )
+        .populate_existing()
         .order_by(Order.paid_at.desc())
         .all()
     )
+    orders = [order for order in orders if not order.is_paid]
 
     return render_template("staff/cashier.html", orders=orders, paid_today=paid_today)
 
