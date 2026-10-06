@@ -3405,21 +3405,43 @@ textarea.form-control {
   margin-top: auto;
 }
 
-/* Form bayar di Kasir - dua kolom sejajar: kiri = kontrol input
-   (metode, lalu uang diterima), kanan = hasil/aksi (tombol Bayar,
-   lalu kembalian/kurang) - kolom kanan & kiri selebar sama supaya
-   semua barisnya rapi berbaris ke bawah. */
-.cash-pay-form .pay-method-row,
+/* Form bayar di Kasir - pilih metode lewat dua tombol besar (Tunai |
+   QRIS, mudah di-tap di tablet), lalu (kalau Tunai) dua kolom sejajar:
+   kiri = uang diterima, kanan = kembalian/kurang - selebar sama supaya
+   barisnya rapi berbaris ke bawah. Tombol Bayar full-width di paling bawah. */
+.cash-pay-form .pay-method-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.cash-pay-form .pay-method-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.cash-pay-form .pay-method-btn.active {
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+  border-color: var(--color-accent);
+}
+
 .cash-pay-form .cash-fields-row {
   align-items: stretch;
 }
 
-.cash-pay-form .elegant-select,
 .cash-pay-form .cash-received-input {
   flex: 0 0 50%;
 }
 
-.cash-pay-form .pay-submit-btn,
 .cash-pay-form .change-amount {
   flex: 1;
 }
