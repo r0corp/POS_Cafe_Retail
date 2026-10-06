@@ -5,4 +5,14 @@
     <style name="Theme.OruGo" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:windowBackground">@drawable/splash_bg</item>
     </style>
+
+    <!-- Dialog Android yang masih dipakai sebagai cadangan: gelap, sudut bulat, aksen oranye
+         (senada modal di dalam aplikasi). -->
+    <style name="OruGoAlertDialog" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/dialog_bg</item>
+        <item name="android:textColorPrimary">#E2E8F0</item>
+        <item name="android:textColorSecondary">#94A3B8</item>
+        <item name="colorAccent">#F97316</item>
+        <item name="android:colorAccent">#F97316</item>
+    </style>
 </resources>

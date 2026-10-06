@@ -96,10 +96,12 @@ public class MainActivity extends AppCompatActivity {
         splashOverlay = findViewById(R.id.splashOverlay);
         startSplashAnimation();
 
-        updateManager = new UpdateManager(this, message -> runOnUiThread(() ->
-                webView.evaluateJavascript(
-                        "window.__oruUpdateStatus && window.__oruUpdateStatus("
-                                + org.json.JSONObject.quote(message) + ")", null)));
+        updateManager = new UpdateManager(this,
+                message -> runOnUiThread(() ->
+                        webView.evaluateJavascript(
+                                "window.__oruUpdateStatus && window.__oruUpdateStatus("
+                                        + org.json.JSONObject.quote(message) + ")", null)),
+                (script, callback) -> runOnUiThread(() -> webView.evaluateJavascript(script, callback)));
         webView.addJavascriptInterface(new UpdateBridge(), "OruGoNative");
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -157,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
-                new AlertDialog.Builder(MainActivity.this)
+                new AlertDialog.Builder(MainActivity.this, R.style.OruGoAlertDialog)
                         .setMessage(message)
                         .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm())
                         .setOnCancelListener(dialog -> result.cancel())
@@ -168,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
-                new AlertDialog.Builder(MainActivity.this)
+                new AlertDialog.Builder(MainActivity.this, R.style.OruGoAlertDialog)
                         .setMessage(message)
                         .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm())
                         .setNegativeButton(android.R.string.cancel, (dialog, which) -> result.cancel())
@@ -323,6 +325,16 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void checkForUpdate() {
             updateManager.checkManual();
+        }
+
+        @JavascriptInterface
+        public void startUpdate() {
+            updateManager.startPendingUpdate();
+        }
+
+        @JavascriptInterface
+        public void skipUpdate() {
+            updateManager.skipPendingUpdate();
         }
     }
 }

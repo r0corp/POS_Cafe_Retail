@@ -403,20 +403,143 @@
   // petik (mis. "can't" di bahasa Inggris, nama "Jum'at") bikin inline
   // JS itu syntax error, browser diam-diam membuang handler-nya dan form
   // langsung terkirim TANPA konfirmasi sama sekali.
+  //
+  // Konfirmasi/peringatan memakai modal bergaya tema aplikasi (oruConfirm /
+  // oruAlert di bawah), BUKAN window.confirm/alert bawaan peramban - dialog
+  // bawaan itu polos, tidak ikut tema terang/gelap, dan di APK jadi dialog
+  // Android abu-abu. Karena modal bersifat async, form/klik yang dikonfirmasi
+  // dikirim ulang setelah pengguna menekan "Ya".
+  (function () {
+    var UI = {
+      ok: {{ _('OK')|tojson }}, cancel: {{ _('Batal')|tojson }}, yes: {{ _('Ya, lanjutkan')|tojson }},
+      confirmTitle: {{ _('Konfirmasi')|tojson }}, alertTitle: {{ _('Pemberitahuan')|tojson }}
+    };
+    var overlay = null;
+    var queue = Promise.resolve();
+
+    function el(tag, style, text) {
+      var node = document.createElement(tag);
+      if (style) node.setAttribute("style", style);
+      if (text) node.textContent = text;
+      return node;
+    }
+
+    function build() {
+      if (overlay) return;
+      overlay = el("div", "display:none;position:fixed;inset:0;background:rgba(2,6,23,0.6);z-index:100000;" +
+        "align-items:center;justify-content:center;padding:20px;");
+      var card = el("div", "max-width:340px;width:100%;background:var(--color-surface);border-radius:24px;" +
+        "padding:26px 22px 22px;text-align:center;box-shadow:0 14px 34px rgba(0,0,0,0.5);");
+      card.setAttribute("role", "dialog");
+      card.setAttribute("aria-modal", "true");
+      var bubble = el("div", "width:56px;height:56px;border-radius:50%;background:var(--color-bg);display:flex;" +
+        "align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:var(--shadow-btn);");
+      var icon = el("i", "font-size:1.5rem;color:var(--color-accent);");
+      icon.id = "oruDialogIcon";
+      bubble.appendChild(icon);
+      var title = el("h3", "font-family:var(--font-heading);font-weight:700;font-size:1.05rem;" +
+        "color:var(--color-heading);margin:0 0 8px;");
+      title.id = "oruDialogTitle";
+      var message = el("p", "color:var(--color-muted);font-size:0.85rem;line-height:1.55;margin:0 0 20px;" +
+        "white-space:pre-line;word-break:break-word;");
+      message.id = "oruDialogMessage";
+      var yes = el("button", "display:block;width:100%;padding:11px;font-size:0.8rem;text-transform:uppercase;" +
+        "letter-spacing:0.4px;");
+      yes.type = "button";
+      yes.className = "btn btn-accent";
+      yes.id = "oruDialogYes";
+      var no = el("button", "display:block;width:100%;margin-top:10px;padding:10px;font-size:0.8rem;");
+      no.type = "button";
+      no.className = "btn btn-outline-secondary";
+      no.id = "oruDialogNo";
+      card.appendChild(bubble);
+      card.appendChild(title);
+      card.appendChild(message);
+      card.appendChild(yes);
+      card.appendChild(no);
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
+    }
+
+    function show(kind, text) {
+      return new Promise(function (resolve) {
+        build();
+        var isConfirm = kind === "confirm";
+        document.getElementById("oruDialogIcon").className = "bi " + (isConfirm ? "bi-question-circle" : "bi-info-circle");
+        document.getElementById("oruDialogTitle").textContent = isConfirm ? UI.confirmTitle : UI.alertTitle;
+        document.getElementById("oruDialogMessage").textContent = text;
+        var yes = document.getElementById("oruDialogYes");
+        var no = document.getElementById("oruDialogNo");
+        yes.textContent = isConfirm ? UI.yes : UI.ok;
+        no.textContent = UI.cancel;
+        no.style.display = isConfirm ? "block" : "none";
+
+        function done(value) {
+          overlay.style.display = "none";
+          yes.removeEventListener("click", onYes);
+          no.removeEventListener("click", onNo);
+          overlay.removeEventListener("click", onOutside);
+          document.removeEventListener("keydown", onKey, true);
+          resolve(value);
+        }
+        function onYes() { done(true); }
+        function onNo() { done(false); }
+        function onOutside(ev) { if (ev.target === overlay) done(!isConfirm); }
+        function onKey(ev) { if (ev.key === "Escape") { ev.preventDefault(); done(!isConfirm); } }
+        yes.addEventListener("click", onYes);
+        no.addEventListener("click", onNo);
+        overlay.addEventListener("click", onOutside);
+        document.addEventListener("keydown", onKey, true);
+        overlay.style.display = "flex";
+        yes.focus();
+      });
+    }
+
+    function enqueue(kind, text) {
+      var run = function () { return show(kind, String(text)); };
+      queue = queue.then(run, run);
+      return queue;
+    }
+
+    window.oruConfirm = function (text) { return enqueue("confirm", text); };
+    window.oruAlert = function (text) { return enqueue("alert", text).then(function () {}); };
+  })();
+
   document.addEventListener("submit", function (e) {
     var form = e.target;
-    if (form.dataset && form.dataset.confirm && !window.confirm(form.dataset.confirm)) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
+    if (!form.dataset || !form.dataset.confirm) return;
+    if (form.dataset.confirmed === "1") {
+      delete form.dataset.confirmed;      // sudah dikonfirmasi: lanjut kirim
+      return;
     }
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    var submitter = e.submitter;
+    window.oruConfirm(form.dataset.confirm).then(function (ok) {
+      if (!ok) return;
+      form.dataset.confirmed = "1";
+      if (form.requestSubmit) {
+        try { form.requestSubmit(submitter || undefined); } catch (err) { form.requestSubmit(); }
+      } else {
+        form.submit();
+      }
+    });
   }, true);
 
   document.addEventListener("click", function (e) {
     var el = e.target.closest ? e.target.closest("[data-confirm-click]") : null;
-    if (el && !window.confirm(el.dataset.confirmClick)) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
+    if (!el) return;
+    if (el.dataset.confirmedClick === "1") {
+      delete el.dataset.confirmedClick;
+      return;
     }
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    window.oruConfirm(el.dataset.confirmClick).then(function (ok) {
+      if (!ok) return;
+      el.dataset.confirmedClick = "1";
+      el.click();
+    });
   }, true);
 
   // Cegah submit dobel (tap 2x di koneksi lambat = pesanan/pembayaran

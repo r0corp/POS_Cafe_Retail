@@ -1,7 +1,7 @@
 package id.orulabs.umkm;
 
 import android.app.Activity;
-import android.app.AlertDialog;
+import androidx.appcompat.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -9,6 +9,7 @@ import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import android.webkit.ValueCallback;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -46,6 +47,11 @@ public class UpdateManager {
         void onStatus(String message);
     }
 
+    /** Menjalankan JavaScript di WebView (pop-up update digambar oleh halaman, bukan dialog Android). */
+    public interface JsRunner {
+        void eval(String script, ValueCallback<String> callback);
+    }
+
     private static final String PREFS = "update_prefs";
     private static final String KEY_LAST_CHECK = "last_check";
     private static final String KEY_SKIP_UNTIL = "skip_until";
@@ -64,13 +70,16 @@ public class UpdateManager {
 
     private final Activity activity;
     private final StatusListener listener;
+    private final JsRunner jsRunner;
+    private Info pendingInfo;
     private final SharedPreferences prefs;
     private volatile boolean busy = false;
     private File pendingInstall = null;
 
-    public UpdateManager(Activity activity, StatusListener listener) {
+    public UpdateManager(Activity activity, StatusListener listener, JsRunner jsRunner) {
         this.activity = activity;
         this.listener = listener;
+        this.jsRunner = jsRunner;
         this.prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
@@ -118,7 +127,7 @@ public class UpdateManager {
                 }
                 if (!manual && !info.mandatory && isSkipped(info)) return;
                 status("Versi " + info.versionName + " tersedia.");
-                activity.runOnUiThread(() -> showUpdateDialog(info));
+                activity.runOnUiThread(() -> presentUpdate(info));
             } catch (Exception e) {
                 if (manual) status("Gagal memeriksa pembaruan. Pastikan HP terhubung ke internet.");
             } finally {
@@ -157,34 +166,75 @@ public class UpdateManager {
         }
     }
 
+    private void js(String script) {
+        if (jsRunner != null) jsRunner.eval(script, null);
+    }
+
+    /** Tampilkan pop-up update di halaman (ikut tema/bahasa aplikasi). Kalau halaman
+     *  yang sedang terbuka tidak punya komponennya (mis. halaman aktivasi), pakai dialog Android. */
+    private void presentUpdate(final Info info) {
+        pendingInfo = info;
+        if (jsRunner == null) {
+            showUpdateDialog(info);
+            return;
+        }
+        final String payload;
+        try {
+            payload = new JSONObject().put("current", versionName()).put("next", info.versionName)
+                    .put("notes", info.notes).put("mandatory", info.mandatory).toString();
+        } catch (Exception e) {
+            showUpdateDialog(info);
+            return;
+        }
+        jsRunner.eval("(typeof window.__oruShowUpdate==='function') ? (window.__oruShowUpdate(" + payload
+                + "), true) : false", result -> {
+            if (!"true".equals(result)) showUpdateDialog(info);
+        });
+    }
+
+    /** Tombol "Perbarui" di pop-up halaman. */
+    public void startPendingUpdate() {
+        final Info info = pendingInfo;
+        if (info != null) activity.runOnUiThread(() -> download(info, true));
+    }
+
+    /** Tombol "Nanti" di pop-up halaman. */
+    public void skipPendingUpdate() {
+        if (pendingInfo != null) rememberSkip(pendingInfo);
+    }
+
+    private void rememberSkip(Info info) {
+        prefs.edit()
+                .putInt(KEY_SKIP_VERSION, info.versionCode)
+                .putLong(KEY_SKIP_UNTIL, System.currentTimeMillis() + SKIP_DURATION_MS)
+                .apply();
+    }
+
     private void showUpdateDialog(final Info info) {
         if (activity.isFinishing()) return;
         String message = "Versi terpasang: " + versionName() + "\nVersi baru: " + info.versionName
                 + (info.notes.isEmpty() ? "" : "\n\n" + info.notes)
                 + "\n\nData toko Anda tetap aman.";
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity)
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity, R.style.OruGoAlertDialog)
                 .setTitle("Pembaruan tersedia")
                 .setMessage(message)
                 .setCancelable(!info.mandatory)
-                .setPositiveButton("Perbarui", (d, w) -> download(info));
+                .setPositiveButton("Perbarui", (d, w) -> download(info, false));
         if (!info.mandatory) {
-            builder.setNegativeButton("Nanti", (d, w) -> prefs.edit()
-                    .putInt(KEY_SKIP_VERSION, info.versionCode)
-                    .putLong(KEY_SKIP_UNTIL, System.currentTimeMillis() + SKIP_DURATION_MS)
-                    .apply());
+            builder.setNegativeButton("Nanti", (d, w) -> rememberSkip(info));
         }
         builder.show();
     }
 
-    private void download(final Info info) {
+    private void download(final Info info, final boolean web) {
         final ProgressBar bar = new ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal);
         bar.setMax(100);
-        final AlertDialog progress = new AlertDialog.Builder(activity)
+        final AlertDialog progress = new AlertDialog.Builder(activity, R.style.OruGoAlertDialog)
                 .setTitle("Mengunduh pembaruan...")
                 .setView(bar)
                 .setCancelable(false)
                 .create();
-        progress.show();
+        if (!web) progress.show();
 
         new Thread(() -> {
             File dir = new File(activity.getCacheDir(), "update");
@@ -211,7 +261,10 @@ public class UpdateManager {
                             final int pct = (int) (done * 100 / total);
                             if (pct != lastPct) {
                                 lastPct = pct;
-                                activity.runOnUiThread(() -> bar.setProgress(pct));
+                                activity.runOnUiThread(() -> {
+                                    bar.setProgress(pct);
+                                    if (web) js("window.__oruUpdateProgress&&window.__oruUpdateProgress(" + pct + ")");
+                                });
                             }
                         }
                     }
@@ -228,6 +281,7 @@ public class UpdateManager {
 
                 activity.runOnUiThread(() -> {
                     progress.dismiss();
+                    if (web) js("window.__oruUpdateClose&&window.__oruUpdateClose()");
                     install(target);
                 });
             } catch (Exception e) {
@@ -235,7 +289,11 @@ public class UpdateManager {
                 final String reason = e.getMessage() == null ? "unduhan gagal" : e.getMessage();
                 activity.runOnUiThread(() -> {
                     progress.dismiss();
-                    Toast.makeText(activity, "Pembaruan gagal: " + reason, Toast.LENGTH_LONG).show();
+                    if (web) {
+                        js("window.__oruUpdateFailed&&window.__oruUpdateFailed(" + JSONObject.quote(reason) + ")");
+                    } else {
+                        Toast.makeText(activity, "Pembaruan gagal: " + reason, Toast.LENGTH_LONG).show();
+                    }
                 });
                 status("Pembaruan gagal: " + reason);
             }

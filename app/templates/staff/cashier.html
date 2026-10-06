@@ -152,7 +152,7 @@
           const received = parseInt(digitsOnly(cashInput.value), 10) || 0;
           if (received < total) {
             e.preventDefault();
-            alert(INSUFFICIENT_CASH_MSG);
+            (window.oruAlert || window.alert)(INSUFFICIENT_CASH_MSG);
             return;
           }
           cashInput.value = String(received);

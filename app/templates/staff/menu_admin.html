@@ -77,7 +77,7 @@
               </form>
               <button type="button" class="icon-btn-danger" title="{{ _('Hapus kategori') }}"
                       data-confirm-message="{{ _('Hapus kategori %(name)s? Kategori cuma bisa dihapus kalau sudah tidak ada menu di dalamnya.', name=category.name) }}"
-                      onclick="if(confirm(this.dataset.confirmMessage)) document.getElementById('deleteCategoryForm{{ category.id }}').submit()">
+                      onclick="oruConfirm(this.dataset.confirmMessage).then(function (ok) { if (ok) document.getElementById('deleteCategoryForm{{ category.id }}').submit(); })">
                 <i class="bi bi-trash-fill"></i>
               </button>
             </div>
@@ -147,7 +147,7 @@
                           </button>
                           {% if item.photo %}
                             <button type="button" class="photo-action-btn photo-action-danger" title="{{ _('Hapus Foto') }}"
-                                    data-confirm-message="{{ _('Hapus foto ini?') }}" onclick="if(confirm(this.dataset.confirmMessage)) document.getElementById('menuRemovePhotoForm{{ item.id }}').submit()">
+                                    data-confirm-message="{{ _('Hapus foto ini?') }}" onclick="oruConfirm(this.dataset.confirmMessage).then(function (ok) { if (ok) document.getElementById('menuRemovePhotoForm{{ item.id }}').submit(); })">
                               <i class="bi bi-trash-fill"></i>
                             </button>
                           {% endif %}

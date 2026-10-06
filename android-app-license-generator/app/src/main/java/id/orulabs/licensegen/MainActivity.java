@@ -108,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
-                new AlertDialog.Builder(MainActivity.this)
+                new AlertDialog.Builder(MainActivity.this, R.style.OruGoAlertDialog)
                         .setMessage(message)
                         .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm())
                         .setOnCancelListener(dialog -> result.cancel())
@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
-                new AlertDialog.Builder(MainActivity.this)
+                new AlertDialog.Builder(MainActivity.this, R.style.OruGoAlertDialog)
                         .setMessage(message)
                         .setPositiveButton(android.R.string.ok, (dialog, which) -> result.confirm())
                         .setNegativeButton(android.R.string.cancel, (dialog, which) -> result.cancel())

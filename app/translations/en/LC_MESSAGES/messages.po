@@ -1704,9 +1704,8 @@ msgid "Ubah Nama Kategori"
 msgstr "Category name"
 
 #: app/templates/staff/menu_admin.html:99
-#, fuzzy
 msgid "Batal"
-msgstr "Cancelled At"
+msgstr "Cancel"
 
 #: app/templates/staff/menu_admin.html:100
 #: app/templates/staff/settings_admin.html:597
@@ -3201,3 +3200,14 @@ msgstr "No login activity recorded yet."
 #~ msgid "Input Pesanan Manual"
 #~ msgstr "Manual Order Entry"
 
+msgid "OK"
+msgstr "OK"
+
+msgid "Ya, lanjutkan"
+msgstr "Yes, continue"
+
+msgid "Konfirmasi"
+msgstr "Confirm"
+
+msgid "Pemberitahuan"
+msgstr "Notice"

@@ -1704,9 +1704,8 @@ msgid "Ubah Nama Kategori"
 msgstr "Category name"
 
 #: app/templates/staff/menu_admin.html:99
-#, fuzzy
 msgid "Batal"
-msgstr "Cancelled At"
+msgstr "Cancel"
 
 #: app/templates/staff/menu_admin.html:100
 #: app/templates/staff/settings_admin.html:597
@@ -3201,3 +3200,83 @@ msgstr "No login activity recorded yet."
 #~ msgid "Input Pesanan Manual"
 #~ msgstr "Manual Order Entry"
 
+msgid "Pembaruan tersedia"
+msgstr "Update available"
+
+msgid "Versi terpasang"
+msgstr "Installed version"
+
+msgid "Versi baru"
+msgstr "New version"
+
+msgid "Data toko Anda tetap aman."
+msgstr "Your shop data stays safe."
+
+msgid "Perbarui"
+msgstr "Update"
+
+msgid "Nanti"
+msgstr "Later"
+
+msgid "Mengunduh pembaruan..."
+msgstr "Downloading update..."
+
+msgid "Pembaruan gagal"
+msgstr "Update failed"
+
+msgid "Coba lagi"
+msgstr "Try again"
+
+msgid "Lisensi Aplikasi"
+msgstr "App License"
+
+#, python-format
+msgid "Masa percobaan - sisa %(n)s hari"
+msgstr "Free trial - %(n)s days left"
+
+#, python-format
+msgid "Aktif sampai %(d)s"
+msgstr "Active until %(d)s"
+
+msgid "Aktif permanen"
+msgstr "Permanently active"
+
+msgid "Aktifkan Lisensi"
+msgstr "Activate License"
+
+msgid "Perpanjang Lisensi"
+msgstr "Renew License"
+
+msgid "Kode Perangkat"
+msgstr "Device Code"
+
+msgid "kirim kode ini ke penjual untuk mendapatkan Kode Aktivasi."
+msgstr "send this code to the seller to get an Activation Code."
+
+msgid "Pembaruan Aplikasi"
+msgstr "App Updates"
+
+msgid "Cek Pembaruan"
+msgstr "Check for Updates"
+
+msgid "Pembaruan diunduh dari internet. Data toko Anda tetap aman setelah update."
+msgstr "Updates are downloaded from the internet. Your shop data stays safe after updating."
+
+#, python-format
+msgid "Masa percobaan: sisa %(n)s hari"
+msgstr "Free trial: %(n)s days left"
+
+msgid "hari"
+msgstr "days"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Ya, lanjutkan"
+msgstr "Yes, continue"
+
+msgid "Konfirmasi"
+msgstr "Confirm"
+
+msgid "Pemberitahuan"
+msgstr "Notice"

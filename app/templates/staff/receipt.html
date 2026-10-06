@@ -309,13 +309,13 @@ async function printStruk(btn) {
     });
     var data = await res.json();
     if (!res.ok || !data.ok) {
-      alert("{{ _('Gagal cetak struk') }}: " + (data.error || res.status));
+      (window.oruAlert || window.alert)("{{ _('Gagal cetak struk') }}: " + (data.error || res.status));
     } else {
       btn.textContent = "{{ _('Tercetak!') }}";
       setTimeout(function () { btn.innerHTML = original; }, 1500);
     }
   } catch (e) {
-    alert("{{ _('Gagal menghubungi server') }}: " + e.message);
+    (window.oruAlert || window.alert)("{{ _('Gagal menghubungi server') }}: " + e.message);
   } finally {
     btn.disabled = false;
     if (btn.textContent !== "{{ _('Tercetak!') }}") btn.innerHTML = original;
