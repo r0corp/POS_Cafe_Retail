@@ -37,6 +37,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from .. import csrf, db
+from ..imaging import MENU_PHOTO_MAX_SIDE, shrink_photo
 from ..backup import write_backup_zip
 from ..decorators import roles_required
 from ..inventory import check_and_deduct_stock, restore_stock_for_order
@@ -250,50 +251,6 @@ def _branding_upload_folder():
     return _upload_folder("branding")
 
 
-MENU_PHOTO_MAX_SIDE = 900
-
-
-def _shrink_uploaded_photo(path, max_side):
-    """Kecilkan foto hasil upload (sisi terpanjang max_side px, tidak pernah
-    diperbesar). Foto langsung dari kamera HP biasanya 3-6 MB, padahal
-    halaman menu memuat banyak foto sekaligus lewat WiFi kafe - berat &
-    lambat di HP tamu. Aman kalau gagal: file asli dibiarkan apa adanya
-    (gambar rusak/format aneh/animasi), dan hasil yang ternyata tidak lebih
-    kecil dari aslinya tidak dipakai."""
-
-    from PIL import Image, ImageOps
-
-    extension = os.path.splitext(path)[1].lower()
-    tmp_path = path + ".tmp"
-
-    try:
-        with Image.open(path) as opened:
-            if getattr(opened, "is_animated", False):
-                return
-
-            # Foto HP menyimpan orientasi di EXIF - harus dibakar ke piksel
-            # dulu, karena simpan ulang membuang EXIF-nya.
-            img = ImageOps.exif_transpose(opened)
-            img.thumbnail((max_side, max_side), Image.LANCZOS)
-
-            if extension in (".jpg", ".jpeg"):
-                img.convert("RGB").save(tmp_path, "JPEG", quality=82, optimize=True, progressive=True)
-            elif extension == ".png":
-                img.save(tmp_path, "PNG", optimize=True)
-            elif extension == ".webp":
-                img.save(tmp_path, "WEBP", quality=82)
-            else:
-                return
-
-        if os.path.getsize(tmp_path) < os.path.getsize(path):
-            os.replace(tmp_path, path)
-    except (OSError, ValueError, Image.DecompressionBombError):
-        pass
-    finally:
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
-
-
 def _save_logo(
     file_field_name,
     obj,
@@ -331,7 +288,7 @@ def _save_logo(
     saved_path = os.path.join(upload_folder, new_filename)
     logo_file.save(saved_path)
     if subfolder == "menu":
-        _shrink_uploaded_photo(saved_path, MENU_PHOTO_MAX_SIDE)
+        shrink_photo(saved_path, MENU_PHOTO_MAX_SIDE)
     setattr(obj, model_field, new_filename)
 
     return None
@@ -910,10 +867,17 @@ def kitchen_status():
     "pending" lagi) juga ke-detect sebagai perubahan, bukan cuma diam-diam
     nyempil tanpa dapur pernah notice."""
 
-    signatures = [
-        f"{order.id}:{order.status}:{len(order.items)}"
-        for order in Order.query.filter(Order.status != "served").all()
-    ]
+    # Satu query teragregasi (COUNT per pesanan), bukan len(order.items) -
+    # itu 1 query tambahan PER PESANAN, di tiap tablet, tiap beberapa detik.
+    rows = (
+        db.session.query(Order.id, Order.status, func.count(OrderItem.id))
+        .outerjoin(OrderItem, OrderItem.order_id == Order.id)
+        .filter(Order.status != "served")
+        .group_by(Order.id, Order.status)
+        .order_by(Order.id)
+        .all()
+    )
+    signatures = [f"{order_id}:{status}:{item_count}" for order_id, status, item_count in rows]
     return {"order_ids": signatures}
 
 
@@ -1052,10 +1016,15 @@ def cashier_status():
     yang berubah (nambah menu setelah kasir sempat lihat) ikut memicu
     notifikasi, bukan cuma pesanan yang benar-benar baru."""
 
-    signatures = [
-        f"{order.id}:{len(order.items)}"
-        for order in Order.query.filter_by(is_paid=False).all()
-    ]
+    rows = (
+        db.session.query(Order.id, func.count(OrderItem.id))
+        .outerjoin(OrderItem, OrderItem.order_id == Order.id)
+        .filter(Order.is_paid.is_(False))
+        .group_by(Order.id)
+        .order_by(Order.id)
+        .all()
+    )
+    signatures = [f"{order_id}:{item_count}" for order_id, item_count in rows]
     return {"order_ids": signatures}
 
 
@@ -1087,14 +1056,18 @@ def paid_order_status():
     start = datetime.combine(today, time.min)
     end = datetime.combine(today, time.max)
 
-    signatures = [
-        f"{order.id}:{order.paid_at.isoformat()}"
-        for order in Order.query.filter(
+    # Cuma 2 kolom (id, paid_at) - bukan objek Order penuh untuk SEMUA
+    # transaksi hari ini, padahal dipoll dari setiap halaman oleh Owner/Kasir.
+    rows = (
+        db.session.query(Order.id, Order.paid_at)
+        .filter(
             Order.is_paid.is_(True),
             Order.paid_at >= start,
             Order.paid_at <= end,
-        ).all()
-    ]
+        )
+        .all()
+    )
+    signatures = [f"{order_id}:{paid_at.isoformat()}" for order_id, paid_at in rows]
     return {"order_ids": signatures}
 
 

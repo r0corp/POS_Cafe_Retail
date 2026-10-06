@@ -7,7 +7,8 @@ Dipanggil dari dashboard.html (laptop mana pun, lewat Tailscale) pakai
 token rahasia di header X-Agent-Token:
   - GET  /status         -> commit yang sedang jalan vs commit terbaru di GitHub
   - GET  /commits        -> riwayat commit terbaru (buat pilihan rollback)
-  - POST /update         -> deploy ke origin/main (fetch + reset --hard + restart)
+  - POST /update         -> deploy ke origin/main (fetch + backup + reset --hard + restart;
+                             backup yang gagal MEMBATALKAN deploy sebelum POS disentuh)
   - POST /rollback       -> deploy ke commit SHA tertentu (fetch + reset --hard
                              ke situ, BUKAN ke origin/main) - buat balik ke versi
                              sebelumnya kalau update terbaru ternyata bermasalah
@@ -258,7 +259,56 @@ def _commit_exists(sha):
     return code == 0
 
 
-def _deploy_to(target_ref, log_lines, require_fetch):
+def _sqlite_db_path():
+    """Lokasi file database POS - sama aturannya dengan config.py: DATABASE_URL
+    kalau di-set (cuma SQLite yang didukung di sini), kalau tidak default
+    instance/cafe.db. None kalau DATABASE_URL menunjuk ke database selain SQLite."""
+
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        return os.path.join(PROJECT_ROOT, "instance", "cafe.db")
+    if url.startswith("sqlite:///"):
+        return url[len("sqlite:///"):]
+    return None
+
+
+def _backup_before_deploy():
+    """Backup database + folder upload/QR SEBELUM aplikasi dimatikan & kodenya
+    diganti, lalu verifikasi file hasilnya (bisa dibuka + integrity_check).
+    Memakai app/backup.py milik versi yang SEDANG jalan (SQLite online backup
+    API - aman walau POS lagi dipakai), dimuat langsung dari file supaya agent
+    ini tidak perlu meng-import paket `app` beserta dependensinya.
+    Return (ok, pesan)."""
+
+    import importlib.util
+
+    try:
+        db_path = _sqlite_db_path()
+        if db_path is None:
+            return False, "DATABASE_URL bukan SQLite - backup otomatis sebelum update belum didukung."
+
+        spec = importlib.util.spec_from_file_location(
+            "pos_backup", os.path.join(PROJECT_ROOT, "app", "backup.py")
+        )
+        backup_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(backup_module)
+
+        os.makedirs(BACKUP_FOLDER, exist_ok=True)
+        zip_path = os.path.join(
+            BACKUP_FOLDER, f"cafepos_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}_sebelum_update.zip"
+        )
+        backup_module.write_backup_zip(zip_path, db_path, os.path.join(PROJECT_ROOT, "app", "static"))
+
+        valid, message = _verify_backup_zip(zip_path)
+        if not valid:
+            os.remove(zip_path)
+            return False, message
+        return True, f"Backup sebelum update dibuat & valid: {zip_path}"
+    except Exception as e:
+        return False, f"Backup sebelum update gagal: {e}"
+
+
+def _deploy_to(target_ref, log_lines, require_fetch, require_backup=True):
     """Inti dari /update & /rollback - satu-satunya beda cuma target_ref
     ("origin/main" buat update, sebuah commit SHA buat rollback) dan
     require_fetch.
@@ -295,6 +345,20 @@ def _deploy_to(target_ref, log_lines, require_fetch):
         log_lines.append(
             "Fetch dari GitHub gagal/timeout - lanjut pakai riwayat commit lokal yang sudah ada (rollback tidak butuh data baru)."
         )
+
+    # Backup SEBELUM POS dimatikan (database masih bisa dibaca konsisten):
+    # kalau update ternyata merusak data, ada titik pulih tepat sebelumnya.
+    # /update: backup WAJIB berhasil, kalau tidak deploy dibatalkan & POS tidak
+    # disentuh. /rollback (require_backup=False): usaha terbaik saja - jalur
+    # darurat tidak boleh tertahan cuma karena disk penuh dsb.
+    log_lines.append("$ backup database + upload sebelum update")
+    backup_ok, backup_message = _backup_before_deploy()
+    log_lines.append(backup_message)
+    if not backup_ok:
+        if require_backup:
+            log_lines.append("Deploy DIBATALKAN, aplikasi POS TIDAK disentuh sama sekali.")
+            return False
+        log_lines.append("Lanjut tanpa backup (rollback tidak boleh tertahan).")
 
     mode = _stop_pos(log_lines)
 
@@ -381,7 +445,7 @@ def rollback():
     _, before = _run(["git", "rev-parse", "HEAD"])
     before = before.strip()
 
-    deployed = _deploy_to(target, log_lines, require_fetch=False)
+    deployed = _deploy_to(target, log_lines, require_fetch=False, require_backup=False)
 
     _, after = _run(["git", "rev-parse", "HEAD"])
     after = after.strip()
