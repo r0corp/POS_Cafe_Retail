@@ -2482,6 +2482,131 @@ textarea.form-control {
   color: var(--color-muted);
 }
 
+/* Blok total di kiri jadi tombol - ditekan membuka daftar item yang sudah
+   dipilih (panel naik ke atas bar), supaya kasir bisa cek/hapus pesanan
+   tanpa scroll mencari kartu menunya satu-satu. */
+.cart-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.cart-summary-text {
+  display: block;
+}
+
+.cart-summary .cart-total,
+.cart-summary .cart-count {
+  display: block;
+}
+
+.cart-summary-chevron {
+  color: var(--color-muted);
+  transition: transform 0.15s ease;
+}
+
+.cart-summary.is-open .cart-summary-chevron {
+  transform: rotate(180deg);
+}
+
+.cart-panel {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: min(420px, 100%);
+  max-height: min(50vh, 420px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-hover);
+  overflow: hidden;
+}
+
+.cart-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cart-panel-close {
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+
+.cart-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  overflow-y: auto;
+}
+
+.cart-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.9rem;
+}
+
+.cart-panel-row + .cart-panel-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.cart-panel-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cart-panel-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cart-panel-sub {
+  font-size: 0.74rem;
+  color: var(--color-muted);
+}
+
+.cart-panel-total {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cart-panel-remove {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-danger);
+}
+
+.cart-panel-remove:active {
+  background: var(--color-accent-light);
+}
+
 /* ============================================================
    Denah meja (seat map)
    ============================================================ */

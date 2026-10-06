@@ -159,10 +159,20 @@
 
   <div class="cart-bar-spacer"></div>
   <div class="cart-bar">
-    <div>
-      <div class="cart-total" id="cartTotal">Rp 0</div>
-      <div class="cart-count" id="cartCount">{{ _('Belum ada item dipilih') }}</div>
+    <div class="cart-panel d-none" id="cartPanel" role="dialog" aria-label="{{ _('Daftar pesanan') }}">
+      <div class="cart-panel-head">
+        <span>{{ _('Daftar pesanan') }}</span>
+        <button type="button" class="cart-panel-close" id="cartPanelClose" aria-label="{{ _('Tutup') }}"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <ul class="cart-panel-list" id="cartPanelList"></ul>
     </div>
+    <button type="button" class="cart-summary" id="cartToggle" aria-expanded="false" aria-controls="cartPanel" title="{{ _('Lihat daftar pesanan') }}">
+      <span class="cart-summary-text">
+        <span class="cart-total" id="cartTotal">Rp 0</span>
+        <span class="cart-count" id="cartCount">{{ _('Belum ada item dipilih') }}</span>
+      </span>
+      <i class="bi bi-chevron-up cart-summary-chevron"></i>
+    </button>
     <button type="submit" class="btn btn-accent btn-lg" id="submitBtn" disabled>
       <i class="bi bi-check2"></i> {{ _('Buat Pesanan') }}
     </button>
@@ -176,6 +186,7 @@
 
   const CART_ITEMS_SELECTED_LABEL = {{ _('item dipilih')|tojson }};
   const CART_EMPTY_LABEL = {{ _('Belum ada item dipilih')|tojson }};
+  const CART_REMOVE_LABEL = {{ _('Hapus')|tojson }};
   const ORDER_TYPE_DINE_IN = {{ ORDER_TYPE_DINE_IN|tojson }};
 
   let currentChannelId = null;
@@ -212,8 +223,76 @@
     document.getElementById("cartTotal").textContent = formatRupiah(total);
     document.getElementById("cartCount").textContent = count > 0 ? (count + " " + CART_ITEMS_SELECTED_LABEL) : CART_EMPTY_LABEL;
     document.getElementById("submitBtn").disabled = count === 0;
+    renderCartPanel(count);
     if (window.adjustFooterClearance) window.adjustFooterClearance();
   }
+
+  const cartPanel = document.getElementById("cartPanel");
+  const cartPanelList = document.getElementById("cartPanelList");
+  const cartToggle = document.getElementById("cartToggle");
+
+  function setCartPanelOpen(open) {
+    cartPanel.classList.toggle("d-none", !open);
+    cartToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    cartToggle.classList.toggle("is-open", open);
+  }
+
+  function renderCartPanel(count) {
+    cartPanelList.textContent = "";
+
+    document.querySelectorAll(".qty-stepper").forEach((stepper) => {
+      const input = stepper.querySelector(".qty-input");
+      const qty = parseInt(input.value, 10) || 0;
+      if (qty <= 0) return;
+
+      const card = stepper.closest(".menu-item-card");
+      const name = card.querySelector(".menu-item-name").textContent.trim();
+      const price = effectivePrice(stepper);
+
+      const row = document.createElement("li");
+      row.className = "cart-panel-row";
+
+      const info = document.createElement("div");
+      info.className = "cart-panel-info";
+      const nameEl = document.createElement("div");
+      nameEl.className = "cart-panel-name";
+      nameEl.textContent = name;
+      const subEl = document.createElement("div");
+      subEl.className = "cart-panel-sub";
+      subEl.textContent = qty + " × " + formatRupiah(price);
+      info.append(nameEl, subEl);
+
+      const lineTotal = document.createElement("div");
+      lineTotal.className = "cart-panel-total";
+      lineTotal.textContent = formatRupiah(price * qty);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "cart-panel-remove";
+      removeBtn.title = CART_REMOVE_LABEL;
+      removeBtn.setAttribute("aria-label", CART_REMOVE_LABEL + " " + name);
+      removeBtn.innerHTML = '<i class="bi bi-trash3"></i>';
+      removeBtn.addEventListener("click", () => {
+        input.value = 0;
+        refreshRowState(stepper);
+        updateCart();
+      });
+
+      row.append(info, lineTotal, removeBtn);
+      cartPanelList.appendChild(row);
+    });
+
+    if (count === 0) setCartPanelOpen(false);
+  }
+
+  cartToggle.addEventListener("click", () => setCartPanelOpen(cartPanel.classList.contains("d-none")));
+  document.getElementById("cartPanelClose").addEventListener("click", () => setCartPanelOpen(false));
+  document.addEventListener("click", (e) => {
+    // e.target.isConnected: tombol hapus dicabut dari DOM saat daftar dirender
+    // ulang (renderCartPanel), jadi closest(".cart-bar") di sini sudah null
+    // padahal klik-nya di dalam panel - jangan dianggap klik di luar.
+    if (!cartPanel.classList.contains("d-none") && e.target.isConnected && !e.target.closest(".cart-bar")) setCartPanelOpen(false);
+  });
 
   const orderTypeInput = document.getElementById("orderTypeInput");
   const channelIdInput = document.getElementById("channelIdInput");
