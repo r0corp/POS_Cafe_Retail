@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash sistem Android 12+: latar gelap senada, bukan abu-abu bawaan. -->
+    <style name="Theme.OruGo" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash_bg</item>
+        <item name="android:windowSplashScreenBackground">#0F172A</item>
+    </style>
+</resources>

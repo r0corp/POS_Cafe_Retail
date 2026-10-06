@@ -2,6 +2,7 @@ package id.orulabs.umkm;
 
 import android.Manifest;
 import android.app.DownloadManager;
+import android.animation.ValueAnimator;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -11,6 +12,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.webkit.CookieManager;
 import android.webkit.JsResult;
 import android.webkit.URLUtil;
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private View splashOverlay;
+    private ValueAnimator splashAnimator;
     private boolean pageLoadFailed = false;
     private ValueCallback<Uri[]> filePathCallback;
     private ActivityResultLauncher<String> fileChooserLauncher;
@@ -88,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
 
         webView = findViewById(R.id.webView);
         splashOverlay = findViewById(R.id.splashOverlay);
+        startSplashAnimation();
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -126,6 +130,7 @@ public class MainActivity extends AppCompatActivity {
                 // langsung sembunyikan di sini.
                 if (!pageLoadFailed) {
                     splashOverlay.setVisibility(View.GONE);
+                    stopSplashAnimation();
                 }
             }
         });
@@ -251,5 +256,35 @@ public class MainActivity extends AppCompatActivity {
                     this, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 1
             );
         }
+    }
+
+    /** Bar "LOADING..." yang geser terus - sama dengan loginLoaderSlide di
+     *  style.css: dari -100% sampai 350% lebar bar (bar 40% dari track),
+     *  1,1 detik, ease-in-out, ulang dari awal. */
+    private void startSplashAnimation() {
+        final View fill = findViewById(R.id.splashFill);
+        if (fill == null) return;
+        final float density = getResources().getDisplayMetrics().density;
+        final float barWidth = 88f * density;
+        splashAnimator = ValueAnimator.ofFloat(-barWidth, barWidth * 3.5f);
+        splashAnimator.setDuration(1100);
+        splashAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+        splashAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        splashAnimator.setRepeatMode(ValueAnimator.RESTART);
+        splashAnimator.addUpdateListener(a -> fill.setTranslationX((float) a.getAnimatedValue()));
+        splashAnimator.start();
+    }
+
+    private void stopSplashAnimation() {
+        if (splashAnimator != null) {
+            splashAnimator.cancel();
+            splashAnimator = null;
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        stopSplashAnimation();
+        super.onDestroy();
     }
 }

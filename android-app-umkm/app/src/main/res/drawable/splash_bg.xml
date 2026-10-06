@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sama dengan overlay LOADING setelah login di POS (mode gelap): gradasi warna latar ke warna kartu. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#0F172A"
+        android:endColor="#1E293B" />
+</shape>
