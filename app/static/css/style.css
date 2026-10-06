@@ -2507,6 +2507,10 @@ textarea.form-control {
   display: block;
 }
 
+.cart-summary .cart-total {
+  white-space: nowrap;
+}
+
 .cart-summary-chevron {
   color: var(--color-muted);
   transition: transform 0.15s ease;
