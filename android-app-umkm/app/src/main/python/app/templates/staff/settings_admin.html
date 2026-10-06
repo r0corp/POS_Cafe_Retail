@@ -684,11 +684,11 @@
         {% set cache_bar_colors = ['var(--color-accent)', 'var(--color-primary)', 'var(--color-warning)', 'var(--color-success)'] %}
         {% if license_state is defined %}
         <div class="row g-4 mb-4">
-          <div class="col-12 d-flex flex-column">
+          <div class="col-md-6 d-flex flex-column">
             <div class="settings-section-title">
               <span class="settings-section-num">1</span> {{ _('Lisensi Aplikasi') }}
             </div>
-            <div class="card">
+            <div class="card flex-grow-1">
               <div class="card-body system-card-body">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                   <div class="d-flex align-items-center gap-3">
@@ -717,13 +717,37 @@
               </div>
             </div>
           </div>
+          <div class="col-md-6 d-flex flex-column d-none" id="appUpdateCol">
+            <div class="settings-section-title">
+              <span class="settings-section-num">2</span> {{ _('Pembaruan Aplikasi') }}
+            </div>
+            <div class="card flex-grow-1">
+              <div class="card-body system-card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                  <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-arrow-repeat fs-2" style="color: var(--color-accent);"></i>
+                    <div>
+                      <div class="fw-semibold mb-1">{{ _('Versi terpasang') }}</div>
+                      <span class="badge-soft badge-status-served" style="text-transform: none;" id="appVersionLabel">-</span>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-accent" id="appUpdateCheckBtn">
+                    <i class="bi bi-cloud-arrow-down"></i> {{ _('Cek Pembaruan') }}
+                  </button>
+                </div>
+                <p class="text-muted small mt-3 mb-0" id="appUpdateStatus">
+                  {{ _('Pembaruan diunduh dari internet. Data toko Anda tetap aman setelah update.') }}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
         {% endif %}
 
         <div class="row g-4">
           <div class="col-sm-4 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">2</span> {{ _('Bersihkan Cache Aplikasi') }}
+              <span class="settings-section-num">3</span> {{ _('Bersihkan Cache Aplikasi') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -767,7 +791,7 @@
 
           <div class="col-sm-4 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">3</span> {{ _('Backup Database') }}
+              <span class="settings-section-num">4</span> {{ _('Backup Database') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -821,7 +845,7 @@
 
           <div class="col-sm-4 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">4</span> {{ _('Mode Demo') }}
+              <span class="settings-section-num">5</span> {{ _('Mode Demo') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -910,7 +934,7 @@
         <div class="row g-4 mt-0">
           <div class="col-sm-6 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">5</span> {{ _('Mode Perbaikan (Maintenance)') }}
+              <span class="settings-section-num">6</span> {{ _('Mode Perbaikan (Maintenance)') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -950,7 +974,7 @@
 
           <div class="col-sm-6 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">6</span> {{ _('Reset ke Mode Pabrik') }}
+              <span class="settings-section-num">7</span> {{ _('Reset ke Mode Pabrik') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -1422,5 +1446,21 @@
   }
 
   reloadBluetoothPrinters();
+</script>
+<script>
+  (function () {
+    // Cuma ada di aplikasi Android (OruGoNative disediakan MainActivity).
+    if (!window.OruGoNative) return;
+    var col = document.getElementById("appUpdateCol");
+    if (!col) return;
+    col.classList.remove("d-none");
+    document.getElementById("appVersionLabel").textContent =
+      OruGoNative.versionName() + " (" + OruGoNative.versionCode() + ")";
+    var statusEl = document.getElementById("appUpdateStatus");
+    window.__oruUpdateStatus = function (message) { statusEl.textContent = message; };
+    document.getElementById("appUpdateCheckBtn").addEventListener("click", function () {
+      OruGoNative.checkForUpdate();
+    });
+  })();
 </script>
 {% endblock %}

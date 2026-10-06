@@ -64,3 +64,8 @@ android-app-license-generator/app/src/main/python/private_key.py
 
 # Dibuat ulang otomatis oleh tools/buat_shortcut_desktop.ps1 tiap dijalankan.
 tools/*.ico
+
+# Kunci tanda tangan APK GO - JANGAN PERNAH di-commit
+*.jks
+*.keystore
+keystore.properties

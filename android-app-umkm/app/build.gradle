@@ -3,6 +3,20 @@ plugins {
     id 'com.chaquo.python'
 }
 
+// Kunci tanda tangan rilis dibaca dari keystore.properties (di-gitignore,
+// jangan pernah di-commit). Tanpa file ini build rilis tetap jalan tapi
+// TIDAK ditandatangani - dan APK seperti itu tidak bisa dipasang/diupdate.
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file('keystore.properties')
+if (keystoreFile.exists()) {
+    keystoreFile.withInputStream { keystoreProps.load(it) }
+}
+
+// Alamat manifest update (version.json) di repo rilis publik. Build debug
+// (emulator) membaca dari PC pengembang lewat 10.0.2.2 supaya alur update
+// bisa dites tanpa menerbitkan apa pun.
+def releaseManifestUrl = "https://raw.githubusercontent.com/r0corp/oru-go-releases/main/version.json"
+
 android {
     namespace 'id.orulabs.umkm'
     compileSdk 34
@@ -11,8 +25,8 @@ android {
         applicationId "id.orulabs.umkm"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "0.1-proto"
+        versionCode 2
+        versionName "1.0.0"
 
         // Cuma ARM (HP asli) - x86/x86_64 cuma perlu buat emulator, dan
         // kita tidak punya emulator buat testing, jadi tidak usah
@@ -22,9 +36,31 @@ android {
         }
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        release {
+            if (keystoreProps['storeFile']) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            if (keystoreProps['storeFile']) {
+                signingConfig signingConfigs.release
+            }
+            buildConfigField "String", "UPDATE_MANIFEST_URL", "\"${releaseManifestUrl}\""
+        }
+        debug {
+            buildConfigField "String", "UPDATE_MANIFEST_URL", "\"http://10.0.2.2:8765/version.json\""
         }
     }
 

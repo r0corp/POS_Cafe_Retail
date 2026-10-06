@@ -14,6 +14,7 @@ import android.os.Looper;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
@@ -57,6 +58,8 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private View splashOverlay;
     private ValueAnimator splashAnimator;
+    private UpdateManager updateManager;
+    private boolean updateCheckedThisRun = false;
     private boolean pageLoadFailed = false;
     private ValueCallback<Uri[]> filePathCallback;
     private ActivityResultLauncher<String> fileChooserLauncher;
@@ -92,6 +95,12 @@ public class MainActivity extends AppCompatActivity {
         webView = findViewById(R.id.webView);
         splashOverlay = findViewById(R.id.splashOverlay);
         startSplashAnimation();
+
+        updateManager = new UpdateManager(this, message -> runOnUiThread(() ->
+                webView.evaluateJavascript(
+                        "window.__oruUpdateStatus && window.__oruUpdateStatus("
+                                + org.json.JSONObject.quote(message) + ")", null)));
+        webView.addJavascriptInterface(new UpdateBridge(), "OruGoNative");
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -131,6 +140,10 @@ public class MainActivity extends AppCompatActivity {
                 if (!pageLoadFailed) {
                     splashOverlay.setVisibility(View.GONE);
                     stopSplashAnimation();
+                    if (!updateCheckedThisRun) {
+                        updateCheckedThisRun = true;
+                        updateManager.checkAuto();
+                    }
                 }
             }
         });
@@ -283,8 +296,33 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (updateManager != null) updateManager.resumePendingInstall();
+    }
+
+    @Override
     protected void onDestroy() {
         stopSplashAnimation();
         super.onDestroy();
+    }
+
+    /** Dipakai halaman Pengaturan (Sistem > Pembaruan Aplikasi). Cuma dua hal
+     *  yang dibuka ke JavaScript: versi terpasang dan "cek pembaruan". */
+    private class UpdateBridge {
+        @JavascriptInterface
+        public String versionName() {
+            return updateManager.versionName();
+        }
+
+        @JavascriptInterface
+        public int versionCode() {
+            return updateManager.versionCode();
+        }
+
+        @JavascriptInterface
+        public void checkForUpdate() {
+            updateManager.checkManual();
+        }
     }
 }
