@@ -335,9 +335,19 @@ def dashboard():
         1 for ingredient in Ingredient.query.all() if ingredient.is_low_stock
     )
 
+    # Uang masuk hari ini per metode bayar (grand_total = yang benar-benar
+    # dibayar tamu) - tunai-nya yang harus cocok dengan isi laci kas, sisanya
+    # (QRIS) masuk rekening, bukan laci.
+    paid_today_by_method = {method: 0 for method in PAYMENT_METHODS}
+    for order in paid_orders_today:
+        if order.payment_method in paid_today_by_method:
+            paid_today_by_method[order.payment_method] += order.grand_total
+
     stats = {
         "active_count": len(active_orders),
         "sales_today": sum(order.total for order in paid_orders_today),
+        "cash_today": paid_today_by_method["cash"],
+        "qris_today": paid_today_by_method["qris"],
         "transactions_today": len(paid_orders_today),
         "unpaid_count": len(unpaid_orders),
     }
