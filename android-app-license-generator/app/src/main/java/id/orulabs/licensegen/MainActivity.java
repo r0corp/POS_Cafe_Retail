@@ -1,6 +1,7 @@
 package id.orulabs.licensegen;
 
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -13,6 +14,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
@@ -40,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private View splashOverlay;
     private boolean pageLoadFailed = false;
+    private boolean lockedOnLeave = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -145,6 +148,42 @@ public class MainActivity extends AppCompatActivity {
         webView.loadUrl("http://127.0.0.1:" + PORT + "/");
     }
 
+    /** Bahasa tampilan yang dipilih di aplikasi (tombol bendera) - dialog native ikut. */
+    private boolean isEnglish() {
+        try {
+            PyObject lang = Python.getInstance().getModule("generator_app").callAttr("current_language");
+            return lang != null && "en".equals(lang.toString());
+        } catch (Throwable e) {
+            return false;
+        }
+    }
+
+    /** Kalau opsi "kunci saat keluar" di menu Keamanan aktif: begitu app
+     *  ditinggalkan (layar mati / pindah app), semua sesi dikunci. */
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (!serverStarted || !Python.isStarted()) return;
+        try {
+            PyObject module = Python.getInstance().getModule("generator_app");
+            if (module.callAttr("should_lock_on_leave").toBoolean()) {
+                module.callAttr("lock_all");
+                lockedOnLeave = true;
+            }
+        } catch (Throwable e) {
+            android.util.Log.e("MainActivity", "kunci saat keluar gagal", e);
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (lockedOnLeave) {
+            lockedOnLeave = false;
+            webView.loadUrl("http://127.0.0.1:" + PORT + "/");
+        }
+    }
+
     /** Dipanggil dari halaman login (lihat _LOGIN_PAGE di
      * generator_app.py) - sidik jari diverifikasi 100% NATIVE Android
      * (BiometricPrompt, dicocokkan ke sensor+data biometrik yang sudah
@@ -171,15 +210,38 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
                                 super.onAuthenticationSucceeded(result);
-                                webView.loadUrl("http://127.0.0.1:" + PORT + "/biometric-unlock");
+                                // Sidik jari lolos -> minta token sekali-pakai ke Python.
+                                // /biometric-unlock menolak tanpa token ini, jadi aplikasi
+                                // lain di HP yang menjangkau 127.0.0.1 tidak bisa
+                                // melewati login.
+                                String token = null;
+                                try {
+                                    PyObject t = Python.getInstance().getModule("generator_app")
+                                            .callAttr("issue_unlock_token");
+                                    if (t != null && !"None".equals(t.toString())) token = t.toString();
+                                } catch (Throwable e) {
+                                    android.util.Log.e("MainActivity", "token buka-kunci gagal", e);
+                                }
+                                if (token == null) {
+                                    Toast.makeText(MainActivity.this,
+                                            isEnglish()
+                                                    ? "Fingerprint sign-in is turned off in the Security menu."
+                                                    : "Masuk pakai sidik jari dimatikan di menu Keamanan.",
+                                            Toast.LENGTH_LONG).show();
+                                    return;
+                                }
+                                webView.loadUrl("http://127.0.0.1:" + PORT + "/biometric-unlock?token="
+                                        + Uri.encode(token));
                             }
                         }
                 );
 
+                final boolean english = isEnglish();
                 BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
-                        .setTitle("Masuk Generator Lisensi")
-                        .setSubtitle("Gunakan sidik jari yang terdaftar di HP ini")
-                        .setNegativeButtonText("Batal")
+                        .setTitle(english ? "Sign in to Oru Go License" : "Masuk Oru Go License")
+                        .setSubtitle(english ? "Use a fingerprint enrolled on this phone"
+                                : "Gunakan sidik jari yang terdaftar di HP ini")
+                        .setNegativeButtonText(english ? "Cancel" : "Batal")
                         .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                         .build();
 

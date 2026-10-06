@@ -22,15 +22,21 @@ memverifikasi kode yang dibuat di sini.
 import base64
 import hashlib
 import hmac
+import json
 import os
 import secrets
 import sqlite3
+import threading
+import time
 from datetime import date, timedelta
 
-from flask import Flask, g, redirect, render_template_string, request, session, url_for
+from flask import (Flask, g, has_request_context, redirect, render_template_string, request,
+                   session, url_for)
+from markupsafe import Markup, escape
 
 from private_key import PRIVATE_KEY_D, PRIVATE_KEY_N
 from rsa_math import sign
+from ui_fonts import FONT_CSS
 
 _SIGN_SALT = b"orulabs-apk-umkm-activation-v1"
 
@@ -86,17 +92,287 @@ LOGIN_USERNAME = "r0corp"
 LOGIN_PASSWORD_HASH = "1c3174c90633522db2f0bcf5f59d60da:0b6a78aa7bdef8e4a113b0cc81189ef2d9386349ab80bf0a079f14ffbb95041a"
 
 
-def verify_login(username, password):
-    if not hmac.compare_digest(username, LOGIN_USERNAME):
-        return False
+def _check_hash(password, stored_hash):
     try:
-        salt_hex, key_hex = LOGIN_PASSWORD_HASH.split(":")
+        salt_hex, key_hex = stored_hash.split(":")
         salt = bytes.fromhex(salt_hex)
         expected = bytes.fromhex(key_hex)
     except ValueError:
         return False
     actual = hashlib.scrypt(password.encode(), salt=salt, n=16384, r=8, p=1, dklen=32)
     return hmac.compare_digest(actual, expected)
+
+
+def hash_password(password):
+    """Hash scrypt baru (salt acak + hash dalam satu string "salt:hash")."""
+    salt = os.urandom(16)
+    key = hashlib.scrypt(password.encode(), salt=salt, n=16384, r=8, p=1, dklen=32)
+    return salt.hex() + ":" + key.hex()
+
+
+def verify_login(username, password, password_hash=None):
+    """password_hash = hash yang disimpan lewat menu Keamanan; kalau belum
+    pernah ganti password, dipakai LOGIN_PASSWORD_HASH bawaan di atas."""
+    # Dibandingkan sebagai bytes: compare_digest(str, str) error kalau ada
+    # karakter non-ASCII, dan itu tidak boleh jadi halaman error 500.
+    if not hmac.compare_digest(username.encode("utf-8"), LOGIN_USERNAME.encode("utf-8")):
+        return False
+    return _check_hash(password, password_hash or LOGIN_PASSWORD_HASH)
+
+
+# ============================================================
+# Pengaturan keamanan (menu "Keamanan") - disimpan di security.json di
+# folder data app: password pengganti, sidik jari on/off, kunci otomatis,
+# dan penghitung salah-login (supaya tebak-tebak password diperlambat).
+# ============================================================
+
+_DATA_DIR = None
+_security_lock = threading.Lock()
+_lock_epoch = 0          # dinaikkan tiap lock_all() -> semua sesi lama otomatis tidak berlaku
+_unlock_tokens = {}      # token sekali-pakai dari sidik jari native -> waktu kedaluwarsa
+
+IDLE_CHOICES = (0, 1, 5, 15, 30)   # menit; 0 = tidak pernah
+MIN_PASSWORD_LENGTH = 8
+THROTTLE_AFTER = 5       # mulai ditahan sesudah sekian kali salah berturut-turut
+THROTTLE_BASE_SECONDS = 30
+THROTTLE_MAX_SECONDS = 900
+UNLOCK_TOKEN_TTL_SECONDS = 30
+
+_SECURITY_DEFAULTS = {
+    "password_hash": None,
+    "biometric_enabled": True,
+    "idle_lock_minutes": 0,
+    "lock_on_leave": False,
+    "language": "id",
+    "failed_count": 0,
+    "locked_until": 0.0,
+}
+
+
+def _security_path():
+    return os.path.join(_DATA_DIR, "security.json")
+
+
+def load_security():
+    settings = dict(_SECURITY_DEFAULTS)
+    if _DATA_DIR is None:
+        return settings
+    try:
+        with open(_security_path(), "r", encoding="utf-8") as f:
+            stored = json.load(f)
+        if isinstance(stored, dict):
+            settings.update({k: v for k, v in stored.items() if k in _SECURITY_DEFAULTS})
+    except (OSError, ValueError):
+        pass
+    return settings
+
+
+def save_security(settings):
+    tmp = _security_path() + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(settings, f)
+    os.replace(tmp, _security_path())
+
+
+def login_wait_seconds():
+    with _security_lock:
+        remaining = load_security()["locked_until"] - time.time()
+    return max(0, int(remaining + 0.999))
+
+
+def _register_login_failure():
+    with _security_lock:
+        settings = load_security()
+        settings["failed_count"] += 1
+        if settings["failed_count"] >= THROTTLE_AFTER:
+            delay = min(THROTTLE_MAX_SECONDS,
+                        THROTTLE_BASE_SECONDS * 2 ** (settings["failed_count"] - THROTTLE_AFTER))
+            settings["locked_until"] = time.time() + delay
+        save_security(settings)
+
+
+def _register_login_success():
+    with _security_lock:
+        settings = load_security()
+        if settings["failed_count"] or settings["locked_until"]:
+            settings["failed_count"] = 0
+            settings["locked_until"] = 0.0
+            save_security(settings)
+
+
+def lock_all():
+    """Kunci SEMUA sesi sekarang juga (dipanggil MainActivity saat app
+    ditinggalkan, kalau opsi "kunci saat keluar" aktif)."""
+    global _lock_epoch
+    _lock_epoch += 1
+    _unlock_tokens.clear()
+
+
+def current_language():
+    return get_language()
+
+
+def should_lock_on_leave():
+    return bool(load_security()["lock_on_leave"])
+
+
+def is_biometric_enabled():
+    return bool(load_security()["biometric_enabled"])
+
+
+def issue_unlock_token():
+    """Dipanggil NATIVE Android (MainActivity) SESUDAH BiometricPrompt
+    berhasil - token sekali-pakai ini satu-satunya cara /biometric-unlock
+    mau membuka kunci. Aplikasi lain di HP yang menjangkau 127.0.0.1 tidak
+    bisa memanggil fungsi ini (Python-nya hidup di dalam proses app ini),
+    jadi tidak bisa membuka kunci tanpa sidik jari."""
+    if not is_biometric_enabled():
+        return None
+    now = time.time()
+    for token, expires in list(_unlock_tokens.items()):
+        if expires < now:
+            _unlock_tokens.pop(token, None)
+    token = secrets.token_urlsafe(24)
+    _unlock_tokens[token] = now + UNLOCK_TOKEN_TTL_SECONDS
+    return token
+
+
+def _consume_unlock_token(token):
+    expires = _unlock_tokens.pop(token, None) if token else None
+    return expires is not None and expires >= time.time()
+
+
+# ============================================================
+# Dua bahasa (Indonesia / Inggris). Teks Indonesia di kode/template adalah
+# "kunci"-nya; kamus _EN di bawah berisi padanan Inggrisnya. Teks yang tidak
+# ada di kamus tampil apa adanya (Indonesia). Pilihan bahasa disimpan di
+# security.json (app ini dipakai satu orang) supaya halaman login pun ikut.
+# ============================================================
+
+LANGS = ("id", "en")
+
+_EN = {
+    # login
+    "Masuk": "Sign in",
+    "Login": "Login",
+    "Silakan masuk untuk melanjutkan.": "Please sign in to continue.",
+    "Tampilkan password": "Show password",
+    "Masuk pakai Sidik Jari": "Sign in with Fingerprint",
+    "Preferensi Tampilan": "Display Preferences",
+    "Terlalu banyak percobaan salah. Coba lagi %(wait)s detik lagi.":
+        "Too many wrong attempts. Try again in %(wait)s seconds.",
+    "Username atau password salah.": "Wrong username or password.",
+    " Login ditahan %(wait)s detik.": " Sign-in is paused for %(wait)s seconds.",
+    "Login sedang ditahan %(wait)s detik karena terlalu banyak percobaan salah.":
+        "Sign-in is paused for %(wait)s seconds because of too many wrong attempts.",
+    # halaman utama
+    "Buat Kode Aktivasi": "Create Activation Code",
+    "Kode untuk <b>%(shop)s</b> (%(label)s) berhasil dibuat.":
+        "Code for <b>%(shop)s</b> (%(label)s) was created.",
+    "Kode Aktivasi": "Activation Code",
+    "Salin Kode Aktivasi": "Copy Activation Code",
+    "Kirim lewat WhatsApp": "Send via WhatsApp",
+    "+ Buat Kode Baru": "+ Create New Code",
+    "Kode Perangkat (dari HP pembeli)": "Device Code (from the buyer's phone)",
+    "Nama Customer": "Customer Name",
+    "Nama Toko/Kedai/Cafe": "Shop / Cafe Name",
+    "Alamat Toko": "Shop Address",
+    "No HP": "Phone Number",
+    "08xx atau 62xx": "08xx or 62xx",
+    "Jenis Lisensi": "License Type",
+    "Beli Putus": "One-time Purchase",
+    "Sewa Mingguan": "Weekly Rental",
+    "Sewa Bulanan": "Monthly Rental",
+    "Sewa Tahunan": "Yearly Rental",
+    "Riwayat (%(n)s terakhir)": "History (last %(n)s)",
+    "Toko": "Shop",
+    "Jenis": "Type",
+    "Tgl": "Date",
+    "s/d": "until",
+    "Salin": "Copy",
+    "Belum ada riwayat.": "No history yet.",
+    "Keamanan": "Security",
+    "Kunci App": "Lock App",
+    "Kode Perangkat, Nama Customer, dan Nama Toko wajib diisi.":
+        "Device Code, Customer Name and Shop Name are required.",
+    "Halo %(name)s, ini Kode Aktivasi Oru POS GO untuk %(shop)s:\n\n%(code)s\n\nBuka Oru POS GO, lalu tempel kode ini di kolom Kode Aktivasi.":
+        "Hello %(name)s, here is your Oru POS GO Activation Code for %(shop)s:\n\n%(code)s\n\nOpen Oru POS GO, then paste this code into the Activation Code field.",
+    # keamanan
+    "Ganti Password": "Change Password",
+    "Password lama": "Current password",
+    "Password baru (minimal %(n)s karakter)": "New password (at least %(n)s characters)",
+    "Ulangi password baru": "Repeat new password",
+    "Simpan Password Baru": "Save New Password",
+    "Username tetap <b>%(user)s</b>. Kalau password baru ini sampai lupa, satu-satunya jalan adalah menghapus data aplikasi lewat Setelan Android (Info aplikasi &rarr; Penyimpanan &rarr; Hapus data) - password kembali ke bawaan, tapi <b>riwayat pelanggan ikut hilang</b>. Catat password baru di tempat aman.":
+        "The username stays <b>%(user)s</b>. If you forget the new password, the only way out is to clear the app data in Android Settings (App info &rarr; Storage &rarr; Clear data) - the password goes back to the default, but <b>the customer history is lost too</b>. Keep the new password somewhere safe.",
+    "Kunci Aplikasi": "App Lock",
+    "Boleh masuk pakai sidik jari": "Allow fingerprint sign-in",
+    "Kunci otomatis saat aplikasi ditutup / pindah ke aplikasi lain":
+        "Lock automatically when the app is closed / switched away",
+    "Kunci otomatis kalau tidak dipakai selama": "Lock automatically after being idle for",
+    "Tidak pernah": "Never",
+    "%(n)s menit": "%(n)s minutes",
+    "Simpan Pengaturan Kunci": "Save Lock Settings",
+    "Perlindungan tebak password": "Password guessing protection",
+    "Salah password %(a)s kali berturut-turut: login ditahan %(b)s detik, lalu makin lama untuk tiap salah berikutnya (maksimal %(c)s menit). Berhasil masuk mereset hitungannya.":
+        "After %(a)s wrong passwords in a row, sign-in is paused for %(b)s seconds, then longer for each further mistake (up to %(c)s minutes). A successful sign-in resets the count.",
+    "&larr; Kembali": "&larr; Back",
+    "Password lama salah.": "The current password is wrong.",
+    "Password baru minimal %(n)s karakter.": "The new password must be at least %(n)s characters.",
+    "Password baru dan ulangannya tidak sama.": "The new password and its repeat do not match.",
+    "Password baru harus berbeda dari password lama.": "The new password must differ from the current one.",
+    "Password berhasil diganti. Pakai password baru saat login berikutnya.":
+        "Password changed. Use the new password next time you sign in.",
+    "Pengaturan kunci disimpan.": "Lock settings saved.",
+}
+
+_FLAG_ID = ('<svg viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="1" fill="#e70011"/>'
+            '<rect width="3" height="1" y="1" fill="#fff"/></svg>')
+_FLAG_EN = ('<svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="30" fill="#00247d"/>'
+            '<path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>'
+            '<path d="M0,0 L60,30 M60,0 L0,30" stroke="#cf142b" stroke-width="2"/>'
+            '<path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>'
+            '<path d="M30,0 V30 M0,15 H60" stroke="#cf142b" stroke-width="6"/></svg>')
+
+
+def get_language():
+    cached = g.get("_oru_lang") if has_request_context() else None
+    if cached:
+        return cached
+    lang = load_security().get("language", "id")
+    if lang not in LANGS:
+        lang = "id"
+    if has_request_context():
+        g._oru_lang = lang
+    return lang
+
+
+def _translate(text, kwargs):
+    base = _EN.get(text, text) if get_language() == "en" else text
+    return base % kwargs if kwargs else base
+
+
+def tr(text, **kwargs):
+    """Terjemahan untuk template/pesan di layar (nilai yang disisipkan di-escape)."""
+    return Markup(_translate(text, {k: escape(v) for k, v in kwargs.items()}))
+
+
+def tr_plain(text, **kwargs):
+    """Terjemahan teks biasa (mis. pesan WhatsApp) - tanpa escape HTML."""
+    return _translate(text, kwargs)
+
+
+def lang_switch(next_path):
+    """Tombol bendera ID / EN (seperti "Preferensi Tampilan" di aplikasi POS GO)."""
+    current = get_language()
+    links = []
+    for code, title, flag in (("id", "Bahasa Indonesia", _FLAG_ID), ("en", "English", _FLAG_EN)):
+        href = url_for("set_language", code=code, next=next_path)
+        links.append(
+            '<a href="%s" class="lang-flag-btn%s" title="%s">%s</a>'
+            % (escape(href), " active" if current == code else "", title, flag)
+        )
+    return Markup('<div class="lang-row">' + "".join(links) + "</div>")
 
 
 # ============================================================
@@ -174,10 +450,10 @@ def _whatsapp_link(phone, message):
 
 _BASE_STYLE = """
   * { box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0;
+  body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0;
          margin: 0; padding: 20px 16px 40px; min-height: 100vh; }
   .card { max-width: 520px; margin: 24px auto; background: #1e293b; border-radius: 16px; padding: 24px; }
-  h1 { font-size: 1.25rem; margin: 0 0 16px; }
+  h1 { font-family: 'Poppins', 'Inter', sans-serif; font-size: 1.25rem; margin: 0 0 16px; }
   h2 { font-size: 1rem; margin: 24px 0 10px; color: #94a3b8; }
   label { display: block; font-size: 0.85rem; color: #cbd5e1; margin: 12px 0 6px; font-weight: 600; }
   input[type=text], input[type=password], input[type=tel], select {
@@ -205,7 +481,7 @@ _BASE_STYLE = """
 
 _LOGIN_STYLE = """
   * { box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #0f172a; color: #e2e8f0;
+  body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0;
          margin: 0; padding: 0; min-height: 100vh; }
   .login-page-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center;
     min-height: 100vh; padding: 32px 16px; }
@@ -214,29 +490,31 @@ _LOGIN_STYLE = """
   .login-logo-wrap { position: relative; width: 74px; height: 74px; margin: 0 auto 16px; }
   .login-logo-circle { width: 74px; height: 74px; border-radius: 50%; background: #0f172a;
     display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-  .login-logo-circle svg { width: 34px; height: 34px; }
+  .login-sep { height: 1px; background: #334155; margin: 18px 4px 14px; }
+  .login-logo-circle img { width: 60px; height: 60px; object-fit: contain; }
   .login-dot { position: absolute; border-radius: 50%; }
   .login-dot-1 { width: 14px; height: 14px; background: #f97316; top: -5px; right: -5px; }
   .login-dot-2 { width: 9px; height: 9px; background: #38bdf8; bottom: 5px; left: -10px; }
   .login-dot-3 { width: 6px; height: 6px; background: #f97316; bottom: -5px; right: 14px; opacity: 0.55; }
-  .login-title { font-weight: 700; font-size: 1.15rem; color: #e2e8f0; margin: 0 0 3px; }
-  .login-subtitle { color: #94a3b8; font-size: 0.8rem; margin: 0 0 22px; line-height: 1.5; }
+  .login-title { font-family: 'Poppins', 'Inter', sans-serif; font-weight: 700; font-size: 1.1rem; color: #e2e8f0; margin: 0 0 3px; }
+  .login-subtitle { color: #94a3b8; font-size: 0.78rem; margin: 0 0 22px; line-height: 1.5; }
   .login-error { background: #7f1d1d; color: #fecaca; border-radius: 10px; padding: 10px 14px;
     margin-bottom: 14px; font-size: 0.8rem; text-align: left; }
   .login-form { text-align: left; }
   .login-field { margin-bottom: 12px; }
   .login-input-wrap { position: relative; }
   .login-input { width: 100%; border: none; background: #0f172a; border-radius: 999px;
-    padding: 12px 16px; font-size: 0.9rem; color: #e2e8f0; }
+    padding: 10px 16px; font-size: 0.85rem; color: #e2e8f0; }
   .login-input-wrap .login-input { padding-right: 42px; }
   .login-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(240,120,40,0.25); }
   .login-input::placeholder { color: #64748b; }
-  .login-eye-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  .login-eye-btn { position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+    box-shadow: 0 2px 6px rgba(240,120,40,0.28);
     width: 28px; height: 28px; border: none; background: transparent; color: #94a3b8;
     border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 0; }
   .login-eye-btn:active { background: #334155; }
   .login-submit-btn { width: 100%; border: none; background: #f97316; color: #fff; font-weight: 700;
-    letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.8rem; padding: 13px; border-radius: 999px;
+    letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.8rem; padding: 12px; border-radius: 999px;
     margin-top: 6px; box-shadow: 0 10px 22px rgba(240,120,40,0.35); display: flex; align-items: center;
     justify-content: center; gap: 8px; }
   .login-bio-btn { width: 100%; border: none; background: #334155; color: #e2e8f0; font-weight: 600;
@@ -244,10 +522,27 @@ _LOGIN_STYLE = """
   .login-credit { margin-top: 18px; text-align: center; font-size: 0.78rem; color: #64748b; }
 """
 
+_LANG_CSS = """
+  .lang-row { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
+  .lang-flag-btn { width: 36px; height: 36px; border-radius: 50%; background: #0f172a; border: 2px solid transparent;
+    display: flex; align-items: center; justify-content: center; opacity: 0.55; padding: 0; text-decoration: none;
+    box-shadow: 0 2px 6px rgba(240,120,40,0.28); }
+  .lang-flag-btn svg { width: 22px; height: 15px; border-radius: 2px; display: block; }
+  .lang-flag-btn.active { opacity: 1; border-color: #f97316; }
+  .login-divider { display: flex; align-items: center; gap: 10px; margin: 18px 0 12px; color: #64748b;
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; }
+  .login-divider + .lang-row { margin-top: 0; }
+  .login-divider::before, .login-divider::after { content: ""; flex: 1; height: 1px; background: #334155; }
+"""
+# CSS di sini string tetap dari kode sendiri (bukan input pengguna); Markup supaya
+# tanda kutip di dalamnya (content: "") tidak di-escape Jinja jadi &#34;.
+_BASE_STYLE = Markup(FONT_CSS + _BASE_STYLE + _LANG_CSS)
+_LOGIN_STYLE = Markup(FONT_CSS + _LOGIN_STYLE + _LANG_CSS)
+
 _LOGIN_PAGE = """
-<!doctype html><html lang="id"><head><meta charset="utf-8">
+<!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Masuk - Generator Lisensi</title><style>{{ style }}</style></head><body>
+<title>{{ _('Masuk') }} - Oru Go License</title><style>{{ style }}</style></head><body>
 <div class="login-page-wrap">
   <div class="login-card">
     <div class="login-logo-wrap">
@@ -255,14 +550,11 @@ _LOGIN_PAGE = """
       <span class="login-dot login-dot-2"></span>
       <span class="login-dot login-dot-3"></span>
       <div class="login-logo-circle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="7.5" cy="10.5" r="4.5"/>
-          <path d="M10.8 13.8 20 23M16.5 17.5l2.7 2.7M19.4 14.6l2.7 2.7"/>
-        </svg>
+        <img src="data:image/png;base64,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" alt="Oru Go License">
       </div>
     </div>
-    <h3 class="login-title">Generator Lisensi</h3>
-    <p class="login-subtitle">Login dulu supaya kalau HP ini hilang, tidak sembarang orang bisa bikin Kode Aktivasi.</p>
+    <h3 class="login-title">Oru Go License</h3>
+    <p class="login-subtitle">{{ _('Silakan masuk untuk melanjutkan.') }}</p>
 
     {% if error %}<div class="login-error">{{ error }}</div>{% endif %}
 
@@ -272,23 +564,27 @@ _LOGIN_PAGE = """
       </div>
       <div class="login-field login-input-wrap">
         <input type="password" id="loginPassword" name="password" class="login-input" required placeholder="Password">
-        <button type="button" id="togglePasswordBtn" class="login-eye-btn" aria-label="Tampilkan password">
+        <button type="button" id="togglePasswordBtn" class="login-eye-btn" aria-label="{{ _('Tampilkan password') }}">
           <svg id="eyeOpen" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
           <svg id="eyeClosed" style="display:none" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.8 21.8 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.8 21.8 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
         </button>
       </div>
+      <div class="login-sep"></div>
       <button type="submit" class="login-submit-btn">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-        Masuk
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor"><path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z"/><path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>
+        {{ _('Login') }}
       </button>
     </form>
 
-    <button type="button" id="bioBtn" class="login-bio-btn" style="display:none;" onclick="AndroidAuth.authenticate()">Masuk pakai Sidik Jari</button>
+    <button type="button" id="bioBtn" class="login-bio-btn" style="display:none;" onclick="AndroidAuth.authenticate()">{{ _('Masuk pakai Sidik Jari') }}</button>
+
+    <div class="login-divider"><span>{{ _('Preferensi Tampilan') }}</span></div>
+    {{ lang_switch('/login') }}
   </div>
   <p class="login-credit">Orulabs &copy; 2026. All rights reserved.</p>
 </div>
 <script>
-  if (window.AndroidAuth && AndroidAuth.isBiometricAvailable && AndroidAuth.isBiometricAvailable()) {
+  if ({{ 'true' if bio_enabled else 'false' }} && window.AndroidAuth && AndroidAuth.isBiometricAvailable && AndroidAuth.isBiometricAvailable()) {
     document.getElementById('bioBtn').style.display = 'block';
   }
   (function () {
@@ -308,76 +604,136 @@ _LOGIN_PAGE = """
 </body></html>
 """
 
-_MAIN_PAGE = """
-<!doctype html><html lang="id"><head><meta charset="utf-8">
+_SECURITY_PAGE = """
+<!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Generator Lisensi</title><style>{{ style }}</style></head><body>
+<title>{{ _('Keamanan') }} - Oru Go License</title><style>{{ style }}</style></head><body>
   <div class="card">
-    <h1>Generator Kode Aktivasi</h1>
+    <h1>{{ _('Keamanan') }}</h1>
+
+    {% if message %}
+      <div class="error" style="{{ 'background:#14532d; color:#bbf7d0;' if message_ok else '' }}">{{ message }}</div>
+    {% endif %}
+
+    <h2>{{ _('Ganti Password') }}</h2>
+    <form method="post" action="{{ url_for('security_password') }}">
+      <label>{{ _('Password lama') }}</label>
+      <input type="password" name="old_password" autocomplete="current-password" required>
+      <label>{{ _('Password baru (minimal %(n)s karakter)', n=min_length) }}</label>
+      <input type="password" name="new_password" autocomplete="new-password" required>
+      <label>{{ _('Ulangi password baru') }}</label>
+      <input type="password" name="confirm_password" autocomplete="new-password" required>
+      <button type="submit">{{ _('Simpan Password Baru') }}</button>
+    </form>
+    <p style="color:#64748b; font-size:0.8rem;">
+      {{ _('Username tetap <b>%(user)s</b>. Kalau password baru ini sampai lupa, satu-satunya jalan adalah menghapus data aplikasi lewat Setelan Android (Info aplikasi &rarr; Penyimpanan &rarr; Hapus data) - password kembali ke bawaan, tapi <b>riwayat pelanggan ikut hilang</b>. Catat password baru di tempat aman.', user=username) }}
+    </p>
+
+    <h2>{{ _('Kunci Aplikasi') }}</h2>
+    <form method="post" action="{{ url_for('security_settings') }}">
+      <label style="display:flex; align-items:center; gap:10px; font-weight:500;">
+        <input type="checkbox" name="biometric_enabled" value="1" {{ 'checked' if settings.biometric_enabled else '' }} style="width:auto;">
+        {{ _('Boleh masuk pakai sidik jari') }}
+      </label>
+      <label style="display:flex; align-items:center; gap:10px; font-weight:500;">
+        <input type="checkbox" name="lock_on_leave" value="1" {{ 'checked' if settings.lock_on_leave else '' }} style="width:auto;">
+        {{ _('Kunci otomatis saat aplikasi ditutup / pindah ke aplikasi lain') }}
+      </label>
+      <label>{{ _('Kunci otomatis kalau tidak dipakai selama') }}</label>
+      <select name="idle_lock_minutes">
+        {% for minutes in idle_choices %}
+          <option value="{{ minutes }}" {{ 'selected' if settings.idle_lock_minutes == minutes else '' }}>
+            {{ _('Tidak pernah') if minutes == 0 else _('%(n)s menit', n=minutes) }}
+          </option>
+        {% endfor %}
+      </select>
+      <button type="submit">{{ _('Simpan Pengaturan Kunci') }}</button>
+    </form>
+
+    <h2>{{ _('Perlindungan tebak password') }}</h2>
+    <p style="color:#94a3b8; font-size:0.85rem; margin:0;">
+      {{ _('Salah password %(a)s kali berturut-turut: login ditahan %(b)s detik, lalu makin lama untuk tiap salah berikutnya (maksimal %(c)s menit). Berhasil masuk mereset hitungannya.', a=throttle_after, b=throttle_base, c=throttle_max // 60) }}
+    </p>
+
+    <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('&larr; Kembali') }}</a>
+    {{ lang_switch('/security') }}
+  </div>
+</body></html>
+"""
+
+
+_MAIN_PAGE = """
+<!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oru Go License</title><style>{{ style }}</style></head><body>
+  <div class="card">
+    <h1>{{ _('Buat Kode Aktivasi') }}</h1>
 
     {% if result %}
       <div class="error" style="background:#14532d; color:#bbf7d0;">
-        Kode buat <b>{{ result.shop_name }}</b> ({{ result.license_label }}) berhasil dibuat.
+        {{ _('Kode untuk <b>%(shop)s</b> (%(label)s) berhasil dibuat.', shop=result.shop_name, label=result.license_label) }}
       </div>
-      <label>Kode Aktivasi</label>
+      <label>{{ _('Kode Aktivasi') }}</label>
       <div class="result-code" id="resultCode">{{ result.activation_code }}</div>
-      <button type="button" onclick="copyText('resultCode')">Salin Kode Aktivasi</button>
+      <button type="button" onclick="copyText('resultCode')">{{ _('Salin Kode Aktivasi') }}</button>
       {% if result.wa_link %}
-        <a class="btn btn-secondary" href="{{ result.wa_link }}" target="_blank">Kirim lewat WhatsApp</a>
+        <a class="btn btn-secondary" href="{{ result.wa_link }}" target="_blank">{{ _('Kirim lewat WhatsApp') }}</a>
       {% endif %}
-      <a class="btn btn-secondary" href="{{ url_for('index') }}">+ Buat Kode Baru</a>
+      <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('+ Buat Kode Baru') }}</a>
     {% else %}
       {% if error %}<div class="error">{{ error }}</div>{% endif %}
       <form method="post" action="{{ url_for('generate') }}">
-        <label>Kode Perangkat (dari HP pembeli)</label>
+        <label>{{ _('Kode Perangkat (dari HP pembeli)') }}</label>
         <input type="text" name="device_code" autocapitalize="off" autocorrect="off" spellcheck="false" required>
 
-        <label>Nama Customer</label>
+        <label>{{ _('Nama Customer') }}</label>
         <input type="text" name="customer_name" required>
 
-        <label>Nama Toko/Kedai/Cafe</label>
+        <label>{{ _('Nama Toko/Kedai/Cafe') }}</label>
         <input type="text" name="shop_name" required>
 
-        <label>Alamat Toko</label>
+        <label>{{ _('Alamat Toko') }}</label>
         <input type="text" name="address">
 
-        <label>No HP</label>
-        <input type="tel" name="phone" placeholder="08xx atau 62xx">
+        <label>{{ _('No HP') }}</label>
+        <input type="tel" name="phone" placeholder="{{ _('08xx atau 62xx') }}">
 
-        <label>Jenis Lisensi</label>
+        <label>{{ _('Jenis Lisensi') }}</label>
         <div class="radio-row">
-          <label><input type="radio" name="license_choice" value="buy" checked> Beli Putus</label>
-          <label><input type="radio" name="license_choice" value="weekly"> Sewa Mingguan</label>
-          <label><input type="radio" name="license_choice" value="monthly"> Sewa Bulanan</label>
-          <label><input type="radio" name="license_choice" value="yearly"> Sewa Tahunan</label>
+          <label><input type="radio" name="license_choice" value="buy" checked> {{ _('Beli Putus') }}</label>
+          <label><input type="radio" name="license_choice" value="weekly"> {{ _('Sewa Mingguan') }}</label>
+          <label><input type="radio" name="license_choice" value="monthly"> {{ _('Sewa Bulanan') }}</label>
+          <label><input type="radio" name="license_choice" value="yearly"> {{ _('Sewa Tahunan') }}</label>
         </div>
 
-        <button type="submit">Generate Kode Aktivasi</button>
+        <button type="submit">{{ _('Buat Kode Aktivasi') }}</button>
       </form>
     {% endif %}
 
-    <h2>Riwayat ({{ records|length }} terakhir)</h2>
+    <h2>{{ _('Riwayat (%(n)s terakhir)', n=records|length) }}</h2>
     {% if records %}
       <table>
-        <tr><th>Toko</th><th>Jenis</th><th>Tgl</th><th></th></tr>
+        <tr><th>{{ _('Toko') }}</th><th>{{ _('Jenis') }}</th><th>{{ _('Tgl') }}</th><th></th></tr>
         {% for r in records %}
           <tr>
             <td>{{ r.shop_name }}<br><span class="badge">{{ r.customer_name }}</span></td>
-            <td>{{ license_labels['buy'] if r.license_type == 'buy' else license_labels[r.rental_period] }}
-                {% if r.expiry_token != 'PERMANENT' %}<br><span class="badge">s/d {{ r.expiry_token[0:4] }}-{{ r.expiry_token[4:6] }}-{{ r.expiry_token[6:8] }}</span>{% endif %}
+            <td>{{ _(license_labels['buy'] if r.license_type == 'buy' else license_labels[r.rental_period]) }}
+                {% if r.expiry_token != 'PERMANENT' %}<br><span class="badge">{{ _('s/d') }} {{ r.expiry_token[0:4] }}-{{ r.expiry_token[4:6] }}-{{ r.expiry_token[6:8] }}</span>{% endif %}
             </td>
             <td>{{ r.created_at[:10] }}</td>
             <td class="row-actions">
-              <button type="button" onclick="copyValue({{ r.activation_code|tojson }})">Salin</button>
+              <button type="button" onclick="copyValue({{ r.activation_code|tojson }})">{{ _('Salin') }}</button>
             </td>
           </tr>
         {% endfor %}
       </table>
     {% else %}
-      <p style="color:#64748b; font-size:0.85rem;">Belum ada riwayat.</p>
+      <p style="color:#64748b; font-size:0.85rem;">{{ _('Belum ada riwayat.') }}</p>
     {% endif %}
 
-    <form method="post" action="{{ url_for('lock') }}"><button type="submit" class="btn-secondary">Kunci App</button></form>
+    <a class="btn btn-secondary" href="{{ url_for('security_page') }}">{{ _('Keamanan') }}</a>
+    <form method="post" action="{{ url_for('lock') }}"><button type="submit" class="btn-secondary">{{ _('Kunci App') }}</button></form>
+    {{ lang_switch('/') }}
   </div>
   <script>
     function copyText(id) {
@@ -392,12 +748,19 @@ _MAIN_PAGE = """
 """
 
 
-def run(port, files_dir):
+def create_app(files_dir):
+    global _DATA_DIR
     data_dir = os.path.join(files_dir, "data")
     os.makedirs(data_dir, exist_ok=True)
+    _DATA_DIR = data_dir
     _init_db(data_dir)
 
     app = Flask(__name__)
+    app.jinja_env.globals.update(_=tr, lang_switch=lang_switch)
+
+    @app.context_processor
+    def _inject_language():
+        return {"lang": get_language()}
 
     secret_key_file = os.path.join(data_dir, "secret_key.txt")
     if os.path.exists(secret_key_file):
@@ -408,40 +771,140 @@ def run(port, files_dir):
         with open(secret_key_file, "w") as f:
             f.write(app.secret_key)
 
+    def _unlock_session():
+        session["unlocked"] = True
+        session["epoch"] = _lock_epoch
+        session["last_seen"] = time.time()
+
     @app.before_request
     def _require_unlock():
-        if request.endpoint in ("login", "biometric_unlock", "static"):
+        if request.endpoint in ("login", "biometric_unlock", "set_language", "static"):
             return None
-        if not session.get("unlocked"):
+        if not session.get("unlocked") or session.get("epoch") != _lock_epoch:
+            session.clear()
             return redirect(url_for("login"))
+        idle_minutes = load_security()["idle_lock_minutes"]
+        now = time.time()
+        if idle_minutes and now - session.get("last_seen", now) > idle_minutes * 60:
+            session.clear()
+            return redirect(url_for("login"))
+        session["last_seen"] = now
         return None
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
         error = None
-        if request.method == "POST":
-            if verify_login(request.form.get("username", ""), request.form.get("password", "")):
-                session["unlocked"] = True
-                return redirect(url_for("index"))
-            error = "Username atau password salah."
+        settings = load_security()
+        wait = login_wait_seconds()
 
-        return render_template_string(_LOGIN_PAGE, style=_LOGIN_STYLE, error=error)
+        if request.method == "POST":
+            if wait > 0:
+                error = tr("Terlalu banyak percobaan salah. Coba lagi %(wait)s detik lagi.", wait=wait)
+            elif verify_login(request.form.get("username", ""), request.form.get("password", ""),
+                              settings["password_hash"]):
+                _register_login_success()
+                _unlock_session()
+                return redirect(url_for("index"))
+            else:
+                _register_login_failure()
+                wait = login_wait_seconds()
+                error = tr("Username atau password salah.")
+                if wait > 0:
+                    error += tr(" Login ditahan %(wait)s detik.", wait=wait)
+        elif wait > 0:
+            error = tr("Login sedang ditahan %(wait)s detik karena terlalu banyak percobaan salah.", wait=wait)
+
+        return render_template_string(
+            _LOGIN_PAGE, style=_LOGIN_STYLE, error=error,
+            bio_enabled=bool(settings["biometric_enabled"]),
+        )
 
     @app.route("/biometric-unlock")
     def biometric_unlock():
-        # Sidik jari diverifikasi di sisi Android NATIVE (lihat
-        # MainActivity.AuthBridge/BiometricPrompt) SEBELUM WebView
-        # diarahkan ke sini - endpoint ini sendiri cuma penanda "sudah
-        # lolos" ke sesi Flask, tidak mengecek apa-apa lagi. Aman karena
-        # cuma bisa diakses dari 127.0.0.1 (HP itu sendiri), bukan dari
-        # jaringan luar.
-        session["unlocked"] = True
-        return redirect(url_for("index"))
+        # Sidik jari diverifikasi di sisi Android NATIVE (BiometricPrompt di
+        # MainActivity), lalu MainActivity MINTA token sekali-pakai ke
+        # Python (issue_unlock_token) dan baru membuka URL ini membawa
+        # token itu. Tanpa token yang sah, endpoint ini menolak - jadi
+        # aplikasi lain di HP yang menjangkau 127.0.0.1 tidak bisa
+        # melewati login.
+        if _consume_unlock_token(request.args.get("token", "")):
+            _unlock_session()
+            return redirect(url_for("index"))
+        return redirect(url_for("login"))
+
+    @app.route("/set-language/<code>")
+    def set_language(code):
+        if code in LANGS:
+            with _security_lock:
+                settings = load_security()
+                settings["language"] = code
+                save_security(settings)
+        target = request.args.get("next", "/")
+        if target not in ("/", "/login", "/security"):
+            target = "/"
+        return redirect(target)
 
     @app.route("/lock", methods=["POST"])
     def lock():
-        session.pop("unlocked", None)
+        session.clear()
         return redirect(url_for("login"))
+
+    def _render_security(message=None, message_ok=False):
+        return render_template_string(
+            _SECURITY_PAGE, style=_BASE_STYLE, settings=load_security(), message=message,
+            message_ok=message_ok, idle_choices=IDLE_CHOICES, min_length=MIN_PASSWORD_LENGTH,
+            username=LOGIN_USERNAME, throttle_after=THROTTLE_AFTER,
+            throttle_base=THROTTLE_BASE_SECONDS, throttle_max=THROTTLE_MAX_SECONDS,
+        )
+
+    @app.route("/security")
+    def security_page():
+        return _render_security()
+
+    @app.route("/security/password", methods=["POST"])
+    def security_password():
+        wait = login_wait_seconds()
+        if wait > 0:
+            return _render_security(tr("Terlalu banyak percobaan salah. Coba lagi %(wait)s detik lagi.", wait=wait))
+
+        old_password = request.form.get("old_password", "")
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        settings = load_security()
+
+        if not verify_login(LOGIN_USERNAME, old_password, settings["password_hash"]):
+            _register_login_failure()
+            return _render_security(tr("Password lama salah."))
+        if len(new_password) < MIN_PASSWORD_LENGTH:
+            return _render_security(tr("Password baru minimal %(n)s karakter.", n=MIN_PASSWORD_LENGTH))
+        if new_password != confirm_password:
+            return _render_security(tr("Password baru dan ulangannya tidak sama."))
+        if new_password == old_password:
+            return _render_security(tr("Password baru harus berbeda dari password lama."))
+
+        with _security_lock:
+            settings = load_security()
+            settings["password_hash"] = hash_password(new_password)
+            save_security(settings)
+        _register_login_success()
+        return _render_security(tr("Password berhasil diganti. Pakai password baru saat login berikutnya."), True)
+
+    @app.route("/security/settings", methods=["POST"])
+    def security_settings():
+        try:
+            idle_minutes = int(request.form.get("idle_lock_minutes", "0"))
+        except ValueError:
+            idle_minutes = 0
+        if idle_minutes not in IDLE_CHOICES:
+            idle_minutes = 0
+
+        with _security_lock:
+            settings = load_security()
+            settings["biometric_enabled"] = request.form.get("biometric_enabled") == "1"
+            settings["lock_on_leave"] = request.form.get("lock_on_leave") == "1"
+            settings["idle_lock_minutes"] = idle_minutes
+            save_security(settings)
+        return _render_security(tr("Pengaturan kunci disimpan."), True)
 
     @app.route("/")
     def index():
@@ -462,7 +925,7 @@ def run(port, files_dir):
         if not device_code or not customer_name or not shop_name:
             return render_template_string(
                 _MAIN_PAGE, style=_BASE_STYLE, result=None,
-                error="Kode Perangkat, Nama Customer, dan Nama Toko wajib diisi.",
+                error=tr("Kode Perangkat, Nama Customer, dan Nama Toko wajib diisi."),
                 records=_list_records(data_dir), license_labels=LICENSE_LABELS,
             )
 
@@ -478,10 +941,14 @@ def run(port, files_dir):
             "device_code": device_code, "expiry_token": expiry_token, "activation_code": activation_code,
         })
 
-        wa_message = f"Halo {customer_name}, ini Kode Aktivasi APK UMKM untuk {shop_name}:\n\n{activation_code}\n\nTempel ke kolom Kode Aktivasi di aplikasi."
+        wa_message = tr_plain(
+            "Halo %(name)s, ini Kode Aktivasi Oru POS GO untuk %(shop)s:\n\n%(code)s\n\n"
+            "Buka Oru POS GO, lalu tempel kode ini di kolom Kode Aktivasi.",
+            name=customer_name, shop=shop_name, code=activation_code,
+        )
         result = {
             "shop_name": shop_name,
-            "license_label": LICENSE_LABELS[license_choice],
+            "license_label": tr(LICENSE_LABELS[license_choice]),
             "activation_code": activation_code,
             "wa_link": _whatsapp_link(phone, wa_message),
         }
@@ -491,4 +958,9 @@ def run(port, files_dir):
             records=_list_records(data_dir), license_labels=LICENSE_LABELS,
         )
 
+    return app
+
+
+def run(port, files_dir):
+    app = create_app(files_dir)
     app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False, threaded=True)

@@ -15,5 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Generator Lisensi"
+rootProject.name = "Oru Go License"
 include ":app"
