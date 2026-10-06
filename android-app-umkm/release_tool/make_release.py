@@ -50,6 +50,9 @@ def main():
     parser.add_argument("--apk", default=DEFAULT_APK, help="path APK rilis (default: hasil assembleRelease)")
     parser.add_argument("--out", required=True, help="folder kerja repo rilis (hasil git clone)")
     parser.add_argument("--repo", default=DEFAULT_REPO, help="owner/nama repo rilis di GitHub")
+    parser.add_argument("--host", choices=["repo", "release"], default="repo",
+                        help="tempat APK: 'repo' = file ikut di-commit di repo rilis (APK < 100 MB), "
+                             "'release' = diunggah manual sebagai GitHub Release")
     parser.add_argument("--notes", default="", help="catatan perubahan yang tampil di dialog update")
     parser.add_argument("--mandatory", action="store_true", help="wajib update (dialog tidak bisa ditutup)")
     parser.add_argument("--min-supported", type=int, default=0,
@@ -68,10 +71,15 @@ def main():
     target = os.path.join(release_dir, apk_name)
     shutil.copyfile(args.apk, target)
 
+    if args.host == "repo":
+        apk_url = "https://raw.githubusercontent.com/%s/main/apk/%s" % (args.repo, apk_name)
+    else:
+        apk_url = "https://github.com/%s/releases/download/v%s/%s" % (args.repo, name, apk_name)
+
     manifest = {
         "versionCode": code,
         "versionName": name,
-        "apkUrl": "https://github.com/%s/releases/download/v%s/%s" % (args.repo, name, apk_name),
+        "apkUrl": apk_url,
         "sha256": sha256_of(target),
         "sizeBytes": os.path.getsize(target),
         "notes": args.notes,
@@ -89,9 +97,12 @@ def main():
     print("manifest  :", manifest_path)
     print()
     print("Langkah berikutnya (lihat RILIS.md):")
-    print("  1. GitHub > %s > Releases > Draft a new release, tag v%s," % (args.repo, name))
-    print("     unggah file %s lalu Publish." % apk_name)
-    print("  2. Di folder repo rilis: git add version.json && git commit && git push")
+    if args.host == "repo":
+        print("  Di folder repo rilis: git add version.json apk && git commit && git push")
+    else:
+        print("  1. GitHub > %s > Releases > Draft a new release, tag v%s," % (args.repo, name))
+        print("     unggah file %s lalu Publish." % apk_name)
+        print("  2. Di folder repo rilis: git add version.json && git commit && git push")
 
 
 if __name__ == "__main__":

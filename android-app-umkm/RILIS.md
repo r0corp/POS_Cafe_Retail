@@ -21,16 +21,21 @@ mengunduh APK dari GitHub Releases dan memeriksa SHA-256 sebelum memasang.
 2. Build rilis yang ditandatangani:
    `./gradlew.bat assembleRelease`
    (hasil: `app/build/outputs/apk/release/app-release.apk`)
-3. Siapkan file rilis:
+3. Siapkan file rilis (APK disimpan langsung di repo rilis):
    `python release_tool/make_release.py --notes "Catatan perubahan" --out "D:/10.  PROJECT/oru-go-releases"`
    (tambah `--mandatory` kalau semua pelanggan WAJIB update; atau
    `--min-supported <versionCode>` untuk memaksa update di bawah kode tertentu)
-4. GitHub -> repo `oru-go-releases` -> **Releases -> Draft a new release**:
-   tag `v<versionName>`, unggah `apk/oru-go-<versionName>.apk`, **Publish**.
-5. Di folder repo rilis: `git add version.json apk` (APK tidak perlu di-commit
-   kalau sudah diunggah sebagai Release; lihat `.gitignore` repo rilis),
-   `git commit`, `git push`. **Urutan penting: Release dulu, baru push
-   `version.json`**, supaya aplikasi tidak menawarkan update yang filenya belum ada.
+4. Di folder repo rilis: `git add version.json apk`, `git commit`, `git push`.
+   APK dan `version.json` naik dalam satu push, jadi aplikasi tidak pernah
+   melihat update yang filenya belum ada.
+5. Cek: buka `https://raw.githubusercontent.com/r0corp/oru-go-releases/main/version.json`
+   dan link `apkUrl` di dalamnya; ukuran dan SHA-256 harus sama dengan isi manifest.
+
+Batas: GitHub menolak file di atas 100 MB (APK sekarang ±52 MB) dan repo
+makin besar tiap versi (±52 MB per rilis). Kalau APK mendekati 100 MB atau
+repo sudah ratusan MB, pindah ke GitHub Releases: jalankan skrip dengan
+`--host release`, unggah APK sebagai Release (tag `v<versionName>`) dulu,
+baru push `version.json`.
 
 ## Yang terjadi di HP pelanggan
 
