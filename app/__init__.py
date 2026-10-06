@@ -358,6 +358,33 @@ def create_app(config_overrides=None):
                 db.session.rollback()
 
     @app.before_request
+    def close_stale_paid_orders_once_per_business_day():
+        # Sekali per hari bisnis per proses (bandingkan 1 string - gratis di
+        # request lain): pesanan lunas dari hari sebelumnya yang belum
+        # ditandai "Sudah Diantar" ditutup supaya tidak numpuk di Dashboard/
+        # Dapur & tidak menahan mejanya. Lihat app/housekeeping.py.
+        if request.endpoint in (None, "static"):
+            return
+
+        from .housekeeping import business_day_start, close_stale_paid_orders
+
+        business_day = business_day_start().date().isoformat()
+        if app.config.get("_STALE_ORDERS_CLOSED_FOR") == business_day:
+            return
+
+        try:
+            closed = close_stale_paid_orders()
+        except OperationalError:
+            # "database is locked" sesaat - coba lagi di request berikutnya,
+            # jangan bikin request yang sebenarnya jadi error 500.
+            db.session.rollback()
+            return
+
+        app.config["_STALE_ORDERS_CLOSED_FOR"] = business_day
+        if closed:
+            app.logger.info("Menutup %s pesanan lunas dari hari sebelumnya.", closed)
+
+    @app.before_request
     def enforce_active_user():
         # Kalau akun di-nonaktifkan (Pengaturan > Kelola Staf) SAAT user itu
         # masih login di device lain, sesi lamanya tidak otomatis mati
