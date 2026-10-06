@@ -46,12 +46,20 @@
         {% if site_settings.app_logo_filename %}
           <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
                alt="{{ cafe_name }}" style="height: 40px; max-width: 130px; object-fit: contain; border-radius: 8px;">
+        {% elif license_state is defined and license_state.mode != 'trial' %}
+          <img src="{{ url_for('static', filename='img/go-logo.png') }}" alt="GO" class="brand-go-logo">
         {% else %}
           <i class="bi bi-cup-hot-fill"></i>
         {% endif %}
       {% endif %}
       {% if navbar_display != 'logo' %}
         {{ cafe_name }}
+      {% endif %}
+      {% if license_state is defined and license_state.mode == 'trial' %}
+        <span class="trial-chip" role="link" title="{{ _('Aktifkan Lisensi') }}"
+              onclick="event.preventDefault(); window.location.href='/__activation';">
+          TRIAL<span class="trial-chip-days"> &middot; {{ license_state.days_left }} {{ _('hari') }}</span>
+        </span>
       {% endif %}
     </a>
 

@@ -88,7 +88,9 @@
   function wireCashierForms(root) {
     (root || document).querySelectorAll(".cash-pay-form").forEach(function (form) {
       const total = parseInt(form.dataset.total, 10);
-      const methodSelect = form.querySelector(".pay-method-select");
+      const methodInput = form.querySelector(".pay-method-input");
+      const methodButtons = form.querySelectorAll(".pay-method-btn");
+      const submitBtn = form.querySelector(".pay-submit-btn");
       const cashFields = form.querySelector(".cash-fields");
       const cashInput = form.querySelector(".cash-received-input");
       const changeLabel = form.querySelector(".change-label");
@@ -105,8 +107,23 @@
         changeAmount.classList.toggle("text-danger", isShort);
       }
 
-      methodSelect.addEventListener("change", function () {
-        if (methodSelect.value === "cash") {
+      function selectMethod(method) {
+        methodInput.value = method;
+        submitBtn.disabled = false;
+        methodButtons.forEach(function (btn) {
+          btn.classList.toggle("active", btn.dataset.method === method);
+        });
+
+        // Pilih QRIS -> langsung tampilkan kode QRIS-nya ke tamu (tap lagi
+        // untuk membukanya ulang). Modal-nya cuma ada kalau Owner sudah
+        // upload gambar QRIS di Pengaturan. Tombol Bayar sengaja TETAP di
+        // luar modal: kasir konfirmasi dulu uangnya masuk, baru menekan Bayar.
+        if (method === "qris") {
+          const qrisModal = document.getElementById("qrisModal" + form.dataset.orderId);
+          if (qrisModal) bootstrap.Modal.getOrCreateInstance(qrisModal).show();
+        }
+
+        if (method === "cash") {
           cashFields.classList.remove("d-none");
           cashInput.setAttribute("required", "required");
           updateChange();
@@ -114,6 +131,10 @@
           cashFields.classList.add("d-none");
           cashInput.removeAttribute("required");
         }
+      }
+
+      methodButtons.forEach(function (btn) {
+        btn.addEventListener("click", function () { selectMethod(btn.dataset.method); });
       });
 
       cashInput.addEventListener("input", function () {
@@ -123,7 +144,11 @@
       });
 
       form.addEventListener("submit", function (e) {
-        if (methodSelect.value === "cash") {
+        if (!methodInput.value) {
+          e.preventDefault();
+          return;
+        }
+        if (methodInput.value === "cash") {
           const received = parseInt(digitsOnly(cashInput.value), 10) || 0;
           if (received < total) {
             e.preventDefault();
@@ -154,7 +179,7 @@
     const active = document.activeElement;
     if (active && container.contains(active) && active.closest(".cash-pay-form")) return true;
     return Array.from(container.querySelectorAll(".cash-pay-form")).some(function (form) {
-      const method = form.querySelector(".pay-method-select");
+      const method = form.querySelector(".pay-method-input");
       const cash = form.querySelector(".cash-received-input");
       return (method && method.value) || (cash && cash.value);
     });

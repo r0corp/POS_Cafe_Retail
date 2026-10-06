@@ -261,6 +261,36 @@ def get_expired_notice(data_dir):
     return None
 
 
+def get_license_state(data_dir):
+    """Ringkasan status lisensi buat ditampilkan di UI (navbar, login,
+    Pengaturan) - dibaca ulang tiap request supaya begitu kode aktivasi
+    diterima, tampilannya langsung berubah tanpa tutup-buka app.
+
+      mode        - "trial" (belum pernah aktivasi), "rental" (kode sewa
+                    dengan tanggal habis), atau "permanent"
+      days_left   - sisa hari trial (mode "trial"), selain itu None
+      expiry_text - tanggal habis "YYYY-MM-DD" (mode "rental"), selain itu None
+      device_id   - kode perangkat (buat dikirim ke penjual)
+    """
+
+    device_id = get_device_id()
+    expiry_token = _read_activation_record(data_dir, device_id)
+
+    if expiry_token == "PERMANENT":
+        return {"mode": "permanent", "days_left": None, "expiry_text": None, "device_id": device_id}
+    if expiry_token is not None:
+        return {
+            "mode": "rental", "days_left": None, "device_id": device_id,
+            "expiry_text": f"{expiry_token[0:4]}-{expiry_token[4:6]}-{expiry_token[6:8]}",
+        }
+
+    trial = get_trial_info(data_dir)
+    return {
+        "mode": "trial", "days_left": trial["days_left"] if trial else 0,
+        "expiry_text": None, "device_id": device_id,
+    }
+
+
 def _save_activation(data_dir, device_id, code):
     with open(_activation_file(data_dir), "w", encoding="utf-8") as f:
         json.dump({"device_id": device_id, "code": code}, f)
@@ -312,6 +342,7 @@ _ACTIVATION_PAGE = """
     justify-content: center; gap: 8px; }
   .login-bio-btn { width: 100%; border: none; background: #334155; color: #e2e8f0; font-weight: 600;
     font-size: 0.85rem; padding: 12px; border-radius: 999px; margin-top: 12px; }
+  .login-back { display: block; margin-top: 16px; text-align: center; color: #94a3b8; font-size: 0.8rem; text-decoration: none; }
   .login-credit { margin-top: 18px; text-align: center; font-size: 0.78rem; color: #64748b; }
 </style>
 </head>
@@ -332,7 +363,7 @@ _ACTIVATION_PAGE = """
     </div>
     <h3 class="login-title">Oru POS GO</h3>
     <p class="login-subtitle">
-      {% if trial_expired %}Masa percobaan sudah berakhir{% elif expired_notice %}Masa aktif sudah berakhir{% else %}Aktivasi diperlukan untuk melanjutkan{% endif %}
+      {% if trial_expired %}Masa percobaan sudah berakhir{% elif expired_notice %}Masa aktif sudah berakhir{% elif state.mode == 'trial' %}Aktifkan Lisensi{% elif state.mode == 'rental' %}Perpanjang Lisensi{% else %}Aktivasi diperlukan untuk melanjutkan{% endif %}
     </p>
 
     <div class="login-notice {{ 'login-notice-warn' if (expired_notice or trial_expired) else '' }}">
@@ -340,6 +371,10 @@ _ACTIVATION_PAGE = """
         Masa aktif aplikasi ini sudah berakhir tanggal <b>{{ expired_notice }}</b>. Hubungi penjual untuk perpanjang, lalu tempel Kode Aktivasi baru di bawah.
       {% elif trial_expired %}
         Masa percobaan 7 hari sudah berakhir. Hubungi penjual untuk berlangganan/beli, lalu tempel <b>Kode Aktivasi</b> yang dikirim ke perangkat ini.
+      {% elif state.mode == 'trial' %}
+        Masih masa percobaan, sisa <b>{{ state.days_left }} hari</b>. Kirim <b>Kode Perangkat</b> di bawah ini ke penjual, lalu tempel <b>Kode Aktivasi</b> yang dikirim balik. Data toko Anda tetap aman setelah aktivasi.
+      {% elif state.mode == 'rental' %}
+        Lisensi aktif sampai <b>{{ state.expiry_text }}</b>. Untuk perpanjang, kirim <b>Kode Perangkat</b> di bawah ini ke penjual lalu tempel <b>Kode Aktivasi</b> baru.
       {% else %}
         Kirim <b>Kode Perangkat</b> di bawah ini ke penjual, lalu tempel <b>Kode Aktivasi</b> yang dikirim balik.
       {% endif %}
@@ -362,6 +397,7 @@ _ACTIVATION_PAGE = """
         Aktifkan
       </button>
     </form>
+    {% if can_go_back %}<a class="login-back" href="/">&larr; Kembali ke aplikasi</a>{% endif %}
   </div>
   <p class="login-credit">Orulabs &copy; 2026. All rights reserved.</p>
 </div>
@@ -427,6 +463,13 @@ def install_activation_gate(app, data_dir):
     aplikasi POS yang sesungguhnya - dipanggil sekali dari
     umkm_app.run() sesudah create_app(), sebelum app.run()."""
 
+    @app.context_processor
+    def _inject_license_state():
+        """license_state tersedia di SEMUA template (navbar, login,
+        Pengaturan) - dipakai buat bedain tampilan trial vs sudah aktif
+        dan buat tombol "Aktifkan Lisensi"."""
+        return {"license_state": get_license_state(data_dir)}
+
     @app.before_request
     def _check_activation():
         if request.path.startswith("/__activation"):
@@ -487,4 +530,6 @@ def install_activation_gate(app, data_dir):
             _ACTIVATION_PAGE, device_id=device_id, error=error,
             expired_notice=get_expired_notice(data_dir),
             trial_expired=bool(trial and trial["expired"]),
+            state=get_license_state(data_dir),
+            can_go_back=is_activated(data_dir),
         )

@@ -2017,8 +2017,8 @@ msgid "Kosongkan kalau WiFi tanpa password"
 msgstr "Leave empty if the WiFi has no password"
 
 #: app/templates/staff/settings_admin.html:143
-msgid "Lantai Toko"
-msgstr "Store Floors"
+msgid "Meja & Lantai"
+msgstr "Tables & Floors"
 
 #: app/templates/staff/settings_admin.html:146
 msgid ""

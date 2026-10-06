@@ -140,7 +140,7 @@
 
                 <div class="col-12 col-lg-3 settings-col-divider">
                   <div class="settings-section-title">
-                    <span class="settings-section-num">4</span> {{ _('Lantai Toko') }}
+                    <span class="settings-section-num">4</span> {{ _('Meja & Lantai') }}
                   </div>
 
                   <div class="d-flex align-items-center gap-3 mb-3">
@@ -682,10 +682,48 @@
       <!-- ============ SISTEM (Cache, Backup, Mode Demo) ============ -->
       <div class="tab-pane fade" id="tab-system">
         {% set cache_bar_colors = ['var(--color-accent)', 'var(--color-primary)', 'var(--color-warning)', 'var(--color-success)'] %}
+        {% if license_state is defined %}
+        <div class="row g-4 mb-4">
+          <div class="col-12 d-flex flex-column">
+            <div class="settings-section-title">
+              <span class="settings-section-num">1</span> {{ _('Lisensi Aplikasi') }}
+            </div>
+            <div class="card">
+              <div class="card-body system-card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                  <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-patch-check fs-2" style="color: var(--color-accent);"></i>
+                    <div>
+                      <div class="fw-semibold mb-1">{{ _('Status') }}</div>
+                      {% if license_state.mode == 'trial' %}
+                        <span class="badge-soft badge-status-pending" style="text-transform: none;">{{ _('Masa percobaan - sisa %(n)s hari', n=license_state.days_left) }}</span>
+                      {% elif license_state.mode == 'rental' %}
+                        <span class="badge-soft badge-status-served" style="text-transform: none;">{{ _('Aktif sampai %(d)s', d=license_state.expiry_text) }}</span>
+                      {% else %}
+                        <span class="badge-soft badge-status-served" style="text-transform: none;">{{ _('Aktif permanen') }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% if license_state.mode != 'permanent' %}
+                    <a href="/__activation" class="btn btn-accent">
+                      <i class="bi bi-patch-check"></i> {{ _('Aktifkan Lisensi') if license_state.mode == 'trial' else _('Perpanjang Lisensi') }}
+                    </a>
+                  {% endif %}
+                </div>
+                <p class="text-muted small mt-3 mb-0">
+                  {{ _('Kode Perangkat') }}: <code>{{ license_state.device_id }}</code>
+                  &mdash; {{ _('kirim kode ini ke penjual untuk mendapatkan Kode Aktivasi.') }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
         <div class="row g-4">
           <div class="col-sm-4 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">1</span> {{ _('Bersihkan Cache Aplikasi') }}
+              <span class="settings-section-num">2</span> {{ _('Bersihkan Cache Aplikasi') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -729,7 +767,7 @@
 
           <div class="col-sm-4 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">2</span> {{ _('Backup Database') }}
+              <span class="settings-section-num">3</span> {{ _('Backup Database') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -783,7 +821,7 @@
 
           <div class="col-sm-4 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">3</span> {{ _('Mode Demo') }}
+              <span class="settings-section-num">4</span> {{ _('Mode Demo') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -872,7 +910,7 @@
         <div class="row g-4 mt-0">
           <div class="col-sm-6 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">4</span> {{ _('Mode Perbaikan (Maintenance)') }}
+              <span class="settings-section-num">5</span> {{ _('Mode Perbaikan (Maintenance)') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -912,7 +950,7 @@
 
           <div class="col-sm-6 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">5</span> {{ _('Reset ke Mode Pabrik') }}
+              <span class="settings-section-num">6</span> {{ _('Reset ke Mode Pabrik') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">

@@ -13,10 +13,15 @@
       <div class="login-logo-circle">
         {% if site_settings.login_logo_filename %}
           <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.login_logo_filename) }}" alt="{{ cafe_name }}">
+        {% elif license_state is defined and license_state.mode != 'trial' %}
+          <img src="{{ url_for('static', filename='img/go-logo.png') }}" alt="GO">
         {% else %}
           <i class="bi bi-cup-hot-fill"></i>
         {% endif %}
       </div>
+      {% if license_state is defined and license_state.mode == 'trial' %}
+        <span class="login-trial-badge">TRIAL</span>
+      {% endif %}
     </div>
 
     <h3 class="login-title">{{ cafe_name }}</h3>
@@ -39,6 +44,16 @@
         <i class="bi bi-box-arrow-in-right"></i> {{ _('Login') }}
       </button>
     </form>
+
+    {% if license_state is defined and license_state.mode != 'permanent' %}
+      <a href="/__activation" class="login-license-btn">
+        <i class="bi bi-patch-check"></i>
+        {{ _('Aktifkan Lisensi') if license_state.mode == 'trial' else _('Perpanjang Lisensi') }}
+      </a>
+      {% if license_state.mode == 'trial' %}
+        <div class="login-license-hint">{{ _('Masa percobaan: sisa %(n)s hari', n=license_state.days_left) }}</div>
+      {% endif %}
+    {% endif %}
 
     <div class="login-divider"><span>{{ _('Preferensi Tampilan') }}</span></div>
 

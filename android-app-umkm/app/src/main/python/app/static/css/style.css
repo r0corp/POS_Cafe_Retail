@@ -2243,6 +2243,16 @@ textarea.form-control {
   color: var(--color-muted);
 }
 
+/* Di HP kartu cuma selebar setengah layar - "Makan di Tempat" terpotong
+   jadi "Makan di Te..." kalau dipaksa satu baris, jadi boleh turun baris. */
+@media (max-width: 575.98px) {
+  .order-type-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+
 .order-type-card:hover {
   border-left-color: var(--color-accent);
 }
@@ -2480,6 +2490,135 @@ textarea.form-control {
 .cart-bar .cart-count {
   font-size: 0.78rem;
   color: var(--color-muted);
+}
+
+/* Blok total di kiri jadi tombol - ditekan membuka daftar item yang sudah
+   dipilih (panel naik ke atas bar), supaya kasir bisa cek/hapus pesanan
+   tanpa scroll mencari kartu menunya satu-satu. */
+.cart-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.cart-summary-text {
+  display: block;
+}
+
+.cart-summary .cart-total,
+.cart-summary .cart-count {
+  display: block;
+}
+
+.cart-summary .cart-total {
+  white-space: nowrap;
+}
+
+.cart-summary-chevron {
+  color: var(--color-muted);
+  transition: transform 0.15s ease;
+}
+
+.cart-summary.is-open .cart-summary-chevron {
+  transform: rotate(180deg);
+}
+
+.cart-panel {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: min(420px, 100%);
+  max-height: min(50vh, 420px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-hover);
+  overflow: hidden;
+}
+
+.cart-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cart-panel-close {
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+
+.cart-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  overflow-y: auto;
+}
+
+.cart-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.9rem;
+}
+
+.cart-panel-row + .cart-panel-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.cart-panel-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cart-panel-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cart-panel-sub {
+  font-size: 0.74rem;
+  color: var(--color-muted);
+}
+
+.cart-panel-total {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cart-panel-remove {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-danger);
+}
+
+.cart-panel-remove:active {
+  background: var(--color-accent-light);
 }
 
 /* ============================================================
@@ -3207,7 +3346,8 @@ textarea.form-control {
 .seat-btn,
 .seat-qr-btn,
 .login-eye-btn,
-.qty-stepper button {
+.qty-stepper button,
+.pay-method-btn {
   border-radius: 999px;
 }
 
@@ -3231,7 +3371,8 @@ textarea.form-control {
 .seat-btn,
 .seat-qr-btn,
 .login-eye-btn,
-.qty-stepper button {
+.qty-stepper button,
+.pay-method-btn {
   box-shadow: var(--shadow-btn);
   transition: box-shadow 0.15s ease, transform 0.15s ease, background 0.15s ease;
 }
@@ -3251,7 +3392,8 @@ textarea.form-control {
 .seat-btn:hover,
 .seat-qr-btn:hover,
 .login-eye-btn:hover,
-.qty-stepper button:hover {
+.qty-stepper button:hover,
+.pay-method-btn:hover {
   box-shadow: var(--shadow-btn-hover);
 }
 
@@ -3266,21 +3408,42 @@ textarea.form-control {
   margin-top: auto;
 }
 
-/* Form bayar di Kasir - dua kolom sejajar: kiri = kontrol input
-   (metode, lalu uang diterima), kanan = hasil/aksi (tombol Bayar,
-   lalu kembalian/kurang) - kolom kanan & kiri selebar sama supaya
-   semua barisnya rapi berbaris ke bawah. */
-.cash-pay-form .pay-method-row,
+/* Form bayar di Kasir - pilih metode lewat dua tombol besar (Tunai |
+   QRIS, mudah di-tap di tablet), lalu (kalau Tunai) dua kolom sejajar:
+   kiri = uang diterima, kanan = kembalian/kurang - selebar sama supaya
+   barisnya rapi berbaris ke bawah. Tombol Bayar full-width di paling bawah. */
+.cash-pay-form .pay-method-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.cash-pay-form .pay-method-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.cash-pay-form .pay-method-btn.active {
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+  border-color: var(--color-accent);
+}
+
 .cash-pay-form .cash-fields-row {
   align-items: stretch;
 }
 
-.cash-pay-form .elegant-select,
 .cash-pay-form .cash-received-input {
   flex: 0 0 50%;
 }
 
-.cash-pay-form .pay-submit-btn,
 .cash-pay-form .change-amount {
   flex: 1;
 }
@@ -3579,4 +3742,78 @@ textarea.form-control {
   .toast-stack {
     width: calc(100vw - 24px);
   }
+}
+
+/* ---- Lisensi / trial (APK GO) ---- */
+.brand-go-logo {
+  height: 36px;
+  width: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.app-navbar .trial-chip {
+  flex-shrink: 0;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  line-height: 1;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--color-accent);
+  box-shadow: var(--shadow-btn);
+}
+
+.app-navbar .trial-chip-days {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.login-trial-badge {
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  transform: translateX(-50%);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--color-accent);
+  box-shadow: var(--shadow-btn);
+}
+
+.login-license-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-accent);
+  background: transparent;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 999px;
+}
+
+.login-license-btn:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.login-license-hint {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.74rem;
+  color: var(--color-muted);
 }

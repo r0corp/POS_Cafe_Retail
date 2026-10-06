@@ -35,6 +35,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from .. import db
+from ..imaging import MENU_PHOTO_MAX_SIDE, shrink_photo
 from ..backup import write_backup_zip
 from ..decorators import roles_required
 from ..inventory import check_and_deduct_stock, restore_stock_for_order
@@ -267,7 +268,10 @@ def _save_logo(
     if old_filename and old_filename != new_filename:
         _delete_file_after_commit(os.path.join(upload_folder, old_filename))
 
-    logo_file.save(os.path.join(upload_folder, new_filename))
+    saved_path = os.path.join(upload_folder, new_filename)
+    logo_file.save(saved_path)
+    if subfolder == "menu":
+        shrink_photo(saved_path, MENU_PHOTO_MAX_SIDE)
     setattr(obj, model_field, new_filename)
 
     return None
@@ -318,9 +322,19 @@ def dashboard():
         1 for ingredient in Ingredient.query.all() if ingredient.is_low_stock
     )
 
+    # Uang masuk hari ini per metode bayar (grand_total = yang benar-benar
+    # dibayar tamu) - tunai-nya yang harus cocok dengan isi laci kas, sisanya
+    # (QRIS) masuk rekening, bukan laci.
+    paid_today_by_method = {method: 0 for method in PAYMENT_METHODS}
+    for order in paid_orders_today:
+        if order.payment_method in paid_today_by_method:
+            paid_today_by_method[order.payment_method] += order.grand_total
+
     stats = {
         "active_count": len(active_orders),
         "sales_today": sum(order.total for order in paid_orders_today),
+        "cash_today": paid_today_by_method["cash"],
+        "qris_today": paid_today_by_method["qris"],
         "transactions_today": len(paid_orders_today),
         "unpaid_count": len(unpaid_orders),
     }
@@ -710,25 +724,24 @@ def new_order():
         table = None
         channel = None
 
-        # Kartu "Makan di Tempat" memang sudah disembunyikan di halaman
-        # ini kalau toko matikan "Pakai Meja" (lihat order_new.html), tapi
-        # tetap ditolak juga di sini - jaga-jaga request yang dipaksa
-        # lewat luar form biasa (bukan skenario yang wajar, cuma jaga-jaga).
-        if order_type == ORDER_TYPE_DINE_IN and not get_settings().uses_tables:
-            flash(_("Toko ini tidak pakai meja."), "danger")
-            return redirect(url_for("staff.new_order"))
-
-        if order_type == ORDER_TYPE_DINE_IN:
+        # Makan di Tempat boleh TANPA meja - tamu yang langsung ke kasir
+        # (tidak scan QR meja) tetap dicatat makan di tempat, bukan dipaksa
+        # "Bawa Pulang". Meja cuma dipakai kalau toko pakai meja DAN kasir
+        # memilihnya; kalau dipilih, aturannya sama seperti dulu (harus
+        # valid & belum terisi).
+        if order_type == ORDER_TYPE_DINE_IN and get_settings().uses_tables:
             table_id = request.form.get("table_id", type=int)
-            table = Table.query.get(table_id)
 
-            if not table:
-                flash(_("Meja tidak valid."), "danger")
-                return redirect(url_for("staff.new_order"))
+            if table_id:
+                table = Table.query.get(table_id)
 
-            if table.id in occupied_table_ids:
-                flash(_("Meja %(label)s sudah terisi pesanan lain.", label=table.label), "danger")
-                return redirect(url_for("staff.new_order"))
+                if not table:
+                    flash(_("Meja tidak valid."), "danger")
+                    return redirect(url_for("staff.new_order"))
+
+                if table.id in occupied_table_ids:
+                    flash(_("Meja %(label)s sudah terisi pesanan lain.", label=table.label), "danger")
+                    return redirect(url_for("staff.new_order"))
 
         elif order_type == ORDER_TYPE_OJOL:
             channel_id = request.form.get("channel_id", type=int)
@@ -790,8 +803,9 @@ def new_order():
             return redirect(url_for("staff.new_order"))
 
         flash(_("Pesanan untuk %(label)s berhasil dibuat.", label=order.display_label), "success")
-        if order_type in (ORDER_TYPE_OJOL, ORDER_TYPE_TAKEAWAY):
-            # Tamu/driver biasanya langsung menunggu di kasir - arahkan
+        if order_type in (ORDER_TYPE_OJOL, ORDER_TYPE_TAKEAWAY) or table is None:
+            # Tamu/driver (atau tamu makan di tempat tanpa meja) biasanya
+            # langsung menunggu di kasir - arahkan
             # langsung ke situ supaya kasir bisa langsung proses bayar &
             # cetak, tidak perlu muter dulu lewat Dashboard.
             return redirect(url_for("staff.cashier"))
@@ -836,10 +850,17 @@ def kitchen_status():
     "pending" lagi) juga ke-detect sebagai perubahan, bukan cuma diam-diam
     nyempil tanpa dapur pernah notice."""
 
-    signatures = [
-        f"{order.id}:{order.status}:{len(order.items)}"
-        for order in Order.query.filter(Order.status != "served").all()
-    ]
+    # Satu query teragregasi (COUNT per pesanan), bukan len(order.items) -
+    # itu 1 query tambahan PER PESANAN, di tiap tablet, tiap beberapa detik.
+    rows = (
+        db.session.query(Order.id, Order.status, func.count(OrderItem.id))
+        .outerjoin(OrderItem, OrderItem.order_id == Order.id)
+        .filter(Order.status != "served")
+        .group_by(Order.id, Order.status)
+        .order_by(Order.id)
+        .all()
+    )
+    signatures = [f"{order_id}:{status}:{item_count}" for order_id, status, item_count in rows]
     return {"order_ids": signatures}
 
 
@@ -948,15 +969,23 @@ def cashier():
     start = datetime.combine(today, time.min)
     end = datetime.combine(today, time.max)
 
+    # Dua query berurutan di sesi yang sama: kalau kasir lain menyelesaikan
+    # pembayaran DI ANTARA keduanya, objek Order yang sama sudah termuat
+    # sebagai "belum lunas" (paid_at kosong) lalu ikut keluar lagi di query
+    # ini - tanpa populate_existing() atributnya TIDAK diperbarui, dan
+    # cashier.html error 500 di order.paid_at.strftime(). populate_existing
+    # menyegarkan objek itu; sisanya dibuang dari daftar belum-lunas.
     paid_today = (
         Order.query.filter(
             Order.is_paid.is_(True),
             Order.paid_at >= start,
             Order.paid_at <= end,
         )
+        .populate_existing()
         .order_by(Order.paid_at.desc())
         .all()
     )
+    orders = [order for order in orders if not order.is_paid]
 
     return render_template("staff/cashier.html", orders=orders, paid_today=paid_today)
 
@@ -970,10 +999,15 @@ def cashier_status():
     yang berubah (nambah menu setelah kasir sempat lihat) ikut memicu
     notifikasi, bukan cuma pesanan yang benar-benar baru."""
 
-    signatures = [
-        f"{order.id}:{len(order.items)}"
-        for order in Order.query.filter_by(is_paid=False).all()
-    ]
+    rows = (
+        db.session.query(Order.id, func.count(OrderItem.id))
+        .outerjoin(OrderItem, OrderItem.order_id == Order.id)
+        .filter(Order.is_paid.is_(False))
+        .group_by(Order.id)
+        .order_by(Order.id)
+        .all()
+    )
+    signatures = [f"{order_id}:{item_count}" for order_id, item_count in rows]
     return {"order_ids": signatures}
 
 
@@ -1005,14 +1039,18 @@ def paid_order_status():
     start = datetime.combine(today, time.min)
     end = datetime.combine(today, time.max)
 
-    signatures = [
-        f"{order.id}:{order.paid_at.isoformat()}"
-        for order in Order.query.filter(
+    # Cuma 2 kolom (id, paid_at) - bukan objek Order penuh untuk SEMUA
+    # transaksi hari ini, padahal dipoll dari setiap halaman oleh Owner/Kasir.
+    rows = (
+        db.session.query(Order.id, Order.paid_at)
+        .filter(
             Order.is_paid.is_(True),
             Order.paid_at >= start,
             Order.paid_at <= end,
-        ).all()
-    ]
+        )
+        .all()
+    )
+    signatures = [f"{order_id}:{paid_at.isoformat()}" for order_id, paid_at in rows]
     return {"order_ids": signatures}
 
 
@@ -1718,17 +1756,14 @@ def toggle_menu_item(item_id):
 def delete_menu_item(item_id):
     item = MenuItem.query.get_or_404(item_id)
 
-    if item.order_items:
-        flash(
-            _(
-                "Menu %(name)s tidak bisa dihapus karena sudah punya riwayat "
-                "pesanan (dipakai di laporan/struk). Tandai \"Habis\" saja kalau "
-                "sudah tidak dijual.",
-                name=item.name,
-            ),
-            "danger",
-        )
-        return redirect(url_for("staff.admin_menu"))
+    # Menu yang sudah punya riwayat pesanan TETAP boleh dihapus Owner:
+    # OrderItem menyimpan snapshot nama & harga sendiri (name_snapshot/
+    # price_snapshot), jadi laporan & struk lama tidak butuh barisnya -
+    # cukup dilepas (menu_item_id jadi NULL, sama seperti baris tanpa
+    # menu yang sudah ditangani di app/inventory.py).
+    OrderItem.query.filter_by(menu_item_id=item.id).update(
+        {"menu_item_id": None}, synchronize_session=False
+    )
 
     _remove_logo(item, "photo", subfolder="menu")
 
@@ -1779,8 +1814,9 @@ def add_recipe_item(item_id):
     ingredient = Ingredient.query.get(ingredient_id) if ingredient_id else None
 
     if not ingredient or not quantity_used or quantity_used <= 0:
-        flash(_("Pilih bahan baku dan isi jumlah pemakaian dengan benar."), "warning")
-        return redirect(url_for("staff.admin_menu"))
+        return _recipe_response(
+            item, _("Pilih bahan baku dan isi jumlah pemakaian dengan benar."), "warning"
+        )
 
     existing = MenuItemIngredient.query.filter_by(
         menu_item_id=item.id, ingredient_id=ingredient.id
@@ -1798,8 +1834,9 @@ def add_recipe_item(item_id):
         )
 
     db.session.commit()
-    flash(_("Resep %(name)s berhasil diperbarui.", name=item.name), "success")
-    return redirect(url_for("staff.admin_menu"))
+    return _recipe_response(
+        item, _("Resep %(name)s berhasil diperbarui.", name=item.name), "success"
+    )
 
 
 @staff_bp.route("/admin/menu/<int:item_id>/recipe/<int:ingredient_id>/remove", methods=["POST"])
@@ -1808,9 +1845,28 @@ def remove_recipe_item(item_id, ingredient_id):
     row = MenuItemIngredient.query.filter_by(
         menu_item_id=item_id, ingredient_id=ingredient_id
     ).first_or_404()
+    item = row.menu_item
     db.session.delete(row)
     db.session.commit()
-    return redirect(url_for("staff.admin_menu"))
+    return _recipe_response(item, _("Bahan dihapus dari resep %(name)s.", name=item.name), "success")
+
+
+def _recipe_response(item, message, category):
+    """Balasan add/remove resep. Dari fetch (header X-Requested-With: fetch,
+    lihat menu_admin.html) balas JSON berisi HTML blok resep yang sudah
+    diperbarui supaya modal menu di halaman tidak ketutup; submit form
+    biasa (tanpa JS) tetap flash + redirect seperti dulu."""
+
+    if request.headers.get("X-Requested-With") != "fetch":
+        flash(message, category)
+        return redirect(url_for("staff.admin_menu"))
+
+    ingredients = Ingredient.query.order_by(Ingredient.name).all()
+    return jsonify(
+        message=message,
+        category=category,
+        html=render_template("staff/_menu_recipe.html", item=item, ingredients=ingredients),
+    )
 
 
 # ============================================================
@@ -2115,6 +2171,16 @@ def _period_report(start, end):
     ppn_collected = sum(order.ppn_amount or 0 for order in orders)
     transaction_count = len(orders)
 
+    # Uang masuk per metode bayar - pakai grand_total (yang benar-benar
+    # dibayar tamu, sudah termasuk PPN kalau aktif), jadi total semua
+    # metode = Total Penjualan + PPN Terkumpul.
+    payment_totals = {method: {"count": 0, "amount": 0} for method in PAYMENT_METHODS}
+    for order in orders:
+        bucket = payment_totals.get(order.payment_method)
+        if bucket is not None:
+            bucket["count"] += 1
+            bucket["amount"] += order.grand_total
+
     item_counts = {}
     items_sold = 0
 
@@ -2139,6 +2205,7 @@ def _period_report(start, end):
     return {
         "total_sales": total_sales,
         "ppn_collected": ppn_collected,
+        "payment_totals": payment_totals,
         "transaction_count": transaction_count,
         "items_sold": items_sold,
         "avg_per_transaction": (total_sales / transaction_count) if transaction_count else 0,
@@ -2281,6 +2348,10 @@ def export_report_excel(period_key):
         (_("Transaksi"), data["transaction_count"], "0"),
         (_("Rata-rata/Transaksi"), round(data["avg_per_transaction"]), rupiah_format),
         (_("Item Terjual"), data["items_sold"], "0"),
+        (_("Pembayaran Tunai (%(count)s transaksi)", count=data["payment_totals"]["cash"]["count"]),
+         data["payment_totals"]["cash"]["amount"], rupiah_format),
+        (_("Pembayaran QRIS (%(count)s transaksi)", count=data["payment_totals"]["qris"]["count"]),
+         data["payment_totals"]["qris"]["amount"], rupiah_format),
     ]
     row = 4
     for label, value, num_format in summary_rows:
@@ -2411,8 +2482,12 @@ def export_report_pdf(period_key):
         [_("Transaksi"), str(data["transaction_count"])],
         [_("Rata-rata/Transaksi"), f"Rp {data['avg_per_transaction']:,.0f}".replace(",", ".")],
         [_("Item Terjual"), str(data["items_sold"])],
+        [_("Pembayaran Tunai (%(count)s transaksi)", count=data["payment_totals"]["cash"]["count"]),
+         f"Rp {data['payment_totals']['cash']['amount']:,}".replace(",", ".")],
+        [_("Pembayaran QRIS (%(count)s transaksi)", count=data["payment_totals"]["qris"]["count"]),
+         f"Rp {data['payment_totals']['qris']['amount']:,}".replace(",", ".")],
     ]
-    summary_table = Table(summary_rows, colWidths=[55 * mm, 45 * mm])
+    summary_table = Table(summary_rows, colWidths=[70 * mm, 45 * mm])
     summary_table.setStyle(TableStyle([
         ("FONTSIZE", (0, 0), (-1, -1), 9),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),

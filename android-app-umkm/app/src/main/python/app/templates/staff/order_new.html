@@ -16,15 +16,16 @@
 
           <label class="form-label fw-semibold small">{{ _('Jenis Pesanan') }}</label>
           <div class="order-type-grid">
-            {% if site_settings.uses_tables %}
-            <button type="button" class="order-type-card active" data-order-type="{{ ORDER_TYPE_DINE_IN }}">
+            {# Makan di Tempat selalu tersedia - tamu yang langsung ke kasir
+               (tidak scan QR meja) tetap bisa dicatat makan di tempat, meja
+               boleh dikosongkan. #}
+            <button type="button" class="order-type-card{{ ' active' if site_settings.uses_tables }}" data-order-type="{{ ORDER_TYPE_DINE_IN }}">
               <span class="order-type-icon"><i class="bi bi-shop"></i></span>
               <span class="order-type-text">
                 <span class="order-type-name">{{ _('Makan di Tempat') }}</span>
-                <small>{{ _('Pilih meja') }}</small>
+                <small>{{ _('Meja opsional') if site_settings.uses_tables else _('Tanpa meja') }}</small>
               </span>
             </button>
-            {% endif %}
             <button type="button" class="order-type-card{{ ' active' if not site_settings.uses_tables }}" data-order-type="{{ ORDER_TYPE_TAKEAWAY }}">
               <span class="order-type-icon"><i class="bi bi-bag"></i></span>
               <span class="order-type-text">
@@ -55,8 +56,8 @@
             <div class="order-setup-col-table{{ ' d-none' if not site_settings.uses_tables }}" id="tableSelectWrap">
               <div class="order-inline-field">
                 <label class="order-inline-label" for="tableSelect">{{ _('Meja') }}</label>
-                <select name="table_id" id="tableSelect" class="form-select" data-elegant-select {% if site_settings.uses_tables %}required{% endif %} {% if not tables %}disabled{% endif %}>
-                  <option value="">{{ _('-- Pilih Meja --') }}</option>
+                <select name="table_id" id="tableSelect" class="form-select" data-elegant-select {% if not tables %}disabled{% endif %}>
+                  <option value="">{{ _('-- Tanpa Meja --') }}</option>
                   {% for table in tables %}
                     <option value="{{ table.id }}" {% if preselected_table_id == table.id %}selected{% endif %}>{{ table.label }} ({{ table.floor_label }})</option>
                   {% endfor %}
@@ -64,7 +65,7 @@
               </div>
               {% if not tables %}
                 <div class="small mt-2" style="color: var(--color-danger);">
-                  <i class="bi bi-exclamation-triangle-fill"></i> {{ _('Semua meja sedang terisi - tunggu salah satu kosong dulu.') }}
+                  <i class="bi bi-exclamation-triangle-fill"></i> {{ _('Semua meja sedang terisi - pesanan tetap bisa dibuat tanpa meja.') }}
                 </div>
               {% endif %}
             </div>
@@ -106,7 +107,7 @@
                   <div class="menu-item-card">
                     {% if item.photo %}
                       <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#viewPhotoModal{{ item.id }}" title="{{ _('Perbesar foto') }}">
-                        <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                        <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}" loading="lazy" decoding="async">
                         <i class="bi bi-arrows-fullscreen thumb-hint-icon"></i>
                         <div class="menu-item-overlay">
                           <div class="menu-item-name">{{ item.name }}</div>
@@ -137,7 +138,7 @@
                         <div class="modal-content">
                           <div class="modal-body p-0">
                             <div class="photo-preview-zoom">
-                              <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                              <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}" loading="lazy" decoding="async">
                               <div class="menu-item-overlay">
                                 <div class="menu-item-name">{{ item.name }}</div>
                                 <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
@@ -159,10 +160,20 @@
 
   <div class="cart-bar-spacer"></div>
   <div class="cart-bar">
-    <div>
-      <div class="cart-total" id="cartTotal">Rp 0</div>
-      <div class="cart-count" id="cartCount">{{ _('Belum ada item dipilih') }}</div>
+    <div class="cart-panel d-none" id="cartPanel" role="dialog" aria-label="{{ _('Daftar pesanan') }}">
+      <div class="cart-panel-head">
+        <span>{{ _('Daftar pesanan') }}</span>
+        <button type="button" class="cart-panel-close" id="cartPanelClose" aria-label="{{ _('Tutup') }}"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <ul class="cart-panel-list" id="cartPanelList"></ul>
     </div>
+    <button type="button" class="cart-summary" id="cartToggle" aria-expanded="false" aria-controls="cartPanel" title="{{ _('Lihat daftar pesanan') }}">
+      <span class="cart-summary-text">
+        <span class="cart-total" id="cartTotal">Rp 0</span>
+        <span class="cart-count" id="cartCount">{{ _('Belum ada item dipilih') }}</span>
+      </span>
+      <i class="bi bi-chevron-up cart-summary-chevron"></i>
+    </button>
     <button type="submit" class="btn btn-accent btn-lg" id="submitBtn" disabled>
       <i class="bi bi-check2"></i> {{ _('Buat Pesanan') }}
     </button>
@@ -176,7 +187,9 @@
 
   const CART_ITEMS_SELECTED_LABEL = {{ _('item dipilih')|tojson }};
   const CART_EMPTY_LABEL = {{ _('Belum ada item dipilih')|tojson }};
+  const CART_REMOVE_LABEL = {{ _('Hapus')|tojson }};
   const ORDER_TYPE_DINE_IN = {{ ORDER_TYPE_DINE_IN|tojson }};
+  const USES_TABLES = {{ site_settings.uses_tables|tojson }};
 
   let currentChannelId = null;
 
@@ -212,8 +225,76 @@
     document.getElementById("cartTotal").textContent = formatRupiah(total);
     document.getElementById("cartCount").textContent = count > 0 ? (count + " " + CART_ITEMS_SELECTED_LABEL) : CART_EMPTY_LABEL;
     document.getElementById("submitBtn").disabled = count === 0;
+    renderCartPanel(count);
     if (window.adjustFooterClearance) window.adjustFooterClearance();
   }
+
+  const cartPanel = document.getElementById("cartPanel");
+  const cartPanelList = document.getElementById("cartPanelList");
+  const cartToggle = document.getElementById("cartToggle");
+
+  function setCartPanelOpen(open) {
+    cartPanel.classList.toggle("d-none", !open);
+    cartToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    cartToggle.classList.toggle("is-open", open);
+  }
+
+  function renderCartPanel(count) {
+    cartPanelList.textContent = "";
+
+    document.querySelectorAll(".qty-stepper").forEach((stepper) => {
+      const input = stepper.querySelector(".qty-input");
+      const qty = parseInt(input.value, 10) || 0;
+      if (qty <= 0) return;
+
+      const card = stepper.closest(".menu-item-card");
+      const name = card.querySelector(".menu-item-name").textContent.trim();
+      const price = effectivePrice(stepper);
+
+      const row = document.createElement("li");
+      row.className = "cart-panel-row";
+
+      const info = document.createElement("div");
+      info.className = "cart-panel-info";
+      const nameEl = document.createElement("div");
+      nameEl.className = "cart-panel-name";
+      nameEl.textContent = name;
+      const subEl = document.createElement("div");
+      subEl.className = "cart-panel-sub";
+      subEl.textContent = qty + " × " + formatRupiah(price);
+      info.append(nameEl, subEl);
+
+      const lineTotal = document.createElement("div");
+      lineTotal.className = "cart-panel-total";
+      lineTotal.textContent = formatRupiah(price * qty);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "cart-panel-remove";
+      removeBtn.title = CART_REMOVE_LABEL;
+      removeBtn.setAttribute("aria-label", CART_REMOVE_LABEL + " " + name);
+      removeBtn.innerHTML = '<i class="bi bi-trash3"></i>';
+      removeBtn.addEventListener("click", () => {
+        input.value = 0;
+        refreshRowState(stepper);
+        updateCart();
+      });
+
+      row.append(info, lineTotal, removeBtn);
+      cartPanelList.appendChild(row);
+    });
+
+    if (count === 0) setCartPanelOpen(false);
+  }
+
+  cartToggle.addEventListener("click", () => setCartPanelOpen(cartPanel.classList.contains("d-none")));
+  document.getElementById("cartPanelClose").addEventListener("click", () => setCartPanelOpen(false));
+  document.addEventListener("click", (e) => {
+    // e.target.isConnected: tombol hapus dicabut dari DOM saat daftar dirender
+    // ulang (renderCartPanel), jadi closest(".cart-bar") di sini sudah null
+    // padahal klik-nya di dalam panel - jangan dianggap klik di luar.
+    if (!cartPanel.classList.contains("d-none") && e.target.isConnected && !e.target.closest(".cart-bar")) setCartPanelOpen(false);
+  });
 
   const orderTypeInput = document.getElementById("orderTypeInput");
   const channelIdInput = document.getElementById("channelIdInput");
@@ -234,9 +315,8 @@
       currentChannelId = channelId || null;
 
       const isDineIn = orderType === ORDER_TYPE_DINE_IN;
-      tableSelectWrap.classList.toggle("d-none", !isDineIn);
-      tableSelect.required = isDineIn;
-      if (!isDineIn) tableSelect.value = "";
+      tableSelectWrap.classList.toggle("d-none", !(isDineIn && USES_TABLES));
+      if (!isDineIn || !USES_TABLES) tableSelect.value = "";
 
       refreshPriceLabels();
       updateCart();

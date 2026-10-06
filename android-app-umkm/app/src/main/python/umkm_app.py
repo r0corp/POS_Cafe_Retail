@@ -53,10 +53,41 @@ def _ensure_writable_static(bundled_static_dir, writable_static_dir):
     app/blueprints/staff.py yang nyimpen upload TIDAK perlu diubah sama
     sekali - dia cuma tahu "static_folder", tidak peduli itu di mana."""
 
-    if os.path.exists(writable_static_dir):
+    if not os.path.exists(writable_static_dir):
+        shutil.copytree(bundled_static_dir, writable_static_dir)
         return
 
-    shutil.copytree(bundled_static_dir, writable_static_dir)
+    _refresh_bundled_assets(bundled_static_dir, writable_static_dir)
+
+
+def _file_md5(path):
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _refresh_bundled_assets(bundled_static_dir, writable_static_dir):
+    """Salinan static/ cuma dibuat sekali (di atas), jadi CSS/JS dari APK
+    yang baru dipasang TIDAK ikut terpakai - tampilan dan skrip tetap versi
+    APK lama. Di sini css/ dan js/ disamakan lagi dengan isi APK tiap app
+    dibuka (dibandingkan lewat hash, jadi hampir tanpa biaya kalau tidak
+    ada yang berubah). Folder upload (foto menu, logo, QR) tidak disentuh."""
+
+    for sub in ("css", "js"):
+        src_dir = os.path.join(bundled_static_dir, sub)
+        dst_dir = os.path.join(writable_static_dir, sub)
+        if not os.path.isdir(src_dir):
+            continue
+        os.makedirs(dst_dir, exist_ok=True)
+        for name in os.listdir(src_dir):
+            src = os.path.join(src_dir, name)
+            dst = os.path.join(dst_dir, name)
+            if not os.path.isfile(src):
+                continue
+            if not os.path.exists(dst) or _file_md5(src) != _file_md5(dst):
+                shutil.copyfile(src, dst)
 
 
 def run(port, files_dir):

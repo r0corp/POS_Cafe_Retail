@@ -43,7 +43,7 @@
           <div class="menu-item-card">
             {% if item.photo %}
               <button type="button" class="menu-item-thumb border-0 p-0 w-100" data-bs-toggle="modal" data-bs-target="#viewPhotoModal{{ item.id }}" title="{{ _('Perbesar foto') }}">
-                <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}" loading="lazy" decoding="async">
                 <i class="bi bi-arrows-fullscreen thumb-hint-icon"></i>
                 <div class="menu-item-overlay">
                   <div class="menu-item-name">{{ item.name }}</div>
@@ -74,7 +74,7 @@
                 <div class="modal-content">
                   <div class="modal-body p-0">
                     <div class="photo-preview-zoom">
-                      <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}">
+                      <img src="{{ url_for('static', filename='uploads/menu/' + item.photo) }}" alt="{{ item.name }}" loading="lazy" decoding="async">
                       <div class="menu-item-overlay">
                         <div class="menu-item-name">{{ item.name }}</div>
                         <div class="menu-item-price">Rp {{ "{:,}".format(item.price).replace(",", ".") }}</div>
@@ -92,10 +92,20 @@
 
   <div class="cart-bar-spacer"></div>
   <div class="cart-bar">
-    <div>
-      <div class="cart-total" id="cartTotal">Rp 0</div>
-      <div class="cart-count" id="cartCount">{{ _('Belum ada item dipilih') }}</div>
+    <div class="cart-panel d-none" id="cartPanel" role="dialog" aria-label="{{ _('Daftar pesanan') }}">
+      <div class="cart-panel-head">
+        <span>{{ _('Daftar pesanan') }}</span>
+        <button type="button" class="cart-panel-close" id="cartPanelClose" aria-label="{{ _('Tutup') }}"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <ul class="cart-panel-list" id="cartPanelList"></ul>
     </div>
+    <button type="button" class="cart-summary" id="cartToggle" aria-expanded="false" aria-controls="cartPanel" title="{{ _('Lihat daftar pesanan') }}">
+      <span class="cart-summary-text">
+        <span class="cart-total" id="cartTotal">Rp 0</span>
+        <span class="cart-count" id="cartCount">{{ _('Belum ada item dipilih') }}</span>
+      </span>
+      <i class="bi bi-chevron-up cart-summary-chevron"></i>
+    </button>
     <button type="submit" class="btn btn-accent btn-lg" id="submitBtn" disabled>
       {% if editing_order %}
         <i class="bi bi-plus-circle"></i> {{ _('Tambah ke Pesanan') }}
@@ -132,8 +142,79 @@
     document.getElementById("cartCount").textContent =
       count > 0 ? count + " {{ _('item dipilih') }}" : "{{ _('Belum ada item dipilih') }}";
     document.getElementById("submitBtn").disabled = count === 0;
+    renderCartPanel(count);
     if (window.adjustFooterClearance) window.adjustFooterClearance();
   }
+
+  const CART_REMOVE_LABEL = {{ _('Hapus')|tojson }};
+  const cartPanel = document.getElementById("cartPanel");
+  const cartPanelList = document.getElementById("cartPanelList");
+  const cartToggle = document.getElementById("cartToggle");
+
+  function setCartPanelOpen(open) {
+    cartPanel.classList.toggle("d-none", !open);
+    cartToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    cartToggle.classList.toggle("is-open", open);
+  }
+
+  function renderCartPanel(count) {
+    cartPanelList.textContent = "";
+
+    document.querySelectorAll(".qty-stepper").forEach((stepper) => {
+      const input = stepper.querySelector(".qty-input");
+      const qty = parseInt(input.value, 10) || 0;
+      if (qty <= 0) return;
+
+      // Nama ada di .menu-item-name (kartu berfoto) atau
+      // .menu-item-plain-name (kartu tanpa foto).
+      const card = stepper.closest(".menu-item-card");
+      const nameSource = card.querySelector(".menu-item-name, .menu-item-plain-name");
+      const name = nameSource ? nameSource.textContent.trim() : "";
+      const price = parseInt(stepper.dataset.price, 10);
+
+      const row = document.createElement("li");
+      row.className = "cart-panel-row";
+
+      const info = document.createElement("div");
+      info.className = "cart-panel-info";
+      const nameEl = document.createElement("div");
+      nameEl.className = "cart-panel-name";
+      nameEl.textContent = name;
+      const subEl = document.createElement("div");
+      subEl.className = "cart-panel-sub";
+      subEl.textContent = qty + " × " + formatRupiah(price);
+      info.append(nameEl, subEl);
+
+      const lineTotal = document.createElement("div");
+      lineTotal.className = "cart-panel-total";
+      lineTotal.textContent = formatRupiah(price * qty);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "cart-panel-remove";
+      removeBtn.title = CART_REMOVE_LABEL;
+      removeBtn.setAttribute("aria-label", CART_REMOVE_LABEL + " " + name);
+      removeBtn.innerHTML = '<i class="bi bi-trash3"></i>';
+      removeBtn.addEventListener("click", () => {
+        input.value = 0;
+        updateCart();
+      });
+
+      row.append(info, lineTotal, removeBtn);
+      cartPanelList.appendChild(row);
+    });
+
+    if (count === 0) setCartPanelOpen(false);
+  }
+
+  cartToggle.addEventListener("click", () => setCartPanelOpen(cartPanel.classList.contains("d-none")));
+  document.getElementById("cartPanelClose").addEventListener("click", () => setCartPanelOpen(false));
+  document.addEventListener("click", (e) => {
+    // e.target.isConnected: tombol hapus dicabut dari DOM saat daftar dirender
+    // ulang, jadi closest(".cart-bar") sudah null padahal klik-nya di dalam
+    // panel - jangan dianggap klik di luar.
+    if (!cartPanel.classList.contains("d-none") && e.target.isConnected && !e.target.closest(".cart-bar")) setCartPanelOpen(false);
+  });
 
   document.querySelectorAll(".qty-stepper").forEach((stepper) => {
     const input = stepper.querySelector(".qty-input");
