@@ -106,6 +106,14 @@
       }
 
       methodSelect.addEventListener("change", function () {
+        // Pilih QRIS -> langsung tampilkan kode QRIS-nya ke tamu, kasir tidak
+        // perlu menekan "Tampilkan QRIS" lagi. Modal-nya cuma ada kalau Owner
+        // sudah upload gambar QRIS di Pengaturan.
+        if (methodSelect.value === "qris") {
+          const qrisModal = document.getElementById("qrisModal" + form.dataset.orderId);
+          if (qrisModal) bootstrap.Modal.getOrCreateInstance(qrisModal).show();
+        }
+
         if (methodSelect.value === "cash") {
           cashFields.classList.remove("d-none");
           cashInput.setAttribute("required", "required");
