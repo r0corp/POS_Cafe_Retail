@@ -3391,3 +3391,9 @@ msgstr "Send active status to the seller"
 
 msgid "Yang dikirim hanya: Kode Perangkat, versi aplikasi, status lisensi, dan waktu aktif. Tidak ada data penjualan atau isi toko. Dipakai penjual untuk mengingatkan perpanjangan dan membantu bila ada masalah. Bisa dimatikan kapan saja."
 msgstr "Only this is sent: Device Code, app version, license status, and time active. No sales data or store contents. The seller uses it to remind about renewals and to help when there is a problem. You can turn it off at any time."
+
+msgid "Pesan dari penjual aplikasi"
+msgstr "Message from the app seller"
+
+msgid "Tutup"
+msgstr "Close"

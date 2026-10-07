@@ -105,3 +105,66 @@ def test_state_hidden_until_endpoint_is_set(tmp_path, monkeypatch):
     assert monitor.state(str(tmp_path))["available"] is False
     monkeypatch.setattr(monitor, "ENDPOINT", "https://x.workers.dev")
     assert monitor.state(str(tmp_path))["available"] is True
+
+
+# ---- siaran dari penjual ----
+
+@pytest.fixture
+def server_with_msg():
+    reply = {"ok": True, "msg": {"id": "abc1", "text": "Update 1.0.7 sudah tersedia"}}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(reply).encode())
+
+        def log_message(self, *a):
+            pass
+
+    srv = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    yield "http://127.0.0.1:%d" % srv.server_port, reply
+    srv.shutdown()
+
+
+def test_message_stored_shown_dismissed_and_not_reshown(tmp_path, monkeypatch, server_with_msg):
+    url, reply = server_with_msg
+    _state(monkeypatch)
+    data = str(tmp_path)
+    assert monitor.pending_message(data) is None
+    assert monitor.send_once(data, endpoint=url, version="1.0.6") is True
+    assert monitor.pending_message(data) == {"id": "abc1", "text": "Update 1.0.7 sudah tersedia"}
+
+    monitor.dismiss_message(data)
+    assert monitor.pending_message(data) is None
+    monitor.send_once(data, endpoint=url, version="1.0.6")           # id sama dikirim lagi
+    assert monitor.pending_message(data) is None                     # tidak muncul ulang
+
+    reply["msg"] = {"id": "abc2", "text": "Promo perpanjangan"}      # siaran baru
+    monitor.send_once(data, endpoint=url, version="1.0.6")
+    assert monitor.pending_message(data)["text"] == "Promo perpanjangan"
+
+
+def test_message_is_sanitised_and_bounded(tmp_path):
+    data = str(tmp_path)
+    monitor.store_message(data, {"id": "x" * 100, "text": "a" + chr(0) + "b" + chr(7) + "c" + chr(10) + "d " + "z" * 500})
+    msg = monitor.pending_message(data)
+    assert len(msg["id"]) == 32
+    assert msg["text"].startswith("abc" + chr(10) + "d z") and len(msg["text"]) == monitor.MAX_MESSAGE_CHARS
+    for junk in (None, "teks", {"id": "", "text": "x"}, {"id": "1", "text": "  "}, {"text": "x"}):
+        before = monitor.pending_message(data)
+        monitor.store_message(data, junk)
+        assert monitor.pending_message(data) == before
+
+
+def test_banner_hidden_unless_installed_and_enabled(tmp_path, monkeypatch):
+    data = str(tmp_path)
+    monitor.store_message(data, {"id": "1", "text": "halo"})
+    assert monitor.message_for_template(data) is None                # ENDPOINT kosong
+    monkeypatch.setattr(monitor, "ENDPOINT", "https://x.example")
+    assert monitor.message_for_template(data)["text"] == "halo"
+    monitor.set_enabled(data, False)
+    assert monitor.message_for_template(data) is None                # dimatikan pemakai

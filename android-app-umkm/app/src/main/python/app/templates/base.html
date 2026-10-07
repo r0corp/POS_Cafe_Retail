@@ -370,6 +370,17 @@
 </script>
 
 <div class="container-fluid pb-5 has-fixed-footer">
+  {% if broadcast_message is defined and broadcast_message and current_user.is_authenticated and current_user.role == 'owner' %}
+    <form method="post" action="{{ url_for('staff.broadcast_dismiss') }}" class="alert alert-info d-flex align-items-start gap-2 mt-3 mb-3" role="alert">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <i class="bi bi-megaphone-fill mt-1"></i>
+      <div class="flex-grow-1">
+        <div class="fw-semibold small">{{ _('Pesan dari penjual aplikasi') }}</div>
+        <div class="small" style="white-space: pre-line; word-break: break-word;">{{ broadcast_message.text }}</div>
+      </div>
+      <button type="submit" class="btn-close" aria-label="{{ _('Tutup') }}"></button>
+    </form>
+  {% endif %}
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="toast-stack" id="toastStack">

@@ -508,7 +508,8 @@ def install_activation_gate(app, data_dir):
         dan buat tombol "Aktifkan Lisensi"."""
         import monitor
 
-        return {"license_state": get_license_state(data_dir), "monitor_state": monitor.state(data_dir)}
+        return {"license_state": get_license_state(data_dir), "monitor_state": monitor.state(data_dir),
+                "broadcast_message": monitor.message_for_template(data_dir)}
 
     @app.before_request
     def _check_activation():

@@ -27,6 +27,9 @@ DEVICE_C = "CCCCCCCCCCCCCCCC"
 class _Stub:
     def __init__(self):
         self.devices = []
+        self.broadcast = None
+        self.puts = []
+        self.put_status = 200
         self.status = 200
         stub = self
 
@@ -39,7 +42,13 @@ class _Stub:
                 self.send_response(stub.status)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
-                self.wfile.write(json.dumps({"ok": True, "devices": stub.devices}).encode())
+                self.wfile.write(json.dumps({"ok": True, "devices": stub.devices, "broadcast": stub.broadcast}).encode())
+
+            def do_PUT(self):
+                body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
+                stub.puts.append((self.path, body, self.headers.get("Authorization")))
+                self.send_response(stub.put_status)
+                self.end_headers()
 
             def log_message(self, *args):
                 pass
@@ -155,3 +164,42 @@ def test_page_requires_unlock(tmp_path):
     for path in ("/pantau",):
         assert c.get(path).status_code == 302
     assert c.post("/pantau/simpan", data={"url": "https://a.b", "token": "t"}).status_code == 302
+
+
+def test_broadcast_is_sent_with_token_and_days(client, stub):
+    _connect(client, stub)
+    html = client.post("/pantau/siaran", data={"text": "  Update 1.0.7 tersedia  ", "days": "14"},
+                       follow_redirects=True).get_data(as_text=True)
+    assert stub.puts == [("/v1/broadcast", {"text": "Update 1.0.7 tersedia", "days": 14}, "Bearer " + TOKEN)]
+    assert "Siaran terkirim" in html
+    assert "Siaran terkirim" not in client.get("/pantau").get_data(as_text=True)      # pemberitahuan hanya sekali
+
+
+def test_current_broadcast_shown_and_can_be_deleted(client, stub):
+    stub.broadcast = {"id": "a1", "text": "Promo perpanjangan <b>x</b>"}
+    html = _connect(client, stub).get_data(as_text=True)
+    assert "Promo perpanjangan &lt;b&gt;x&lt;/b&gt;" in html and "Hapus siaran" in html
+    client.post("/pantau/siaran", data={"text": "", "days": "7"})
+    assert stub.puts[-1][1]["text"] == ""
+    assert "Siaran dihapus" in client.get("/pantau").get_data(as_text=True)
+
+
+def test_broadcast_validation_and_failure(client, stub):
+    _connect(client, stub)
+    html = client.post("/pantau/siaran", data={"text": "x" * 281, "days": "7"}, follow_redirects=True).get_data(as_text=True)
+    assert "Siaran tidak valid" in html
+    html = client.post("/pantau/siaran", data={"text": "ok", "days": "999"}, follow_redirects=True).get_data(as_text=True)
+    assert "Siaran tidak valid" in html
+    assert stub.puts == []
+    stub.put_status = 401
+    html = client.post("/pantau/siaran", data={"text": "ok", "days": "7"}, follow_redirects=True).get_data(as_text=True)
+    assert "Gagal mengirim siaran" in html
+
+
+def test_broadcast_without_connection_and_without_unlock(client, tmp_path, stub):
+    assert client.post("/pantau/siaran", data={"text": "x", "days": "7"}).status_code == 302
+    assert stub.puts == []
+    generator_app._lock_epoch = 0
+    c = generator_app.create_app(str(tmp_path / "lain")).test_client()
+    assert c.post("/pantau/siaran", data={"text": "x"}).status_code == 302
+    assert "/login" in c.post("/pantau/siaran", data={"text": "x"}).headers["Location"]

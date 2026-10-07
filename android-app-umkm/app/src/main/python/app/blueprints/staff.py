@@ -3983,6 +3983,16 @@ def monitor_toggle():
     return redirect(url_for("staff.admin_settings"))
 
 
+@staff_bp.route("/admin/system/broadcast/dismiss", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def broadcast_dismiss():
+    """Tutup banner siaran dari penjual (muncul lagi hanya bila siarannya baru)."""
+    import monitor
+
+    monitor.dismiss_message(current_app.config["LICENSE_DATA_DIR"])
+    return redirect(request.referrer or url_for("staff.admin_settings"))
+
+
 @staff_bp.route("/admin/system/maintenance-mode/toggle", methods=["POST"])
 @roles_required(ROLE_OWNER)
 def maintenance_mode_toggle():

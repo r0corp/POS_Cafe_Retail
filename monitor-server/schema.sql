@@ -11,3 +11,11 @@ CREATE TABLE IF NOT EXISTS devices (
   last_seen  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_devices_last_seen ON devices(last_seen);
+
+-- Satu siaran aktif untuk semua pelanggan (diisi penjual lewat aplikasi Oru Go License).
+CREATE TABLE IF NOT EXISTS broadcast (
+  id      INTEGER PRIMARY KEY CHECK (id = 1),
+  msg_id  TEXT NOT NULL,         -- berubah tiap siaran baru; aplikasi menampilkan tiap msg_id sekali
+  text    TEXT NOT NULL,
+  expires INTEGER NOT NULL       -- detik epoch
+);

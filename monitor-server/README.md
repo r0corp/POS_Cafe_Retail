@@ -28,6 +28,18 @@ Data perangkat yang tidak aktif lebih dari 180 hari dibuang otomatis.
 Perlindungan: kiriman divalidasi ketat (format Kode Perangkat, versi, mode), badan maks 512 byte, kiriman rapat
 <60 detik diabaikan, total perangkat dibatasi `MAX_DEVICES` (5000). Membaca daftar wajib token admin.
 
+## Siaran ke pelanggan
+
+Dari menu *Pantau Aplikasi* penjual bisa mengirim satu pesan singkat (maks. 280 karakter, teks biasa, mis. info
+update atau pengingat perpanjangan) untuk semua pelanggan, tampil 3 / 7 / 14 / 30 hari. Pesan dititipkan di
+jawaban heartbeat, jadi tidak ada koneksi tambahan: muncul sebagai banner di bagian atas halaman pemilik toko saat
+aplikasi berikutnya terhubung, sekali per siaran (hilang setelah ditutup, tidak muncul lagi). Siaran baru
+menggantikan yang lama; mengirim teks kosong (tombol *Hapus siaran*) menghapusnya. Pelanggan yang mematikan
+"Kirim status aktif ke penjual" tidak menerima siaran karena aplikasinya tidak menghubungi server sama sekali.
+
+Perubahan skema: tabel `broadcast` ada di `schema.sql`. Bila Worker sudah terpasang sebelum tabel ini ada, jalankan
+ulang `wrangler d1 execute orugo-monitor --remote --file schema.sql` (aman, memakai `IF NOT EXISTS`) lalu `wrangler deploy`.
+
 ## Pasang (sekali saja, ~15 menit)
 
 Butuh akun Cloudflare gratis (https://dash.cloudflare.com/sign-up) dan Node.js 18+.

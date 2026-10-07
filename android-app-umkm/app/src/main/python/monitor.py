@@ -7,6 +7,10 @@ nama toko, data penjualan, menu, atau lokasi. Gagal kirim (offline, server mati)
 dan tidak pernah mengganggu aplikasi.
 
 ENDPOINT kosong = fitur tidak aktif sama sekali (tidak ada yang dikirim, kartu pengaturannya tersembunyi).
+
+Jawaban server boleh memuat satu siaran dari penjual ({"msg": {"id", "text"}}, mis. info update). Siaran
+ditampilkan sebagai teks biasa di aplikasi sampai ditutup pemakai, sekali untuk tiap id. Dimatikannya
+"Kirim status aktif" juga menghentikan siaran (tidak ada kontak ke server sama sekali).
 """
 
 import json
@@ -43,6 +47,56 @@ def is_enabled(data_dir):
 def set_enabled(data_dir, enabled):
     with open(_file(data_dir), "w", encoding="utf-8") as f:
         json.dump({"enabled": bool(enabled)}, f)
+
+
+MAX_MESSAGE_CHARS = 280
+
+
+def _broadcast_file(data_dir):
+    return os.path.join(data_dir, "broadcast.json")
+
+
+def _read_broadcast(data_dir):
+    try:
+        with open(_broadcast_file(data_dir), encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def store_message(data_dir, msg):
+    """Simpan siaran dari server. Id yang sama dengan yang sudah ada (ditutup atau belum) tidak ditimpa."""
+    if not isinstance(msg, dict):
+        return
+    msg_id = str(msg.get("id") or "")[:32]
+    text = "".join(ch for ch in str(msg.get("text") or "") if ch >= " " or ch == "\n").strip()[:MAX_MESSAGE_CHARS]
+    if not msg_id or not text or _read_broadcast(data_dir).get("id") == msg_id:
+        return
+    try:
+        with open(_broadcast_file(data_dir), "w", encoding="utf-8") as f:
+            json.dump({"id": msg_id, "text": text, "dismissed": False}, f)
+    except OSError:
+        pass
+
+
+def pending_message(data_dir):
+    """Teks siaran yang belum ditutup pemakai, atau None."""
+    data = _read_broadcast(data_dir)
+    if data.get("text") and not data.get("dismissed"):
+        return {"id": data["id"], "text": data["text"]}
+    return None
+
+
+def dismiss_message(data_dir):
+    data = _read_broadcast(data_dir)
+    if data:
+        data["dismissed"] = True
+        try:
+            with open(_broadcast_file(data_dir), "w", encoding="utf-8") as f:
+                json.dump(data, f)
+        except OSError:
+            pass
 
 
 def app_version():
@@ -91,7 +145,13 @@ def send_once(data_dir, endpoint=None, version=None):
             headers={"Content-Type": "application/json", "User-Agent": "OruPOSGO"},
         )
         with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
-            return response.status == 200
+            ok = response.status == 200
+            if ok:
+                try:
+                    store_message(data_dir, json.loads(response.read(4096).decode("utf-8")).get("msg"))
+                except ValueError:
+                    pass
+            return ok
     except Exception:
         return False
 
@@ -117,3 +177,10 @@ def start(data_dir, endpoint=None):
 def state(data_dir):
     """Untuk template: kartu pengaturan hanya tampil bila fitur dipasang (ENDPOINT terisi)."""
     return {"available": bool(ENDPOINT), "enabled": is_enabled(data_dir)}
+
+
+def message_for_template(data_dir):
+    """Siaran untuk banner; kosong bila fitur tidak terpasang/dimatikan."""
+    if not ENDPOINT or not is_enabled(data_dir):
+        return None
+    return pending_message(data_dir)

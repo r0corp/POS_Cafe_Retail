@@ -296,6 +296,18 @@ _EN = {
     "Ekspor Riwayat (CSV)": "Export History (CSV)",
     "Dasbor Lisensi": "License Dashboard",
     "Pantau Aplikasi": "App Monitor",
+    "Siaran ke pelanggan": "Broadcast to customers",
+    "Siaran aktif:": "Active broadcast:",
+    "Belum ada siaran aktif. Pesan tampil sebagai banner di bagian atas layar pemilik toko, sekali per siaran, dan hanya pada pelanggan yang status aktifnya menyala.": "No active broadcast. The message appears as a banner at the top of the shop owner's screen, once per broadcast, and only for customers who have the active status switch on.",
+    "Pesan (maks. %(n)s karakter, teks biasa)": "Message (max %(n)s characters, plain text)",
+    "Tampil selama": "Show for",
+    "%(n)s hari": "%(n)s days",
+    "Kirim siaran": "Send broadcast",
+    "Hapus siaran": "Delete broadcast",
+    "Siaran tidak valid (maksimal %(n)s karakter).": "Invalid broadcast (max %(n)s characters).",
+    "Siaran terkirim. Muncul di aplikasi pelanggan saat mereka berikutnya terhubung.": "Broadcast sent. It appears in customers' apps the next time they connect.",
+    "Siaran dihapus.": "Broadcast deleted.",
+    "Gagal mengirim siaran. Periksa internet dan token.": "Could not send the broadcast. Check the internet connection and token.",
     "Hubungkan ke server Pantau (lihat monitor-server/README.md) untuk melihat pelanggan yang sedang memakai aplikasi.": "Connect to the Monitor server (see monitor-server/README.md) to see which customers are using the app.",
     "Alamat server Pantau": "Monitor server address",
     "Token admin": "Admin token",
@@ -648,7 +660,7 @@ def _valid_monitor_url(url):
 
 
 def _fetch_devices(cfg, timeout=8):
-    """(daftar_perangkat, pesan_error). Gagal terhubung = daftar kosong + pesan, tidak melempar."""
+    """(daftar_perangkat, siaran_aktif, pesan_error). Gagal terhubung = daftar kosong + pesan, tidak melempar."""
     import urllib.error
     import urllib.request
 
@@ -657,11 +669,30 @@ def _fetch_devices(cfg, timeout=8):
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             data = json.loads(response.read().decode("utf-8"))
-        return data.get("devices", []), None
+        return data.get("devices", []), data.get("broadcast"), None
     except urllib.error.HTTPError as exc:
-        return [], "token" if exc.code == 401 else "http %s" % exc.code
+        return [], None, "token" if exc.code == 401 else "http %s" % exc.code
     except Exception:
-        return [], "offline"
+        return [], None, "offline"
+
+
+BROADCAST_MAX_CHARS = 280
+BROADCAST_DAYS = (3, 7, 14, 30)
+
+
+def _send_broadcast(cfg, text, days, timeout=8):
+    """Pasang (atau hapus bila text kosong) siaran untuk semua pelanggan. True bila server menerima."""
+    import urllib.request
+
+    body = json.dumps({"text": text, "days": days}).encode("utf-8")
+    request = urllib.request.Request(
+        cfg["url"].rstrip("/") + "/v1/broadcast", data=body, method="PUT",
+        headers={"Authorization": "Bearer " + cfg["token"], "Content-Type": "application/json", "User-Agent": "OruGoLicense"})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.status == 200
+    except Exception:
+        return False
 
 
 def _version_tuple(text):
@@ -744,7 +775,7 @@ _BASE_STYLE = """
   h1 { font-family: 'Poppins', 'Inter', sans-serif; font-size: 1.25rem; margin: 0 0 16px; }
   h2 { font-size: 1rem; margin: 24px 0 10px; color: #94a3b8; }
   label { display: block; font-size: 0.85rem; color: #cbd5e1; margin: 12px 0 6px; font-weight: 600; }
-  input[type=text], input[type=password], input[type=tel], select {
+  input[type=text], input[type=password], input[type=tel], select, textarea {
     width: 100%; background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
     border-radius: 10px; padding: 12px; font-size: 0.95rem;
   }
@@ -1083,7 +1114,25 @@ _MONITOR_PAGE = """
         <p class="muted">{{ _('Belum ada perangkat yang melapor. Aplikasi mengirim status saat dibuka dan ada internet.') }}</p>
       {% endfor %}
 
-      <a class="btn" href="{{ url_for('monitor_page') }}">{{ _('Muat ulang') }}</a>
+      <h2>{{ _('Siaran ke pelanggan') }}</h2>
+      {% if notice %}<div class="error"{% if notice[0] == 'ok' %} style="background:#14532d; color:#bbf7d0;"{% endif %}>{{ notice[1] }}</div>{% endif %}
+      {% if broadcast %}
+        <p class="muted">{{ _('Siaran aktif:') }} <b style="color:#e2e8f0;">{{ broadcast.text }}</b></p>
+      {% else %}
+        <p class="muted">{{ _('Belum ada siaran aktif. Pesan tampil sebagai banner di bagian atas layar pemilik toko, sekali per siaran, dan hanya pada pelanggan yang status aktifnya menyala.') }}</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('monitor_broadcast') }}">
+        <label>{{ _('Pesan (maks. %(n)s karakter, teks biasa)', n=max_chars) }}</label>
+        <textarea name="text" rows="3" maxlength="{{ max_chars }}" style="box-sizing:border-box; font-family:inherit; resize:vertical;"></textarea>
+        <label>{{ _('Tampil selama') }}</label>
+        <select name="days">{% for n in day_choices %}<option value="{{ n }}"{% if n == 7 %} selected{% endif %}>{{ _('%(n)s hari', n=n) }}</option>{% endfor %}</select>
+        <button type="submit">{{ _('Kirim siaran') }}</button>
+      </form>
+      {% if broadcast %}
+        <form method="post" action="{{ url_for('monitor_broadcast') }}"><input type="hidden" name="text" value=""><button type="submit" class="btn-secondary">{{ _('Hapus siaran') }}</button></form>
+      {% endif %}
+
+      <a class="btn btn-secondary" href="{{ url_for('monitor_page') }}">{{ _('Muat ulang') }}</a>
       <form method="post" action="{{ url_for('monitor_clear') }}" onsubmit='return confirm({{ _('Putuskan sambungan ke server Pantau?')|tojson }})'>
         <button type="submit" class="btn-secondary">{{ _('Putuskan sambungan') }}</button>
       </form>
@@ -1364,15 +1413,19 @@ def create_app(files_dir):
         cfg = _load_monitor(data_dir)
         error = None
         view = None
+        current_broadcast = None
         if cfg:
-            devices, problem = _fetch_devices(cfg)
+            devices, current_broadcast, problem = _fetch_devices(cfg)
             if problem == "token":
                 error = tr("Token admin ditolak server. Putuskan sambungan lalu isi ulang tokennya.")
             elif problem:
                 error = tr("Tidak bisa terhubung ke server Pantau. Periksa internet HP ini lalu muat ulang.")
             view = _monitor_view(data_dir, devices)
+        notice = session.pop("monitor_notice", None)
         return render_template_string(
             _MONITOR_PAGE, style=_BASE_STYLE, configured=bool(cfg), v=view, error=error,
+            broadcast=current_broadcast if cfg else None, notice=notice,
+            max_chars=BROADCAST_MAX_CHARS, day_choices=BROADCAST_DAYS,
         )
 
     @app.route("/pantau/simpan", methods=["POST"])
@@ -1385,6 +1438,24 @@ def create_app(files_dir):
                 error=tr("Alamat harus diawali https:// dan token wajib diisi."),
             )
         _save_monitor(data_dir, url, token)
+        return redirect(url_for("monitor_page"))
+
+    @app.route("/pantau/siaran", methods=["POST"])
+    def monitor_broadcast():
+        cfg = _load_monitor(data_dir)
+        if not cfg:
+            return redirect(url_for("monitor_page"))
+        text = request.form.get("text", "").strip()
+        try:
+            days = int(request.form.get("days", "7"))
+        except ValueError:
+            days = 7
+        if days not in BROADCAST_DAYS or len(text) > BROADCAST_MAX_CHARS:
+            session["monitor_notice"] = ("err", tr("Siaran tidak valid (maksimal %(n)s karakter).", n=BROADCAST_MAX_CHARS))
+        elif _send_broadcast(cfg, text, days):
+            session["monitor_notice"] = ("ok", tr("Siaran terkirim. Muncul di aplikasi pelanggan saat mereka berikutnya terhubung.") if text else tr("Siaran dihapus."))
+        else:
+            session["monitor_notice"] = ("err", tr("Gagal mengirim siaran. Periksa internet dan token."))
         return redirect(url_for("monitor_page"))
 
     @app.route("/pantau/putus", methods=["POST"])
