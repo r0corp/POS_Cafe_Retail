@@ -3331,3 +3331,6 @@ msgstr "Reset Password"
 
 msgid "Atur Ulang Password - %(username)s"
 msgstr "Reset Password - %(username)s"
+
+msgid "Printer Bluetooth belum tersedia di iPhone. Struk dibuka sebagai PDF - bagikan atau cetak lewat AirPrint."
+msgstr "Bluetooth printers are not available on iPhone. The receipt opens as a PDF - share it or print via AirPrint."

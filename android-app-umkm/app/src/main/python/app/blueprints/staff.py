@@ -1393,6 +1393,13 @@ def _print_receipt_to_printer(order, settings):
         win32print.ClosePrinter(handle)
 
 
+def _is_ios():
+    """True di app iPhone (cangkang BeeWare di ios-app-umkm). ORULABS_PLATFORM
+    tetap "android" di sana (artinya: mode UMKM seluler); env ini khusus
+    membedakan jalur cetak - iPhone tidak bisa Bluetooth klasik."""
+    return os.environ.get("ORULABS_MOBILE_OS") == "ios"
+
+
 @staff_bp.route("/orders/<int:order_id>/print", methods=["POST"])
 @roles_required(ROLE_OWNER, ROLE_KASIR)
 def print_receipt(order_id):
@@ -1402,6 +1409,15 @@ def print_receipt(order_id):
     order = Order.query.get_or_404(order_id)
     if not order.is_paid:
         return jsonify({"ok": False, "error": _("Pesanan belum dibayar.")}), 400
+
+    if _is_ios():
+        # Tombol Cetak Struk di halaman struk akan membuka PDF-nya (lihat receipt.html).
+        return jsonify({
+            "ok": False,
+            "unsupported": True,
+            "pdf_url": url_for("staff.receipt_pdf", order_id=order.id),
+            "error": _("Printer Bluetooth belum tersedia di iPhone. Struk dibuka sebagai PDF - bagikan atau cetak lewat AirPrint."),
+        })
 
     settings = get_settings()
     try:
@@ -1422,7 +1438,7 @@ def list_bluetooth_printers():
     Bluetooth Android biasa - endpoint ini cuma menampilkan yang sudah
     dipasangkan, tidak melakukan scan/pairing baru."""
 
-    if os.environ.get("ORULABS_PLATFORM") != "android":
+    if os.environ.get("ORULABS_PLATFORM") != "android" or _is_ios():
         return jsonify({"printers": [], "supported": False})
 
     from ..android_bluetooth_printer import list_paired_printers

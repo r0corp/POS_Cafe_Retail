@@ -308,6 +308,11 @@ async function printStruk(btn) {
       headers: { "X-CSRFToken": csrfToken },
     });
     var data = await res.json();
+    // iPhone: tidak ada printer Bluetooth - buka struk sebagai PDF (bagikan / AirPrint).
+    if (data && data.pdf_url) {
+      window.location.href = data.pdf_url;
+      return;
+    }
     if (!res.ok || !data.ok) {
       (window.oruAlert || window.alert)("{{ _('Gagal cetak struk') }}: " + (data.error || res.status));
     } else {
