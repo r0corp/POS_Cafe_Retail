@@ -4,6 +4,8 @@ from .conftest import login
 
 
 def test_hidden_by_default(client, owner_user):
+    # .env di mesin pengembang boleh berisi PRODUCT_NAME; tes ini memeriksa kondisi kosong
+    client.application.config["PRODUCT_NAME"] = ""
     assert b"Oru POS Pro" not in client.get("/login").data
     login(client, "owner")
     assert b"Oru POS Pro" not in client.get("/").data

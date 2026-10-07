@@ -10,6 +10,7 @@ import random
 import re
 import secrets
 import shutil
+import tempfile
 
 from flask import (
     Blueprint,
@@ -31,14 +32,14 @@ from werkzeug.utils import secure_filename
 
 from flask_babel import gettext as _
 from flask_babel import lazy_gettext as _l
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, logout_user
 from sqlalchemy import event, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from .. import csrf, db
 from ..imaging import MENU_PHOTO_MAX_SIDE, shrink_photo
-from ..backup import write_backup_zip
+from ..backup import BackupError, restore_backup_zip, validate_backup_zip, write_backup_zip
 from ..decorators import roles_required
 from ..inventory import check_and_deduct_stock, restore_stock_for_order
 from ..rate_limit import clear_failures, is_blocked, record_failure
@@ -507,7 +508,7 @@ def delete_table(table_id):
         )
         return redirect(url_for("staff.table_map"))
 
-    qr_path = os.path.join(current_app.root_path, "static", "qrcodes", f"{table.code}.png")
+    qr_path = os.path.join(current_app.static_folder, "qrcodes", f"{table.code}.png")
     if os.path.exists(qr_path):
         try:
             os.remove(qr_path)
@@ -1836,6 +1837,26 @@ def delete_category(category_id):
     return redirect(url_for("staff.admin_menu"))
 
 
+@staff_bp.route("/admin/menu/<int:item_id>/edit", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def edit_menu_item(item_id):
+    """Ubah nama & harga menu. Pesanan lama tidak berubah: OrderItem menyimpan
+    snapshot nama & harga sendiri (name_snapshot/price_snapshot)."""
+    item = MenuItem.query.get_or_404(item_id)
+    name = request.form.get("name", "").strip()
+    price = request.form.get("price", type=digits_int)
+
+    if not name or price is None or price <= 0:
+        flash(_("Isi nama dan harga (lebih dari 0) dengan benar."), "warning")
+    else:
+        item.name = name
+        item.price = price
+        db.session.commit()
+        flash(_("Menu \"%(name)s\" diperbarui.", name=name), "success")
+
+    return redirect(url_for("staff.admin_menu"))
+
+
 @staff_bp.route("/admin/menu/<int:item_id>/toggle", methods=["POST"])
 @roles_required(ROLE_OWNER)
 def toggle_menu_item(item_id):
@@ -2240,7 +2261,7 @@ def _generate_table_qr(table):
 
     target_url = f"{current_app.config['BASE_URL']}/t/{table.code}"
 
-    qr_dir = os.path.join(current_app.root_path, "static", "qrcodes")
+    qr_dir = os.path.join(current_app.static_folder, "qrcodes")
     os.makedirs(qr_dir, exist_ok=True)
 
     img = qrcode.make(target_url)
@@ -3072,7 +3093,7 @@ def _cache_asset_breakdown():
     supaya Owner tahu berapa MB yang sebenarnya "nyangkut" di device tamu/
     staf kalau belum di-refresh, bukan angka yang mengada-ada."""
 
-    static_dir = os.path.join(current_app.root_path, "static")
+    static_dir = current_app.static_folder
     categories = [
         (_("Logo & Branding"), os.path.join(static_dir, "uploads", "branding")),
         (_("Foto Profil"), os.path.join(static_dir, "uploads", "avatars")),
@@ -3922,7 +3943,7 @@ def _clear_demo_data():
     for order in Order.query.filter(Order.table_id.in_(demo_table_ids)).all():
         db.session.delete(order)
 
-    qr_dir = os.path.join(current_app.root_path, "static", "qrcodes")
+    qr_dir = os.path.join(current_app.static_folder, "qrcodes")
     for table in demo_tables:
         _delete_file_after_commit(os.path.join(qr_dir, f"{table.code}.png"))
         db.session.delete(table)
@@ -4211,6 +4232,76 @@ def backup_create():
 
     flash(_("Backup berhasil dibuat: %(filename)s", filename=filename), "success")
     return redirect(url_for("staff.admin_settings"))
+
+
+def _restore_from_zip(zip_path, label):
+    """Pulihkan data dari backup .zip: periksa dulu -> salinan pengaman data sekarang ->
+    pulihkan -> logout (tabel pengguna ikut berganti, jadi semua harus login ulang)."""
+    try:
+        validate_backup_zip(zip_path)
+    except BackupError as exc:
+        flash(_("Backup tidak bisa dipulihkan: %(error)s", error=str(exc)), "danger")
+        return redirect(url_for("staff.admin_settings"))
+
+    safety_name = "sebelum_restore_%s.zip" % datetime.now().strftime("%Y%m%d_%H%M%S")
+    safety_path = os.path.join(_backup_folder(), safety_name)
+    try:
+        write_backup_zip(safety_path, _db_file_path(), current_app.static_folder)
+    except Exception as exc:
+        current_app.logger.exception("Salinan pengaman sebelum restore gagal")
+        flash(_("Pemulihan dibatalkan: salinan pengaman data saat ini gagal dibuat (%(error)s).", error=str(exc)), "danger")
+        return redirect(url_for("staff.admin_settings"))
+
+    db.session.remove()
+    db.engine.dispose()
+    try:
+        restore_backup_zip(zip_path, _db_file_path(), current_app.static_folder)
+    except Exception as exc:
+        current_app.logger.exception("Pulihkan backup gagal")
+        db.engine.dispose()
+        flash(_("Pemulihan GAGAL: %(error)s. Data sebelumnya tersimpan di %(safety)s.", error=str(exc), safety=safety_name), "danger")
+        return redirect(url_for("staff.admin_settings"))
+
+    db.engine.dispose()
+    from .. import _ensure_schema
+
+    _ensure_schema()  # backup lama bisa kekurangan kolom/tabel versi terbaru
+    logout_user()
+    flash(
+        _("Backup %(label)s berhasil dipulihkan. Silakan login ulang. Data sebelumnya tersimpan di %(safety)s.", label=label, safety=safety_name),
+        "success",
+    )
+    return redirect(url_for("auth.login"))
+
+
+@staff_bp.route("/admin/system/backup/restore/<path:filename>", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def backup_restore(filename):
+    filename = secure_filename(filename)
+    path = os.path.join(_backup_folder(), filename)
+
+    if not os.path.exists(path):
+        abort(404)
+
+    return _restore_from_zip(path, filename)
+
+
+@staff_bp.route("/admin/system/backup/restore-upload", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def backup_restore_upload():
+    upload = request.files.get("backup_file")
+    if not upload or not upload.filename or not upload.filename.lower().endswith(".zip"):
+        flash(_("Pilih file backup berformat .zip."), "warning")
+        return redirect(url_for("staff.admin_settings"))
+
+    fd, temp_path = tempfile.mkstemp(suffix=".zip", dir=_backup_folder())
+    os.close(fd)
+    try:
+        upload.save(temp_path)
+        return _restore_from_zip(temp_path, secure_filename(upload.filename))
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 @staff_bp.route("/admin/system/backup/download/<path:filename>")

@@ -3262,3 +3262,45 @@ msgstr "Reset Password"
 
 msgid "Atur Ulang Password - %(username)s"
 msgstr "Reset Password - %(username)s"
+
+msgid "Backup tidak bisa dipulihkan: %(error)s"
+msgstr "The backup cannot be restored: %(error)s"
+
+msgid "Pemulihan dibatalkan: salinan pengaman data saat ini gagal dibuat (%(error)s)."
+msgstr "Restore cancelled: a safety copy of the current data could not be created (%(error)s)."
+
+msgid "Pemulihan GAGAL: %(error)s. Data sebelumnya tersimpan di %(safety)s."
+msgstr "Restore FAILED: %(error)s. Your previous data is kept in %(safety)s."
+
+msgid "Backup %(label)s berhasil dipulihkan. Silakan login ulang. Data sebelumnya tersimpan di %(safety)s."
+msgstr "Backup %(label)s restored. Please log in again. Your previous data is kept in %(safety)s."
+
+msgid "Pilih file backup berformat .zip."
+msgstr "Choose a backup file in .zip format."
+
+msgid "Pulihkan"
+msgstr "Restore"
+
+msgid "Pulihkan data dari %(name)s? Data saat ini akan DIGANTI isi backup ini (salinan pengaman dibuat otomatis) dan semua pengguna harus login ulang."
+msgstr "Restore data from %(name)s? Current data will be REPLACED by this backup (a safety copy is made automatically) and everyone must log in again."
+
+msgid "Pulihkan data dari file yang dipilih? Data saat ini akan DIGANTI isi file itu (salinan pengaman dibuat otomatis) dan semua pengguna harus login ulang."
+msgstr "Restore data from the selected file? Current data will be REPLACED by it (a safety copy is made automatically) and everyone must log in again."
+
+msgid "Pulihkan dari file backup (.zip), misalnya saat ganti HP"
+msgstr "Restore from a backup file (.zip), e.g. when changing phones"
+
+msgid "Pulihkan dari File"
+msgstr "Restore from File"
+
+msgid "Isi nama dan harga (lebih dari 0) dengan benar."
+msgstr "Enter a valid name and a price greater than 0."
+
+msgid "Menu \"%(name)s\" diperbarui."
+msgstr "Menu \"%(name)s\" updated."
+
+msgid "Nama"
+msgstr "Name"
+
+msgid "Simpan Perubahan"
+msgstr "Save Changes"
