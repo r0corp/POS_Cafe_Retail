@@ -3,11 +3,13 @@
 name = "orugo-monitor"
 main = "src/worker.js"
 compatibility_date = "2025-01-01"
+workers_dev = true
+preview_urls = false
 
 [[d1_databases]]
 binding = "DB"
 database_name = "orugo-monitor"
-database_id = "ISI-SETELAH-wrangler-d1-create"
+database_id = "82772d88-960a-49c7-92f8-7242d36c69ed"
 
 [vars]
 MAX_DEVICES = "5000"

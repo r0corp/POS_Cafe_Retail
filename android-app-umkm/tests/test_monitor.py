@@ -163,6 +163,7 @@ def test_message_is_sanitised_and_bounded(tmp_path):
 def test_banner_hidden_unless_installed_and_enabled(tmp_path, monkeypatch):
     data = str(tmp_path)
     monitor.store_message(data, {"id": "1", "text": "halo"})
+    monkeypatch.setattr(monitor, "ENDPOINT", "")
     assert monitor.message_for_template(data) is None                # ENDPOINT kosong
     monkeypatch.setattr(monitor, "ENDPOINT", "https://x.example")
     assert monitor.message_for_template(data)["text"] == "halo"

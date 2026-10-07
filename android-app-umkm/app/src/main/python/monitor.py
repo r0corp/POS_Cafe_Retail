@@ -22,7 +22,7 @@ import urllib.request
 from datetime import date
 
 # Isi setelah Worker dipasang, contoh: "https://orugo-monitor.NAMA-AKUN.workers.dev"
-ENDPOINT = ""
+ENDPOINT = "https://orugo-monitor.orulabs.workers.dev"
 
 FIRST_DELAY_SECONDS = 20
 INTERVAL_SECONDS = 300
