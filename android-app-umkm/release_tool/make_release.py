@@ -104,8 +104,8 @@ IOS_CONFIG = "ios.json"
 IOS_SECTION = """
 ## iPhone / iOS
 
-[Unduh untuk iPhone ({label})]({url}) - buka di iPhone, bukan di Android.
-*Get it on iPhone - open this link on an iPhone.*
+**[{label}]({url})**
+{note}
 
 <p align="center"><img src="ios-qr.png" width="200" alt="QR iPhone"><br><sub>Scan dengan kamera iPhone / Scan with your iPhone camera</sub></p>
 """
@@ -127,7 +127,8 @@ def write_download_page(out_dir, manifest, repo, date=None):
     (https://github.com/<repo>) + QR menuju link unduhan langsung."""
     ios = read_ios_config(out_dir)
     page = PAGE_TEMPLATE.format(
-        ios_section=IOS_SECTION.format(label=ios.get("label", "App Store"), url=ios["url"]) if ios else "",
+        ios_section=IOS_SECTION.format(label=ios.get("label", "Unduh untuk iPhone"), url=ios["url"],
+                           note=ios.get("note", "Buka tautan ini di iPhone.")) if ios else "",
         version=manifest["versionName"],
         apk_url=manifest["apkUrl"],
         size_mb="%.0f" % (manifest["sizeBytes"] / 1048576.0),

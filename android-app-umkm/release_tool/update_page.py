@@ -24,7 +24,8 @@ def main():
     ap.add_argument("--out", required=True, help="folder repo rilis (hasil git clone)")
     ap.add_argument("--repo", default=mr.DEFAULT_REPO)
     ap.add_argument("--ios-url", help="link unduhan iPhone (TestFlight / App Store), harus https")
-    ap.add_argument("--ios-label", default="App Store", help="teks di halaman, mis. TestFlight")
+    ap.add_argument("--ios-label", default="Unduh untuk iPhone", help="teks tautan di halaman, mis. 'Unduh di TestFlight'")
+    ap.add_argument("--ios-note", default="Buka tautan ini di iPhone.", help="keterangan satu-dua kalimat di bawah tautan")
     ap.add_argument("--clear-ios", action="store_true", help="hapus bagian iOS dari halaman")
     args = ap.parse_args()
 
@@ -35,7 +36,7 @@ def main():
         if not args.ios_url.startswith("https://"):
             sys.exit("--ios-url harus diawali https://")
         with open(ios_path, "w", encoding="utf-8", newline="\n") as f:
-            json.dump({"url": args.ios_url, "label": args.ios_label}, f, indent=2, ensure_ascii=False)
+            json.dump({"url": args.ios_url, "label": args.ios_label, "note": args.ios_note}, f, indent=2, ensure_ascii=False)
             f.write("\n")
 
     with open(os.path.join(args.out, "version.json"), encoding="utf-8") as f:
