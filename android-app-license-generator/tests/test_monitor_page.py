@@ -203,3 +203,24 @@ def test_broadcast_without_connection_and_without_unlock(client, tmp_path, stub)
     c = generator_app.create_app(str(tmp_path / "lain")).test_client()
     assert c.post("/pantau/siaran", data={"text": "x"}).status_code == 302
     assert "/login" in c.post("/pantau/siaran", data={"text": "x"}).headers["Location"]
+
+
+def test_home_is_a_tile_menu_linking_to_every_feature(client):
+    html = client.get("/").get_data(as_text=True)
+    for href in ("/buat", "/riwayat", "/dasbor", "/pantau", "/security"):
+        assert 'href="%s"' % href in html
+    assert 'action="/lock"' in html
+    assert "/export.csv" not in html                          # belum ada riwayat
+    assert "<form method=\"post\" action=\"/generate\"" not in html   # formulir pindah ke /buat
+
+
+def test_create_and_history_pages_work(client):
+    assert 'action="/generate"' in client.get("/buat").get_data(as_text=True)
+    client.post("/generate", data={"device_code": DEVICE_A, "customer_name": "Budi", "shop_name": "Kedai Budi",
+                                   "license_choice": "buy"})
+    assert "Kedai Budi" in client.get("/riwayat").get_data(as_text=True)
+    assert "/export.csv" in client.get("/").get_data(as_text=True)
+    assert client.get("/set-language/en?next=/riwayat").headers["Location"].endswith("/riwayat")
+    assert client.get("/set-language/en?next=/buat").headers["Location"].endswith("/buat")
+    home = client.get("/").get_data(as_text=True)
+    assert "Create Code" in home and "History" in home

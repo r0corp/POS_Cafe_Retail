@@ -267,7 +267,7 @@ def test_language_survives_lock_and_restart(client, tmp_path):
 def test_main_page_and_license_labels_in_english(client):
     _switch(client, "en")
     _login(client)
-    page = client.get("/").data
+    page = client.get("/buat").data
     assert b"Create Activation Code" in page
     assert b"One-time Purchase" in page and b"Yearly Rental" in page
     assert b"Beli Putus" not in page

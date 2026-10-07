@@ -26,6 +26,7 @@ import io
 import hmac
 import json
 import os
+import re
 import secrets
 import sqlite3
 import threading
@@ -295,6 +296,11 @@ _EN = {
     "Belum ada riwayat.": "No history yet.",
     "Ekspor Riwayat (CSV)": "Export History (CSV)",
     "Dasbor Lisensi": "License Dashboard",
+    "Pembuat Kode Aktivasi": "Activation Code Generator",
+    "Menu": "Menu",
+    "Buat Kode": "Create Code",
+    "Riwayat": "History",
+    "Ekspor CSV": "Export CSV",
     "Pantau Aplikasi": "App Monitor",
     "Siaran ke pelanggan": "Broadcast to customers",
     "Siaran aktif:": "Active broadcast:",
@@ -1145,7 +1151,86 @@ _MONITOR_PAGE = """
 """
 
 
-_MAIN_PAGE = """
+_LOGO_URI = re.search(r"data:image/png;base64,[A-Za-z0-9+/=]+", _LOGIN_PAGE).group(0)
+
+_ICONS = {
+    "plus": '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+    "list": '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+    "chart": '<path d="M5 20V10M12 20V4M19 20v-7"/>',
+    "pulse": '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+    "download": '<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
+    "shield": '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    "lock": '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+}
+
+
+def _icon(name):
+    return Markup('<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="2" '
+                  'stroke-linecap="round" stroke-linejoin="round">%s</svg>' % _ICONS[name])
+
+
+_TILE_STYLE = """
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .brand img { width: 44px; height: 44px; border-radius: 50%; background: #0f172a; padding: 6px; box-sizing: border-box; }
+  .brand h1 { margin: 0; font-size: 1.25rem; }
+  .brand span { display: block; font-size: 0.78rem; color: #94a3b8; font-weight: 500; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 4px; }
+  .stat { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px; }
+  .stat b { display: block; font-size: 1.35rem; font-family: 'Poppins', 'Inter', sans-serif; color: #f1f5f9; }
+  .stat span { font-size: 0.78rem; color: #94a3b8; }
+  .stat.warn b { color: #fb923c; }
+  .stat.bad b { color: #f87171; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  .tile, .tile:visited { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 10px;
+    background: #0f172a; border: 1px solid #334155; border-top: 3px solid #f97316; border-radius: 18px;
+    padding: 16px 4px 12px; color: #f1f5f9; text-decoration: none; font-size: 0.8rem; font-weight: 600;
+    text-align: center; width: 100%; margin: 0; min-height: 128px; box-sizing: border-box; line-height: 1.25; }
+  .tile:active { transform: scale(0.97); }
+  .tile .ico { width: 52px; height: 52px; border-radius: 50%; background: #f97316; display: flex;
+    align-items: center; justify-content: center; }
+  .tiles form { margin: 0; display: contents; }
+"""
+
+_TILE_SET = """
+{% macro tile(href, icon, label) %}
+  <a class="tile" href="{{ href }}"><span class="ico">{{ icon }}</span>{{ label }}</a>
+{% endmacro %}
+"""
+
+_HOME_PAGE = """
+<!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oru Go License</title><style>{{ style }}""" + _TILE_STYLE + """</style></head><body>
+""" + _TILE_SET + """
+  <div class="card">
+    <div class="brand">
+      <img src="{{ logo }}" alt="">
+      <h1>Oru Go License<span>{{ _('Pembuat Kode Aktivasi') }}</span></h1>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b>{{ d.customers }}</b><span>{{ _('Pelanggan (perangkat)') }}</span></div>
+      <div class="stat"><b>{{ d.active }}</b><span>{{ _('Aktif sekarang') }}</span></div>
+      <div class="stat warn"><b>{{ d.expiring|length }}</b><span>{{ _('Sewa berakhir dalam 30 hari') }}</span></div>
+      <div class="stat bad"><b>{{ d.expired|length }}</b><span>{{ _('Sewa sudah berakhir') }}</span></div>
+    </div>
+
+    <h2>{{ _('Menu') }}</h2>
+    <div class="tiles">
+      {{ tile(url_for('create_page'), icons.plus, _('Buat Kode')) }}
+      {{ tile(url_for('history_page'), icons.list, _('Riwayat')) }}
+      {{ tile(url_for('dashboard'), icons.chart, _('Dasbor Lisensi')) }}
+      {{ tile(url_for('monitor_page'), icons.pulse, _('Pantau Aplikasi')) }}
+      {% if has_records %}{{ tile(url_for('export_csv'), icons.download, _('Ekspor CSV')) }}{% endif %}
+      {{ tile(url_for('security_page'), icons.shield, _('Keamanan')) }}
+      <form method="post" action="{{ url_for('lock') }}"><button type="submit" class="tile"><span class="ico">{{ icons.lock }}</span>{{ _('Kunci App') }}</button></form>
+    </div>
+    {{ lang_switch('/') }}
+  </div>
+</body></html>
+"""
+
+_CREATE_PAGE = """
 <!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oru Go License</title><style>{{ style }}</style></head><body>
@@ -1162,7 +1247,7 @@ _MAIN_PAGE = """
       {% if result.wa_link %}
         <a class="btn btn-secondary" href="{{ result.wa_link }}" target="_blank">{{ _('Kirim lewat WhatsApp') }}</a>
       {% endif %}
-      <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('+ Buat Kode Baru') }}</a>
+      <a class="btn btn-secondary" href="{{ url_for('create_page') }}">{{ _('+ Buat Kode Baru') }}</a>
     {% else %}
       {% if error %}<div class="error">{{ error }}</div>{% endif %}
       <form method="post" action="{{ url_for('generate') }}">
@@ -1196,7 +1281,27 @@ _MAIN_PAGE = """
       </form>
     {% endif %}
 
-    <h2>{{ _('Riwayat (%(n)s terakhir)', n=records|length) }}</h2>
+    <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('Kembali') }}</a>
+    {{ lang_switch('/buat') }}
+  </div>
+  <script>
+    function copyText(id) {
+      var text = document.getElementById(id).innerText;
+      copyValue(text);
+    }
+    function copyValue(text) {
+      if (navigator.clipboard) { navigator.clipboard.writeText(text).catch(function () {}); }
+    }
+  </script>
+</body></html>
+"""
+
+_HISTORY_PAGE = """
+<!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oru Go License</title><style>{{ style }}</style></head><body>
+  <div class="card">
+    <h1>{{ _('Riwayat (%(n)s terakhir)', n=records|length) }}</h1>
     {% if records %}
       <table>
         <tr><th>{{ _('Toko') }}</th><th>{{ _('Jenis') }}</th><th>{{ _('Tgl') }}</th><th></th></tr>
@@ -1213,22 +1318,15 @@ _MAIN_PAGE = """
           </tr>
         {% endfor %}
       </table>
+      <a class="btn btn-secondary" href="{{ url_for('export_csv') }}">{{ _('Ekspor Riwayat (CSV)') }}</a>
     {% else %}
       <p style="color:#64748b; font-size:0.85rem;">{{ _('Belum ada riwayat.') }}</p>
     {% endif %}
 
-    <a class="btn btn-secondary" href="{{ url_for('dashboard') }}">{{ _('Dasbor Lisensi') }}</a>
-    <a class="btn btn-secondary" href="{{ url_for('monitor_page') }}">{{ _('Pantau Aplikasi') }}</a>
-    {% if records %}<a class="btn btn-secondary" href="{{ url_for('export_csv') }}">{{ _('Ekspor Riwayat (CSV)') }}</a>{% endif %}
-    <a class="btn btn-secondary" href="{{ url_for('security_page') }}">{{ _('Keamanan') }}</a>
-    <form method="post" action="{{ url_for('lock') }}"><button type="submit" class="btn-secondary">{{ _('Kunci App') }}</button></form>
-    {{ lang_switch('/') }}
+    <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('Kembali') }}</a>
+    {{ lang_switch('/riwayat') }}
   </div>
   <script>
-    function copyText(id) {
-      var text = document.getElementById(id).innerText;
-      copyValue(text);
-    }
     function copyValue(text) {
       if (navigator.clipboard) { navigator.clipboard.writeText(text).catch(function () {}); }
     }
@@ -1329,7 +1427,7 @@ def create_app(files_dir):
                 settings["language"] = code
                 save_security(settings)
         target = request.args.get("next", "/")
-        if target not in ("/", "/login", "/security", "/dasbor", "/pantau"):
+        if target not in ("/", "/login", "/security", "/dasbor", "/pantau", "/buat", "/riwayat"):
             target = "/"
         return redirect(target)
 
@@ -1398,8 +1496,18 @@ def create_app(files_dir):
     @app.route("/")
     def index():
         return render_template_string(
-            _MAIN_PAGE, style=_BASE_STYLE, result=None, error=None,
-            records=_list_records(data_dir), license_labels=LICENSE_LABELS,
+            _HOME_PAGE, style=_BASE_STYLE, d=_dashboard_data(data_dir), logo=_LOGO_URI,
+            icons={name: _icon(name) for name in _ICONS}, has_records=bool(_list_records(data_dir, limit=1)),
+        )
+
+    @app.route("/buat")
+    def create_page():
+        return render_template_string(_CREATE_PAGE, style=_BASE_STYLE, result=None, error=None)
+
+    @app.route("/riwayat")
+    def history_page():
+        return render_template_string(
+            _HISTORY_PAGE, style=_BASE_STYLE, records=_list_records(data_dir), license_labels=LICENSE_LABELS,
         )
 
     @app.route("/dasbor")
@@ -1486,9 +1594,8 @@ def create_app(files_dir):
 
         if not device_code or not customer_name or not shop_name:
             return render_template_string(
-                _MAIN_PAGE, style=_BASE_STYLE, result=None,
+                _CREATE_PAGE, style=_BASE_STYLE, result=None,
                 error=tr("Kode Perangkat, Nama Customer, dan Nama Toko wajib diisi."),
-                records=_list_records(data_dir), license_labels=LICENSE_LABELS,
             )
 
         license_type = "buy" if license_choice == "buy" else "rent"
@@ -1516,10 +1623,7 @@ def create_app(files_dir):
             "wa_link": _whatsapp_link(phone, wa_message),
         }
 
-        return render_template_string(
-            _MAIN_PAGE, style=_BASE_STYLE, result=result, error=None,
-            records=_list_records(data_dir), license_labels=LICENSE_LABELS,
-        )
+        return render_template_string(_CREATE_PAGE, style=_BASE_STYLE, result=result, error=None)
 
     return app
 
