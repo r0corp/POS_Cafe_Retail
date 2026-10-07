@@ -7,6 +7,7 @@ MainActivity.java di Android.
 
 import asyncio
 import os
+import re
 import sys
 import threading
 import traceback
@@ -36,11 +37,47 @@ class OruPosGo(toga.App):
 
         threading.Thread(target=self._serve, name="flask", daemon=True).start()
 
-        self.web = toga.WebView(style=Pack(flex=1))
-        self.main_window = toga.MainWindow(title=self.formal_name)
+        self.web = toga.WebView(style=Pack(flex=1), on_webview_load=self._on_load)
+        # Judul kosong: bilah atas iOS tidak perlu menampilkan nama app (warnanya disamakan dengan halaman).
+        self.main_window = toga.MainWindow(title="")
         self.main_window.content = self.web
         self.main_window.show()
         self.add_background_task(self._open_when_ready)
+
+    async def _on_load(self, widget, **kwargs):
+        """Setiap halaman selesai dimuat: samakan warna bilah atas iOS dengan latar halaman
+        (gelap atau terang sesuai tema yang dipilih pemakai), supaya tidak ada pita putih."""
+        try:
+            value = await self.web.evaluate_javascript("getComputedStyle(document.body).backgroundColor")
+            self._apply_bar(str(value))
+        except Exception:
+            traceback.print_exc()
+
+    def _apply_bar(self, css_color):
+        nums = [float(x) for x in re.findall(r"[\d.]+", css_color)[:3]]
+        if len(nums) < 3:
+            return
+        r, g, b = (n / 255.0 for n in nums)
+        dark = (0.299 * r + 0.587 * g + 0.114 * b) < 0.5
+        try:
+            from rubicon.objc import ObjCClass
+
+            color = ObjCClass("UIColor").colorWithRed(r, green=g, blue=b, alpha=1.0)
+            appearance = ObjCClass("UINavigationBarAppearance").alloc().init()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = color
+            appearance.shadowColor = color
+            impl = self.main_window._impl
+            bar = impl.container.controller.navigationBar
+            bar.standardAppearance = appearance
+            bar.scrollEdgeAppearance = appearance
+            bar.compactAppearance = appearance
+            impl.native.backgroundColor = color
+            # 2 = gelap (teks status bar putih), 1 = terang
+            impl.native.overrideUserInterfaceStyle = 2 if dark else 1
+        except Exception:
+            # bukan iOS (mis. uji lokal di Windows/macOS biasa) - abaikan
+            pass
 
     def _serve(self):
         try:
