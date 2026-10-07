@@ -76,7 +76,14 @@ def login():
     step("halaman login tampil", status == 200 and token(text(raw)), "status %s" % status)
     status, raw, url, _ = post_form("/login", "/login", {"username": "owner", "password": "owner123"})
     html = text(raw)
-    step("login owner berhasil", status == 200 and "/login" not in url and "Dashboard" in html, "url %s" % url)
+    step("login owner berhasil", status == 200 and "/login" not in url, "url %s" % url)
+    # password bawaan (owner123) wajib diganti dulu: semua halaman staf dialihkan ke Ganti Password
+    status, raw, url, _ = fetch("/orders/new")
+    step("password bawaan: halaman staf dialihkan ke Ganti Password", "/account/password" in url, "url %s" % url)
+    status, raw, url, _ = post_form("/account/password", "/account/password", {"current_password": "owner123", "new_password": "passbaru123", "confirm_password": "passbaru123"})
+    step("ganti password bawaan -> akses terbuka", status == 200 and "/account/password" not in url and "berhasil diganti" in text(raw).lower(), "url %s" % url)
+    status, raw, url, _ = fetch("/orders/new")
+    step("setelah ganti: halaman pesanan terbuka", "/account/password" not in url and status == 200, "url %s" % url)
 
 
 guard("login", login)
@@ -194,13 +201,43 @@ guard("laporan", reports)
 
 # --------------------------------------------------------------------------- 6. ganti password + backup
 def password_and_backup():
-    status, raw, url, _ = post_form("/account/password", "/account/password", {"current_password": "owner123", "new_password": "passbaru123", "confirm_password": "passbaru123"})
-    step("ganti password", status == 200 and "berhasil diganti" in text(raw).lower(), "url %s" % url)
+    status, raw, url, _ = post_form("/account/password", "/account/password", {"current_password": "passbaru123", "new_password": "passbaru456", "confirm_password": "passbaru456"})
+    step("ganti password (kedua kali)", status == 200 and "berhasil diganti" in text(raw).lower(), "url %s" % url)
     status, raw, url, _ = post_form("/admin/settings", "/admin/system/backup/create", {})
     step("buat backup (zip)", status == 200, "status %s" % status)
 
 
 guard("password dan backup", password_and_backup)
+
+
+# --------------------------------------------------------------------------- 7. ubah menu + pulihkan backup
+def edit_and_restore():
+    if not ids:
+        return
+    # perubahan SETELAH backup dibuat: nanti harus hilang lagi saat backup dipulihkan
+    post_form("/admin/menu", "/admin/menu/%d/edit" % ids[0], {"name": "Nasi Goreng Spesial", "price": "17.000"})
+    _, raw, _, _ = fetch("/admin/menu")
+    html = text(raw)
+    step("ubah nama dan harga menu", "Nasi Goreng Spesial" in html and "17.000" in html)
+
+    _, raw, _, _ = fetch("/admin/settings")
+    m = re.search(r"/admin/system/backup/restore/([^\"'\s]+)", text(raw))
+    step("backup tampil di daftar dengan tombol Pulihkan", bool(m))
+    if not m:
+        return
+    status, raw, url, _ = post_form("/admin/settings", "/admin/system/backup/restore/" + m.group(1), {})
+    step("pulihkan backup: logout dan diarahkan ke login", status == 200 and "/login" in url and "dipulihkan" in text(raw), "url %s" % url)
+    # setelah restore, password dari data backup (passbaru456) berlaku
+    status, raw, url, _ = post_form("/login", "/login", {"username": "owner", "password": "passbaru456"})
+    step("login setelah pulihkan", status == 200 and "/login" not in url, "url %s" % url)
+    _, raw, _, _ = fetch("/admin/menu")
+    html = text(raw)
+    step("menu kembali ke isi backup", "Nasi Goreng" in html and "Spesial" not in html)
+    _, raw, _, _ = fetch("/reports")
+    step("laporan kembali (Rp 46.000)", money(46000) in text(raw))
+
+
+guard("ubah menu dan pulihkan", edit_and_restore)
 
 # --------------------------------------------------------------------------- ringkasan
 failed = [r for r in results if not r["ok"]]
