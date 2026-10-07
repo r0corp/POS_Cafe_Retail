@@ -452,6 +452,32 @@ def lang_switch(next_path):
     return Markup('<div class="lang-row">' + "".join(links) + "</div>")
 
 
+_NAV_SCRIPT = """<script>
+  (function () {
+    var lang = document.documentElement.lang === "en" ? "en-US" : "id-ID";
+    function pad(n) { return (n < 10 ? "0" : "") + n; }
+    function tick() {
+      var d = new Date();
+      var date = d.toLocaleDateString(lang, {weekday: "long", day: "2-digit", month: "long", year: "numeric"}).toUpperCase();
+      var el = document.getElementById("navDate"), clk = document.getElementById("navClock");
+      if (el) el.textContent = date;
+      if (clk) clk.textContent = pad(d.getHours()) + "." + pad(d.getMinutes()) + "." + pad(d.getSeconds());
+    }
+    tick(); setInterval(tick, 1000);
+  })();
+</script>"""
+
+
+def navbar(next_path):
+    """Navbar atas seperti POS GO: logo + nama aplikasi di kiri, bendera bahasa di kanan, tanggal & jam di bawah."""
+    return Markup(
+        '<div class="app-nav"><div class="nav-top">'
+        '<a class="nav-brand" href="%s"><img src="%s" alt=""><span>Oru Go License</span></a>%s</div>'
+        '<div class="nav-clock"><span id="navDate"></span><b id="navClock"></b></div></div>%s'
+        % (escape(url_for("index")), _LOGO_URI, lang_switch(next_path), Markup(_NAV_SCRIPT))
+    )
+
+
 # ============================================================
 # Database riwayat (sqlite3 polos - datanya kecil & sederhana, tidak
 # perlu ORM).
@@ -847,6 +873,23 @@ _LOGIN_STYLE = """
   .login-credit { margin-top: 18px; text-align: center; font-size: 0.78rem; color: #64748b; }
 """
 
+_NAV_CSS = """
+  .app-nav { max-width: 520px; margin: 0 auto; background: #1e293b; border-radius: 20px; padding: 12px 16px 10px;
+    border-bottom: 3px solid #0e7490; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+  .nav-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .nav-brand { display: flex; align-items: center; gap: 10px; color: #f1f5f9; text-decoration: none; min-width: 0;
+    font-family: 'Poppins', 'Inter', sans-serif; font-weight: 700; font-size: 1.05rem; }
+  .nav-brand img { width: 38px; height: 38px; border-radius: 50%; background: #0f172a; padding: 5px; flex: 0 0 auto; }
+  .nav-brand span { white-space: nowrap; }
+  .app-nav .lang-row { margin: 0; gap: 8px; flex: 0 0 auto; }
+  .app-nav .lang-flag-btn { width: 32px; height: 32px; }
+  .nav-clock { display: flex; justify-content: center; align-items: baseline; gap: 8px; margin-top: 8px;
+    font-size: 0.68rem; letter-spacing: 0.8px; color: #94a3b8; font-weight: 700; }
+  .nav-clock b { color: #f97316; font-size: 1.05rem; letter-spacing: 0.5px; font-family: 'Poppins', 'Inter', sans-serif; }
+  .app-nav + .card { margin-top: 14px; }
+  @media (max-width: 360px) { .nav-clock { flex-direction: column; align-items: center; gap: 2px; } }
+"""
+
 _LANG_CSS = """
   .lang-row { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
   .lang-flag-btn { width: 36px; height: 36px; border-radius: 50%; background: #0f172a; border: 2px solid transparent;
@@ -861,7 +904,7 @@ _LANG_CSS = """
 """
 # CSS di sini string tetap dari kode sendiri (bukan input pengguna); Markup supaya
 # tanda kutip di dalamnya (content: "") tidak di-escape Jinja jadi &#34;.
-_BASE_STYLE = Markup(FONT_CSS + _BASE_STYLE + _LANG_CSS)
+_BASE_STYLE = Markup(FONT_CSS + _BASE_STYLE + _LANG_CSS + _NAV_CSS)
 _LOGIN_STYLE = Markup(FONT_CSS + _LOGIN_STYLE + _LANG_CSS)
 
 _LOGIN_PAGE = """
@@ -933,6 +976,7 @@ _SECURITY_PAGE = """
 <!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ _('Keamanan') }} - Oru Go License</title><style>{{ style }}</style></head><body>
+  {{ navbar('/security') }}
   <div class="card">
     <h1>{{ _('Keamanan') }}</h1>
 
@@ -981,7 +1025,6 @@ _SECURITY_PAGE = """
     </p>
 
     <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('&larr; Kembali') }}</a>
-    {{ lang_switch('/security') }}
   </div>
 </body></html>
 """
@@ -1004,6 +1047,7 @@ _DASH_PAGE = """
   .item .btn { flex: 0 0 auto; width: auto; display: inline-block; margin: 0; padding: 8px 12px; font-size: 0.8rem; text-decoration: none; }
   .muted { color: #64748b; font-size: 0.85rem; }
 </style></head><body>
+  {{ navbar('/dasbor') }}
   <div class="card">
     <h1>{{ _('Dasbor Lisensi') }}</h1>
 
@@ -1054,7 +1098,6 @@ _DASH_PAGE = """
     {% endfor %}
 
     <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('Kembali') }}</a>
-    {{ lang_switch('/dasbor') }}
   </div>
 </body></html>
 """
@@ -1080,6 +1123,7 @@ _MONITOR_PAGE = """
   .tag.warn { background: #7c2d12; color: #fed7aa; }
   .item .btn { flex: 0 0 auto; width: auto; display: inline-block; margin: 0; padding: 8px 12px; font-size: 0.8rem; text-decoration: none; }
 </style></head><body>
+  {{ navbar('/pantau') }}
   <div class="card">
     <h1>{{ _('Pantau Aplikasi') }}</h1>
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
@@ -1145,7 +1189,6 @@ _MONITOR_PAGE = """
     {% endif %}
 
     <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('Kembali') }}</a>
-    {{ lang_switch('/pantau') }}
   </div>
 </body></html>
 """
@@ -1174,7 +1217,7 @@ _TILE_STYLE = """
   .brand img { width: 44px; height: 44px; border-radius: 50%; background: #0f172a; padding: 6px; box-sizing: border-box; }
   .brand h1 { margin: 0; font-size: 1.25rem; }
   .brand span { display: block; font-size: 0.78rem; color: #94a3b8; font-weight: 500; }
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 4px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 4px; }
   .stat { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px; }
   .stat b { display: block; font-size: 1.35rem; font-family: 'Poppins', 'Inter', sans-serif; color: #f1f5f9; }
   .stat span { font-size: 0.78rem; color: #94a3b8; }
@@ -1201,13 +1244,9 @@ _HOME_PAGE = """
 <!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oru Go License</title><style>{{ style }}""" + _TILE_STYLE + """</style></head><body>
+  {{ navbar('/') }}
 """ + _TILE_SET + """
   <div class="card">
-    <div class="brand">
-      <img src="{{ logo }}" alt="">
-      <h1>Oru Go License<span>{{ _('Pembuat Kode Aktivasi') }}</span></h1>
-    </div>
-
     <div class="stats">
       <div class="stat"><b>{{ d.customers }}</b><span>{{ _('Pelanggan (perangkat)') }}</span></div>
       <div class="stat"><b>{{ d.active }}</b><span>{{ _('Aktif sekarang') }}</span></div>
@@ -1225,7 +1264,6 @@ _HOME_PAGE = """
       {{ tile(url_for('security_page'), icons.shield, _('Keamanan')) }}
       <form method="post" action="{{ url_for('lock') }}"><button type="submit" class="tile"><span class="ico">{{ icons.lock }}</span>{{ _('Kunci App') }}</button></form>
     </div>
-    {{ lang_switch('/') }}
   </div>
 </body></html>
 """
@@ -1234,6 +1272,7 @@ _CREATE_PAGE = """
 <!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oru Go License</title><style>{{ style }}</style></head><body>
+  {{ navbar('/buat') }}
   <div class="card">
     <h1>{{ _('Buat Kode Aktivasi') }}</h1>
 
@@ -1282,7 +1321,6 @@ _CREATE_PAGE = """
     {% endif %}
 
     <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('Kembali') }}</a>
-    {{ lang_switch('/buat') }}
   </div>
   <script>
     function copyText(id) {
@@ -1300,6 +1338,7 @@ _HISTORY_PAGE = """
 <!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oru Go License</title><style>{{ style }}</style></head><body>
+  {{ navbar('/riwayat') }}
   <div class="card">
     <h1>{{ _('Riwayat (%(n)s terakhir)', n=records|length) }}</h1>
     {% if records %}
@@ -1324,7 +1363,6 @@ _HISTORY_PAGE = """
     {% endif %}
 
     <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('Kembali') }}</a>
-    {{ lang_switch('/riwayat') }}
   </div>
   <script>
     function copyValue(text) {
@@ -1343,7 +1381,7 @@ def create_app(files_dir):
     _init_db(data_dir)
 
     app = Flask(__name__)
-    app.jinja_env.globals.update(_=tr, lang_switch=lang_switch)
+    app.jinja_env.globals.update(_=tr, lang_switch=lang_switch, navbar=navbar)
 
     @app.context_processor
     def _inject_language():
