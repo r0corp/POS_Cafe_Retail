@@ -77,7 +77,7 @@
        Settings/database) supaya tidak bisa diubah/dihapus lewat menu
        Pengaturan oleh toko mana pun yang memakai aplikasi ini. -->
   <p class="login-credit">
-    Orulabs &copy; 2026. All rights reserved.
+    {% if product_name %}<strong>{{ product_name }}</strong> &middot; {% endif %}Orulabs &copy; 2026. All rights reserved.
   </p>
 </div>
 {% endblock %}

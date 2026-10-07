@@ -397,7 +397,7 @@
        Settings/database) supaya tidak bisa diubah/dihapus lewat menu
        Pengaturan oleh toko mana pun yang memakai aplikasi ini. -->
   <footer class="app-footer text-center text-muted small">
-    Orulabs &copy; 2026. All rights reserved.
+    {% if product_name %}<strong class="app-footer-product">{{ product_name }}</strong> &middot; {% endif %}Orulabs &copy; 2026. All rights reserved.
   </footer>
   <div class="app-footer-backdrop" aria-hidden="true"></div>
 {% endblock %}

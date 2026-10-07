@@ -471,6 +471,7 @@ def create_app(config_overrides=None):
 
         return {
             "cafe_name": settings.shop_name,
+            "product_name": app.config.get("PRODUCT_NAME", ""),
             "site_settings": settings,
             "now": datetime.now,
             "nav_items": nav_items,

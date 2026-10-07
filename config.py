@@ -46,6 +46,12 @@ class Config:
     # Nama tampilan kafe, dipakai di header halaman & struk.
     CAFE_NAME = os.environ.get("CAFE_NAME") or "Kafe Saya"
 
+    # Nama produk (mis. "Oru POS Pro") yang tampil di footer & halaman login,
+    # di atas kredit Orulabs. Kosong = tidak ditampilkan - dipakai deployment
+    # yang memakai nama sendiri (mis. kafe keluarga di Garut). Diatur lewat .env,
+    # bukan lewat menu Pengaturan.
+    PRODUCT_NAME = os.environ.get("PRODUCT_NAME", "").strip()
+
     # Base URL dipakai saat generate QR code meja (mengarah ke halaman
     # pemesanan). Saat production, ganti ke IP/hostname server di
     # jaringan lokal, misalnya http://192.168.1.10:8000
