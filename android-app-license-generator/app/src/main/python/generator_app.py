@@ -1223,6 +1223,8 @@ _TILE_STYLE = """
   .stat span { font-size: 0.78rem; color: #94a3b8; }
   .stat.warn b { color: #fb923c; }
   .stat.bad b { color: #f87171; }
+  .home-stats { max-width: 520px; margin: 14px auto 0; }
+  .home-stats .stat { background: #1e293b; }
   .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
   .tile, .tile:visited { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 10px;
     background: #0f172a; border: 1px solid #334155; border-top: 3px solid #f97316; border-radius: 18px;
@@ -1246,15 +1248,15 @@ _HOME_PAGE = """
 <title>Oru Go License</title><style>{{ style }}""" + _TILE_STYLE + """</style></head><body>
   {{ navbar('/') }}
 """ + _TILE_SET + """
-  <div class="card">
-    <div class="stats">
-      <div class="stat"><b>{{ d.customers }}</b><span>{{ _('Pelanggan (perangkat)') }}</span></div>
-      <div class="stat"><b>{{ d.active }}</b><span>{{ _('Aktif sekarang') }}</span></div>
-      <div class="stat warn"><b>{{ d.expiring|length }}</b><span>{{ _('Sewa berakhir dalam 30 hari') }}</span></div>
-      <div class="stat bad"><b>{{ d.expired|length }}</b><span>{{ _('Sewa sudah berakhir') }}</span></div>
-    </div>
+  <div class="stats home-stats">
+    <div class="stat"><b>{{ d.customers }}</b><span>{{ _('Pelanggan (perangkat)') }}</span></div>
+    <div class="stat"><b>{{ d.active }}</b><span>{{ _('Aktif sekarang') }}</span></div>
+    <div class="stat warn"><b>{{ d.expiring|length }}</b><span>{{ _('Sewa berakhir dalam 30 hari') }}</span></div>
+    <div class="stat bad"><b>{{ d.expired|length }}</b><span>{{ _('Sewa sudah berakhir') }}</span></div>
+  </div>
 
-    <h2>{{ _('Menu') }}</h2>
+  <div class="card">
+    <h2 style="margin-top:0;">{{ _('Menu') }}</h2>
     <div class="tiles">
       {{ tile(url_for('create_page'), icons.plus, _('Buat Kode')) }}
       {{ tile(url_for('history_page'), icons.list, _('Riwayat')) }}

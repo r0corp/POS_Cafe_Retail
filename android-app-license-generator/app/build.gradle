@@ -21,8 +21,8 @@ android {
         applicationId "id.orulabs.licensegen"
         minSdk 24
         targetSdk 34
-        versionCode 7
-        versionName "1.0.5"
+        versionCode 8
+        versionName "1.0.6"
 
         // Cuma ARM (HP asli) - dipakai langsung di HP penjual, bukan
         // emulator.
