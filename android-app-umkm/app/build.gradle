@@ -25,8 +25,8 @@ android {
         applicationId "id.orulabs.umkm"
         minSdk 24
         targetSdk 34
-        versionCode 9
-        versionName "1.0.7"
+        versionCode 10
+        versionName "1.0.8"
 
         // Cuma ARM (HP asli) - x86/x86_64 cuma perlu buat emulator, dan
         // kita tidak punya emulator buat testing, jadi tidak usah
