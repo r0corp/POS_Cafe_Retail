@@ -4,7 +4,7 @@
 [tool.briefcase]
 project_name = "Oru POS GO"
 bundle = "id.orulabs"
-version = "0.0.1"
+version = "1.0.5"
 url = "https://github.com/r0corp/oru-go-releases"
 license = "LicenseRef-Proprietary"
 license-files = ["LICENSE"]

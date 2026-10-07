@@ -16,6 +16,8 @@ lewat WebView - pola yang sama dengan `MainActivity.java` di Android. **Belum un
 | `../.github/workflows/ios-spike.yml` | Workflow manual di GitHub Actions (macOS): build + simulator + uji kasir |
 | `../.github/workflows/ios-testflight.yml` | **Draft belum diuji**: build bertanda tangan + unggah ke TestFlight (butuh akun Apple) |
 | `IOS-SETUP.md` | Daftar langkah menuju iPhone sungguhan |
+| `../.github/workflows/ios-ipa-unsigned.yml` | Membuat `.ipa` tanpa tanda tangan (tanpa akun Apple berbayar) + Release `ios-latest` |
+| `INSTALL-IPHONE.md` | Cara memasang `.ipa` di iPhone dengan Apple ID gratis (Sideloadly/AltStore) |
 | `src/orupos/resources/` | Ikon app (dari logo GO) |
 
 ## Cara menjalankan uji coba
