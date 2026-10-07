@@ -38,8 +38,8 @@ class OruPosGo(toga.App):
         threading.Thread(target=self._serve, name="flask", daemon=True).start()
 
         self.web = toga.WebView(style=Pack(flex=1), on_webview_load=self._on_load)
-        # Judul kosong: bilah atas iOS tidak perlu menampilkan nama app (warnanya disamakan dengan halaman).
-        self.main_window = toga.MainWindow(title="")
+        # Judul spasi: bilah atas iOS tidak perlu menampilkan nama app (warnanya disamakan dengan halaman).
+        self.main_window = toga.MainWindow(title=" ")
         self.main_window.content = self.web
         self.main_window.show()
         self.add_background_task(self._open_when_ready)
@@ -73,6 +73,8 @@ class OruPosGo(toga.App):
             bar.scrollEdgeAppearance = appearance
             bar.compactAppearance = appearance
             impl.native.backgroundColor = color
+            # Toga memakai nama app bila judul kosong, jadi pakai spasi lewat UIKit langsung.
+            impl.container.controller.topViewController.title = " "
             # 2 = gelap (teks status bar putih), 1 = terang
             impl.native.overrideUserInterfaceStyle = 2 if dark else 1
         except Exception:
