@@ -141,7 +141,7 @@ def test_unreachable_server_does_not_crash(client, stub):
     stub.close()
     resp = client.get("/pantau")
     assert resp.status_code == 200
-    assert "Tidak bisa terhubung" in resp.get_data(as_text=True)
+    assert "Tidak bisa terhubung ke server Pantau (" in resp.get_data(as_text=True)
 
 
 def test_empty_list_message(client, stub):

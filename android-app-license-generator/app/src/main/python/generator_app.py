@@ -332,7 +332,7 @@ _EN = {
     "Putuskan sambungan": "Disconnect",
     "Putuskan sambungan ke server Pantau?": "Disconnect from the Monitor server?",
     "Token admin ditolak server. Putuskan sambungan lalu isi ulang tokennya.": "The server rejected the admin token. Disconnect and enter the token again.",
-    "Tidak bisa terhubung ke server Pantau. Periksa internet HP ini lalu muat ulang.": "Cannot reach the Monitor server. Check this phone's internet connection and reload.",
+    "Tidak bisa terhubung ke server Pantau (%(why)s). Periksa internet HP ini lalu muat ulang.": "Cannot reach the Monitor server (%(why)s). Check this phone's internet connection and reload.",
     "Alamat harus diawali https:// dan token wajib diisi.": "The address must start with https:// and the token is required.",
     "baru saja": "just now",
     "%(n)s menit lalu": "%(n)s min ago",
@@ -691,7 +691,7 @@ def _valid_monitor_url(url):
     return parsed.scheme == "https" or (parsed.scheme == "http" and local)
 
 
-def _fetch_devices(cfg, timeout=8):
+def _fetch_devices(cfg, timeout=15):
     """(daftar_perangkat, siaran_aktif, pesan_error). Gagal terhubung = daftar kosong + pesan, tidak melempar."""
     import urllib.error
     import urllib.request
@@ -704,8 +704,9 @@ def _fetch_devices(cfg, timeout=8):
         return data.get("devices", []), data.get("broadcast"), None
     except urllib.error.HTTPError as exc:
         return [], None, "token" if exc.code == 401 else "http %s" % exc.code
-    except Exception:
-        return [], None, "offline"
+    except Exception as exc:
+        reason = getattr(exc, "reason", None) or exc          # URLError membungkus alasan aslinya
+        return [], None, "%s: %s" % (type(reason).__name__, str(reason)[:90])
 
 
 BROADCAST_MAX_CHARS = 280
@@ -1567,7 +1568,7 @@ def create_app(files_dir):
             if problem == "token":
                 error = tr("Token admin ditolak server. Putuskan sambungan lalu isi ulang tokennya.")
             elif problem:
-                error = tr("Tidak bisa terhubung ke server Pantau. Periksa internet HP ini lalu muat ulang.")
+                error = tr("Tidak bisa terhubung ke server Pantau (%(why)s). Periksa internet HP ini lalu muat ulang.", why=problem)
             view = _monitor_view(data_dir, devices)
         notice = session.pop("monitor_notice", None)
         return render_template_string(
