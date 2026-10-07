@@ -3230,6 +3230,12 @@ textarea.form-control {
   color: var(--color-accent);
 }
 
+.maintenance-logo-fallback img {
+  width: 62%;
+  height: 62%;
+  object-fit: contain;
+}
+
 @keyframes maintenanceFloatY {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
@@ -3745,6 +3751,13 @@ textarea.form-control {
 }
 
 /* ---- Lisensi / trial (APK GO) ---- */
+.brand-orulabs-logo {
+  height: 34px;
+  width: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .brand-go-logo {
   height: 36px;
   width: 36px;

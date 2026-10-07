@@ -315,6 +315,7 @@ _ACTIVATION_PAGE = """
   .login-logo-circle { width: 74px; height: 74px; border-radius: 50%; background: #0f172a;
     display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
   .login-logo-circle svg { width: 34px; height: 34px; }
+  .login-logo-circle img { width: 66%; height: 66%; object-fit: contain; }
   .login-dot { position: absolute; border-radius: 50%; }
   .login-dot-1 { width: 14px; height: 14px; background: #f97316; top: -5px; right: -5px; }
   .login-dot-2 { width: 9px; height: 9px; background: #38bdf8; bottom: 5px; left: -10px; }
@@ -354,11 +355,7 @@ _ACTIVATION_PAGE = """
       <span class="login-dot login-dot-2"></span>
       <span class="login-dot login-dot-3"></span>
       <div class="login-logo-circle">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 8h13v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z" fill="#f97316"/>
-          <path d="M17 9.5h1.2a2.3 2.3 0 0 1 0 4.6H17" stroke="#f97316" stroke-width="1.6" fill="none"/>
-          <path d="M7 3.2c0 .9-.9.9-.9 1.8M11 3.2c0 .9-.9.9-.9 1.8M15 3.2c0 .9-.9.9-.9 1.8" stroke="#f97316" stroke-width="1.3" stroke-linecap="round" fill="none"/>
-        </svg>
+        <img src="{{ url_for('static', filename='img/orulabs-logo.png') }}" alt="Orulabs">
       </div>
     </div>
     <h3 class="login-title">Oru POS GO</h3>

@@ -11,7 +11,7 @@
         {% if site_settings.login_logo_filename %}
           <img class="maintenance-logo-float" src="{{ url_for('static', filename='uploads/branding/' + site_settings.login_logo_filename) }}" alt="{{ cafe_name }}">
         {% else %}
-          <div class="maintenance-logo-float maintenance-logo-fallback"><i class="bi bi-cup-hot-fill"></i></div>
+          <div class="maintenance-logo-float maintenance-logo-fallback"><img src="{{ url_for('static', filename='img/orulabs-logo.png') }}" alt="Orulabs"></div>
         {% endif %}
       </div>
 

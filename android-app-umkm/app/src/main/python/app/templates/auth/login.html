@@ -16,7 +16,7 @@
         {% elif license_state is defined and license_state.mode != 'trial' %}
           <img src="{{ url_for('static', filename='img/go-logo.png') }}" alt="GO">
         {% else %}
-          <i class="bi bi-cup-hot-fill"></i>
+          <img src="{{ url_for('static', filename='img/orulabs-logo.png') }}" alt="Orulabs">
         {% endif %}
       </div>
       {% if license_state is defined and license_state.mode == 'trial' %}
