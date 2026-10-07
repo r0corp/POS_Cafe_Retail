@@ -26,6 +26,7 @@ class OruPosGo(toga.App):
         os.makedirs(self.files_dir, exist_ok=True)
         # Jalur cetak khusus iPhone (tanpa Bluetooth klasik) - lihat _is_ios() di staff.py.
         os.environ["ORULABS_MOBILE_OS"] = "ios"
+        os.environ["ORULABS_APP_VERSION"] = str(self.version or "0")
         self.error_file = os.path.join(self.files_dir, "server_error.txt")
         if os.path.exists(self.error_file):
             os.remove(self.error_file)

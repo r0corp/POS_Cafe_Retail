@@ -295,6 +295,35 @@ _EN = {
     "Belum ada riwayat.": "No history yet.",
     "Ekspor Riwayat (CSV)": "Export History (CSV)",
     "Dasbor Lisensi": "License Dashboard",
+    "Pantau Aplikasi": "App Monitor",
+    "Hubungkan ke server Pantau (lihat monitor-server/README.md) untuk melihat pelanggan yang sedang memakai aplikasi.": "Connect to the Monitor server (see monitor-server/README.md) to see which customers are using the app.",
+    "Alamat server Pantau": "Monitor server address",
+    "Token admin": "Admin token",
+    "Simpan": "Save",
+    "Online sekarang": "Online now",
+    "Aktif 24 jam terakhir": "Active in the last 24 hours",
+    "Perangkat melapor": "Devices reporting",
+    "Belum update (terbaru %(ver)s)": "Not updated (latest %(ver)s)",
+    "Perangkat": "Devices",
+    "Percobaan (belum membeli)": "Trial (not purchased)",
+    "Tidak ada di riwayat penjualan": "Not in sales history",
+    "Online": "Online",
+    "perlu update": "needs update",
+    "Belum ada perangkat yang melapor. Aplikasi mengirim status saat dibuka dan ada internet.": "No device has reported yet. The app sends its status when opened with internet access.",
+    "Muat ulang": "Reload",
+    "Putuskan sambungan": "Disconnect",
+    "Putuskan sambungan ke server Pantau?": "Disconnect from the Monitor server?",
+    "Token admin ditolak server. Putuskan sambungan lalu isi ulang tokennya.": "The server rejected the admin token. Disconnect and enter the token again.",
+    "Tidak bisa terhubung ke server Pantau. Periksa internet HP ini lalu muat ulang.": "Cannot reach the Monitor server. Check this phone's internet connection and reload.",
+    "Alamat harus diawali https:// dan token wajib diisi.": "The address must start with https:// and the token is required.",
+    "baru saja": "just now",
+    "%(n)s menit lalu": "%(n)s min ago",
+    "%(n)s jam lalu": "%(n)s h ago",
+    "%(n)s hari lalu": "%(n)s d ago",
+    "Percobaan": "Trial",
+    "Beli putus": "One-time purchase",
+    "Sewa": "Rental",
+    "Sewa habis": "Rental ended",
     "Pelanggan (perangkat)": "Customers (devices)",
     "Aktif sekarang": "Active now",
     "Sewa berakhir dalam 30 hari": "Rentals ending within 30 days",
@@ -579,6 +608,116 @@ def _dashboard_data(data_dir, today=None):
         "has_price": has_price, "rev_month": _rupiah(rev["month"]), "rev_last": _rupiah(rev["last"]),
         "rev_total": _rupiah(rev["total"]), "sales_month": sales_month, "sales_total": len(rows),
     }
+
+
+# ============================================================
+# Pantau Aplikasi: perangkat GO yang melapor status ke server Pantau (monitor-server/)
+# ============================================================
+
+ONLINE_SECONDS = 600
+
+
+def _monitor_file(data_dir):
+    return os.path.join(data_dir, "monitor.json")
+
+
+def _load_monitor(data_dir):
+    try:
+        with open(_monitor_file(data_dir), encoding="utf-8") as f:
+            cfg = json.load(f)
+        if cfg.get("url") and cfg.get("token"):
+            return cfg
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def _save_monitor(data_dir, url, token):
+    with open(_monitor_file(data_dir), "w", encoding="utf-8") as f:
+        json.dump({"url": url, "token": token}, f)
+
+
+def _valid_monitor_url(url):
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    if not parsed.netloc:
+        return False
+    local = parsed.hostname in ("127.0.0.1", "localhost")
+    return parsed.scheme == "https" or (parsed.scheme == "http" and local)
+
+
+def _fetch_devices(cfg, timeout=8):
+    """(daftar_perangkat, pesan_error). Gagal terhubung = daftar kosong + pesan, tidak melempar."""
+    import urllib.error
+    import urllib.request
+
+    request = urllib.request.Request(
+        cfg["url"].rstrip("/") + "/v1/devices", headers={"Authorization": "Bearer " + cfg["token"], "User-Agent": "OruGoLicense"})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        return data.get("devices", []), None
+    except urllib.error.HTTPError as exc:
+        return [], "token" if exc.code == 401 else "http %s" % exc.code
+    except Exception:
+        return [], "offline"
+
+
+def _version_tuple(text):
+    parts = []
+    for piece in str(text).split("."):
+        digits = "".join(ch for ch in piece if ch.isdigit())
+        parts.append(int(digits) if digits else 0)
+    return tuple(parts)
+
+
+def _ago(seconds):
+    if seconds < 90:
+        return tr_plain("baru saja")
+    if seconds < 3600:
+        return tr_plain("%(n)s menit lalu", n=seconds // 60)
+    if seconds < 86400:
+        return tr_plain("%(n)s jam lalu", n=seconds // 3600)
+    return tr_plain("%(n)s hari lalu", n=seconds // 86400)
+
+
+MODE_LABELS = {"trial": "Percobaan", "permanent": "Beli putus", "rental": "Sewa", "expired": "Sewa habis", "unknown": "?"}
+
+
+def _monitor_view(data_dir, devices, now=None):
+    """Gabungkan perangkat yang melapor dengan riwayat penjualan (lewat Kode Perangkat)."""
+    now = now or int(time.time())
+    conn = sqlite3.connect(_db_path(data_dir))
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute("SELECT * FROM customers ORDER BY id ASC").fetchall()
+    conn.close()
+    known = {}
+    for r in rows:
+        known[r["device_code"]] = r  # catatan terakhir menang
+
+    latest = max((_version_tuple(d["version"]) for d in devices), default=())
+    items = []
+    for d in devices:
+        age = max(0, now - int(d["last_seen"]))
+        rec = known.get(d["device"])
+        until = d["expiry"]
+        items.append({
+            "device": d["device"], "short": d["device"][:4] + "..." + d["device"][-4:],
+            "shop": rec["shop_name"] if rec else None, "customer": rec["customer_name"] if rec else None,
+            "phone": rec["phone"] if rec else None,
+            "trial": d["mode"] == "trial", "online": age < ONLINE_SECONDS, "age": age, "ago": _ago(age),
+            "version": d["version"], "outdated": bool(latest) and _version_tuple(d["version"]) < latest,
+            "mode": tr_plain(MODE_LABELS.get(d["mode"], "?")), "platform": d["platform"],
+            "until": ("%s-%s-%s" % (until[0:4], until[4:6], until[6:8])) if until else "",
+        })
+    items.sort(key=lambda i: i["age"])
+    return {
+        "rows": items, "total": len(items), "online": sum(1 for i in items if i["online"]),
+        "today": sum(1 for i in items if i["age"] < 86400), "outdated": sum(1 for i in items if i["outdated"]),
+        "latest": ".".join(str(n) for n in latest), "unregistered": sum(1 for i in items if not i["shop"]),
+    }
+
 
 
 def _whatsapp_link(phone, message):
@@ -884,6 +1023,79 @@ _DASH_PAGE = """
 """
 
 
+_MONITOR_PAGE = """
+<!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oru Go License</title><style>{{ style }}
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 4px; }
+  .stat { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px; }
+  .stat b { display: block; font-size: 1.35rem; font-family: 'Poppins', 'Inter', sans-serif; color: #f1f5f9; }
+  .stat span { font-size: 0.78rem; color: #94a3b8; }
+  .stat.ok b { color: #4ade80; }
+  .stat.warn b { color: #fb923c; }
+  .item { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 10px 0; border-top: 1px solid #334155; }
+  .item .who { min-width: 0; flex: 1 1 auto; }
+  .item .who div { font-weight: 600; word-break: break-word; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #475569; margin-right: 6px; }
+  .dot.on { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+  .muted { color: #64748b; font-size: 0.82rem; }
+  .tag { display: inline-block; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; background: #334155; color: #cbd5e1; margin-left: 4px; }
+  .tag.warn { background: #7c2d12; color: #fed7aa; }
+  .item .btn { flex: 0 0 auto; width: auto; display: inline-block; margin: 0; padding: 8px 12px; font-size: 0.8rem; text-decoration: none; }
+</style></head><body>
+  <div class="card">
+    <h1>{{ _('Pantau Aplikasi') }}</h1>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+    {% if not configured %}
+      <p class="muted">{{ _('Hubungkan ke server Pantau (lihat monitor-server/README.md) untuk melihat pelanggan yang sedang memakai aplikasi.') }}</p>
+      <form method="post" action="{{ url_for('monitor_save') }}">
+        <label>{{ _('Alamat server Pantau') }}</label>
+        <input type="text" name="url" placeholder="https://orugo-monitor.xxx.workers.dev" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+        <label>{{ _('Token admin') }}</label>
+        <input type="password" name="token" required>
+        <button type="submit">{{ _('Simpan') }}</button>
+      </form>
+    {% else %}
+      <div class="stats">
+        <div class="stat ok"><b>{{ v.online }}</b><span>{{ _('Online sekarang') }}</span></div>
+        <div class="stat"><b>{{ v.today }}</b><span>{{ _('Aktif 24 jam terakhir') }}</span></div>
+        <div class="stat"><b>{{ v.total }}</b><span>{{ _('Perangkat melapor') }}</span></div>
+        <div class="stat warn"><b>{{ v.outdated }}</b><span>{{ _('Belum update (terbaru %(ver)s)', ver=v.latest or '-') }}</span></div>
+      </div>
+
+      <h2>{{ _('Perangkat') }}</h2>
+      {% for i in v.rows %}
+        <div class="item">
+          <div class="who">
+            <div><span class="dot {{ 'on' if i.online else '' }}"></span>{{ i.shop or (_('Percobaan (belum membeli)') if i.trial else _('Tidak ada di riwayat penjualan')) }}</div>
+            <span class="muted">
+              {% if i.shop %}{{ i.customer }} &middot; {% else %}{{ i.short }} &middot; {% endif %}
+              {{ _('Online') if i.online else i.ago }} &middot; v{{ i.version }}{% if i.platform == 'ios' %} (iPhone){% endif %}
+            </span>
+            <div style="margin-top:4px;">
+              <span class="tag">{{ i.mode }}{% if i.until %} {{ i.until }}{% endif %}</span>
+              {% if i.outdated %}<span class="tag warn">{{ _('perlu update') }}</span>{% endif %}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <p class="muted">{{ _('Belum ada perangkat yang melapor. Aplikasi mengirim status saat dibuka dan ada internet.') }}</p>
+      {% endfor %}
+
+      <a class="btn" href="{{ url_for('monitor_page') }}">{{ _('Muat ulang') }}</a>
+      <form method="post" action="{{ url_for('monitor_clear') }}" onsubmit='return confirm({{ _('Putuskan sambungan ke server Pantau?')|tojson }})'>
+        <button type="submit" class="btn-secondary">{{ _('Putuskan sambungan') }}</button>
+      </form>
+    {% endif %}
+
+    <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('Kembali') }}</a>
+    {{ lang_switch('/pantau') }}
+  </div>
+</body></html>
+"""
+
+
 _MAIN_PAGE = """
 <!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -957,6 +1169,7 @@ _MAIN_PAGE = """
     {% endif %}
 
     <a class="btn btn-secondary" href="{{ url_for('dashboard') }}">{{ _('Dasbor Lisensi') }}</a>
+    <a class="btn btn-secondary" href="{{ url_for('monitor_page') }}">{{ _('Pantau Aplikasi') }}</a>
     {% if records %}<a class="btn btn-secondary" href="{{ url_for('export_csv') }}">{{ _('Ekspor Riwayat (CSV)') }}</a>{% endif %}
     <a class="btn btn-secondary" href="{{ url_for('security_page') }}">{{ _('Keamanan') }}</a>
     <form method="post" action="{{ url_for('lock') }}"><button type="submit" class="btn-secondary">{{ _('Kunci App') }}</button></form>
@@ -1067,7 +1280,7 @@ def create_app(files_dir):
                 settings["language"] = code
                 save_security(settings)
         target = request.args.get("next", "/")
-        if target not in ("/", "/login", "/security"):
+        if target not in ("/", "/login", "/security", "/dasbor", "/pantau"):
             target = "/"
         return redirect(target)
 
@@ -1145,6 +1358,42 @@ def create_app(files_dir):
         return render_template_string(
             _DASH_PAGE, style=_BASE_STYLE, d=_dashboard_data(data_dir),
         )
+
+    @app.route("/pantau")
+    def monitor_page():
+        cfg = _load_monitor(data_dir)
+        error = None
+        view = None
+        if cfg:
+            devices, problem = _fetch_devices(cfg)
+            if problem == "token":
+                error = tr("Token admin ditolak server. Putuskan sambungan lalu isi ulang tokennya.")
+            elif problem:
+                error = tr("Tidak bisa terhubung ke server Pantau. Periksa internet HP ini lalu muat ulang.")
+            view = _monitor_view(data_dir, devices)
+        return render_template_string(
+            _MONITOR_PAGE, style=_BASE_STYLE, configured=bool(cfg), v=view, error=error,
+        )
+
+    @app.route("/pantau/simpan", methods=["POST"])
+    def monitor_save():
+        url = request.form.get("url", "").strip()
+        token = request.form.get("token", "").strip()
+        if not _valid_monitor_url(url) or not token:
+            return render_template_string(
+                _MONITOR_PAGE, style=_BASE_STYLE, configured=False, v=None,
+                error=tr("Alamat harus diawali https:// dan token wajib diisi."),
+            )
+        _save_monitor(data_dir, url, token)
+        return redirect(url_for("monitor_page"))
+
+    @app.route("/pantau/putus", methods=["POST"])
+    def monitor_clear():
+        try:
+            os.remove(_monitor_file(data_dir))
+        except OSError:
+            pass
+        return redirect(url_for("monitor_page"))
 
     @app.route("/export.csv")
     def export_csv():

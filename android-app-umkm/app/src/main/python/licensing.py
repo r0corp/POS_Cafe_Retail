@@ -499,12 +499,16 @@ def install_activation_gate(app, data_dir):
     aplikasi POS yang sesungguhnya - dipanggil sekali dari
     umkm_app.run() sesudah create_app(), sebelum app.run()."""
 
+    app.config["LICENSE_DATA_DIR"] = data_dir
+
     @app.context_processor
     def _inject_license_state():
         """license_state tersedia di SEMUA template (navbar, login,
         Pengaturan) - dipakai buat bedain tampilan trial vs sudah aktif
         dan buat tombol "Aktifkan Lisensi"."""
-        return {"license_state": get_license_state(data_dir)}
+        import monitor
+
+        return {"license_state": get_license_state(data_dir), "monitor_state": monitor.state(data_dir)}
 
     @app.before_request
     def _check_activation():

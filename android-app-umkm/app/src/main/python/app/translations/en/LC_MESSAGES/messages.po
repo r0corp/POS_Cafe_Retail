@@ -3379,3 +3379,15 @@ msgstr "Save Changes"
 
 msgid "Demi keamanan, ganti password bawaan dulu sebelum memakai aplikasi. Password bawaan diketahui banyak orang."
 msgstr "For security, change the default password before using the app. The default password is widely known."
+
+msgid "Status aktif akan dikirim ke penjual."
+msgstr "Active status will be sent to the seller."
+
+msgid "Status aktif tidak lagi dikirim ke penjual."
+msgstr "Active status is no longer sent to the seller."
+
+msgid "Kirim status aktif ke penjual"
+msgstr "Send active status to the seller"
+
+msgid "Yang dikirim hanya: Kode Perangkat, versi aplikasi, status lisensi, dan waktu aktif. Tidak ada data penjualan atau isi toko. Dipakai penjual untuk mengingatkan perpanjangan dan membantu bila ada masalah. Bisa dimatikan kapan saja."
+msgstr "Only this is sent: Device Code, app version, license status, and time active. No sales data or store contents. The seller uses it to remind about renewals and to help when there is a problem. You can turn it off at any time."

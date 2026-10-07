@@ -3968,6 +3968,21 @@ def demo_mode_toggle():
     return redirect(url_for("staff.admin_settings"))
 
 
+@staff_bp.route("/admin/system/monitor", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def monitor_toggle():
+    """Nyalakan/matikan pengiriman status aktif ke penjual (lihat monitor.py)."""
+    import monitor
+
+    enabled = request.form.get("enabled") == "1"
+    monitor.set_enabled(current_app.config["LICENSE_DATA_DIR"], enabled)
+    flash(
+        _("Status aktif akan dikirim ke penjual.") if enabled else _("Status aktif tidak lagi dikirim ke penjual."),
+        "success",
+    )
+    return redirect(url_for("staff.admin_settings"))
+
+
 @staff_bp.route("/admin/system/maintenance-mode/toggle", methods=["POST"])
 @roles_required(ROLE_OWNER)
 def maintenance_mode_toggle():

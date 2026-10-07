@@ -1,0 +1,13 @@
+# Pantau Aplikasi Oru POS GO - Cloudflare Worker + D1 (paket gratis cukup).
+# Langkah pasang lengkap: README.md
+name = "orugo-monitor"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "orugo-monitor"
+database_id = "ISI-SETELAH-wrangler-d1-create"
+
+[vars]
+MAX_DEVICES = "5000"

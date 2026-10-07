@@ -137,4 +137,9 @@ def run(port, files_dir):
     # server pusat).
     licensing.install_activation_gate(app, data_dir)
 
+    # Status aktif ke penjual (opsional, bisa dimatikan pemakai; kosong bila ENDPOINT belum diisi).
+    import monitor
+
+    monitor.start(data_dir)
+
     app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False, threaded=True)
