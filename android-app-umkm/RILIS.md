@@ -45,6 +45,16 @@ terbaru, cara pasang, hash file, dan QR (`download-qr.png`, bisa dicetak/ditempe
 Halaman ini ikut diperbarui otomatis tiap rilis (lewat `make_release.py`), jadi link-nya tidak perlu diganti.
 Link unduhan langsung ada di tombol pada halaman itu dan di `version.json` (`apkUrl`).
 
+## Link & QR unduhan iPhone (kalau versi iOS sudah ada)
+
+Halaman unduh otomatis memuat bagian "iPhone / iOS" lengkap dengan QR **hanya setelah** ada link-nya
+(TestFlight atau App Store). Sebelum itu bagian tersebut tidak muncul. Cara memasang link:
+
+    python release_tool/update_page.py --out "D:/10.  PROJECT/oru-go-releases" --ios-url https://testflight.apple.com/join/XXXX --ios-label TestFlight
+
+Lalu di repo rilis: `git add -A`, `git commit`, `git push`. Menghapus bagian iOS: tambahkan `--clear-ios`.
+Status uji coba iOS ada di `../ios-app-umkm/README.md`.
+
 ## Yang terjadi di HP pelanggan
 
 - Saat aplikasi dibuka (maks. sekali per 6 jam) atau lewat tombol

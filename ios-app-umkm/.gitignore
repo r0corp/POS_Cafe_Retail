@@ -1,0 +1,6 @@
+src/orupos/gopos/
+build/
+dist/
+logs/
+.briefcase/
+src/*.dist-info/

@@ -1,0 +1,83 @@
+name: iOS spike (Oru POS GO)
+
+# Uji coba MANUAL: Actions > "iOS spike (Oru POS GO)" > Run workflow.
+# Membangun GO untuk simulator iPhone, menjalankannya, lalu memeriksa apakah
+# server Flask di dalam app hidup dan halaman login tampil. Hasil (tangkapan
+# layar + log) ada di Artifacts. Runner macOS di repo private dihitung 10x
+# menit - satu proses sekitar 15-30 menit (lihat ios-app-umkm/README.md).
+on:
+  workflow_dispatch:
+
+jobs:
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Pasang Briefcase
+        run: python -m pip install --upgrade pip briefcase
+
+      - name: Salin kode GO
+        run: python ios-app-umkm/sync_go.py
+
+      - name: Briefcase create (proyek Xcode + paket Python untuk iOS)
+        working-directory: ios-app-umkm
+        run: |
+          set -o pipefail
+          briefcase create iOS --no-input 2>&1 | tee "$GITHUB_WORKSPACE/create.log"
+
+      - name: Briefcase build (compile untuk simulator)
+        working-directory: ios-app-umkm
+        run: |
+          set -o pipefail
+          briefcase build iOS --no-input 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
+
+      - name: Jalankan di simulator dan periksa
+        id: smoke
+        working-directory: ios-app-umkm
+        run: |
+          set +e
+          UDID=$(python ci_pick_simulator.py)
+          echo "Simulator: $UDID"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          APP=$(find build -name "*.app" -path "*iphonesimulator*" | head -1)
+          echo "App: $APP"
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" id.orulabs.orupos
+          OK=no
+          for i in $(seq 1 90); do
+            if curl -sf http://127.0.0.1:8731/login -o "$GITHUB_WORKSPACE/login.html"; then OK=yes; break; fi
+            sleep 2
+          done
+          sleep 15
+          xcrun simctl io "$UDID" screenshot "$GITHUB_WORKSPACE/ios-login.png"
+          DATA=$(xcrun simctl get_app_container "$UDID" id.orulabs.orupos data)
+          find "$DATA" -name "server_error.txt" -exec cp {} "$GITHUB_WORKSPACE/server_error.txt" \;
+          xcrun simctl spawn "$UDID" log show --last 5m --style compact --predicate 'process == "Oru POS GO"' > "$GITHUB_WORKSPACE/app-log.txt" 2>&1
+          {
+            echo "## Hasil uji iOS"
+            echo "- Server Flask di dalam app menjawab /login: **$OK**"
+            [ -f "$GITHUB_WORKSPACE/server_error.txt" ] && echo "- Ada server_error.txt (lihat artifact)"
+            echo "- Ukuran login.html: $(wc -c < "$GITHUB_WORKSPACE/login.html" 2>/dev/null || echo 0) byte"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$OK" = yes ]
+
+      - name: Unggah hasil
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-spike-hasil
+          if-no-files-found: ignore
+          path: |
+            create.log
+            build.log
+            login.html
+            ios-login.png
+            server_error.txt
+            app-log.txt

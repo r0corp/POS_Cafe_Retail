@@ -56,7 +56,7 @@ PAGE_TEMPLATE = """# Oru POS GO
 > **{version}** &middot; {size_mb} MB &middot; Android 7.0+ &middot; {date}
 
 <p align="center"><img src="download-qr.png" width="220" alt="QR download"><br><sub>Scan untuk mengunduh / Scan to download</sub></p>
-
+{ios_section}
 ## Yang didapat / What you get
 
 - Kasir dengan pembayaran **Tunai** dan **QRIS**, struk (printer Bluetooth), dan riwayat transaksi
@@ -99,14 +99,39 @@ MANUAL_URL = "https://raw.githubusercontent.com/{repo}/main/manual/Panduan-Oru-P
 CERT_SHA256 = "5ed6b68757b0c2092cd75e43bccc89028c58f1d61b203441c0fe75d460eb40aa"
 
 
-def write_download_page(out_dir, manifest, repo):
+IOS_CONFIG = "ios.json"
+
+IOS_SECTION = """
+## iPhone / iOS
+
+[Unduh untuk iPhone ({label})]({url}) - buka di iPhone, bukan di Android.
+*Get it on iPhone - open this link on an iPhone.*
+
+<p align="center"><img src="ios-qr.png" width="200" alt="QR iPhone"><br><sub>Scan dengan kamera iPhone / Scan with your iPhone camera</sub></p>
+"""
+
+
+def read_ios_config(out_dir):
+    """ios.json di repo rilis: {"url": "...", "label": "TestFlight"}. Tidak ada
+    file = belum ada versi iPhone, bagian iOS tidak ditampilkan sama sekali."""
+    path = os.path.join(out_dir, IOS_CONFIG)
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        cfg = json.load(f)
+    return cfg if cfg.get("url") else None
+
+
+def write_download_page(out_dir, manifest, repo, date=None):
     """README.md di repo rilis = halaman unduh yang dibagikan ke calon customer
     (https://github.com/<repo>) + QR menuju link unduhan langsung."""
+    ios = read_ios_config(out_dir)
     page = PAGE_TEMPLATE.format(
+        ios_section=IOS_SECTION.format(label=ios.get("label", "App Store"), url=ios["url"]) if ios else "",
         version=manifest["versionName"],
         apk_url=manifest["apkUrl"],
         size_mb="%.0f" % (manifest["sizeBytes"] / 1048576.0),
-        date=datetime.date.today().strftime("%d-%m-%Y"),
+        date=date or datetime.date.today().strftime("%d-%m-%Y"),
         sha256=manifest["sha256"],
         cert=CERT_SHA256,
         manual_url=MANUAL_URL.format(repo=repo),
@@ -119,6 +144,14 @@ def write_download_page(out_dir, manifest, repo):
         img.add_data(manifest["apkUrl"])
         img.make(fit=True)
         img.make_image(fill_color="black", back_color="white").save(os.path.join(out_dir, "download-qr.png"))
+        ios_png = os.path.join(out_dir, "ios-qr.png")
+        if ios:
+            iq = qrcode.QRCode(box_size=10, border=3)
+            iq.add_data(ios["url"])
+            iq.make(fit=True)
+            iq.make_image(fill_color="black", back_color="white").save(ios_png)
+        elif os.path.exists(ios_png):
+            os.remove(ios_png)
         mq = qrcode.QRCode(box_size=10, border=3)
         mq.add_data(MANUAL_URL.format(repo=repo))
         mq.make(fit=True)
@@ -182,7 +215,7 @@ def main():
     print()
     print("Langkah berikutnya (lihat RILIS.md):")
     if args.host == "repo":
-        print("  Di folder repo rilis: git add version.json README.md download-qr.png manual-qr.png manual apk && git commit && git push")
+        print("  Di folder repo rilis: git add -A && git commit && git push")
         print("  Link untuk calon customer: https://github.com/%s" % args.repo)
     else:
         print("  1. GitHub > %s > Releases > Draft a new release, tag v%s," % (args.repo, name))

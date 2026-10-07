@@ -1,0 +1,75 @@
+# UJI COBA (spike) - Oru POS GO di iPhone lewat BeeWare/Briefcase.
+# Tujuan: membuktikan kode GO yang SAMA (Flask + SQLite) bisa jalan di iOS
+# dan tampil lewat WebView. Belum untuk dirilis. Lihat README.md.
+[tool.briefcase]
+project_name = "Oru POS GO"
+bundle = "id.orulabs"
+version = "0.0.1"
+url = "https://github.com/r0corp/oru-go-releases"
+license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
+author = "Orulabs"
+author_email = "itsupport@tradecorp.co.id"
+
+[tool.briefcase.app.orupos]
+formal_name = "Oru POS GO"
+description = "Aplikasi kasir offline untuk warung dan gerobak"
+sources = [
+    "src/orupos",
+]
+test_sources = []
+
+# Paket GO (lihat android-app-umkm/app/requirements-go.txt). Sengaja tidak
+# di-pin untuk paket yang punya kode native (pillow, markupsafe): iOS butuh
+# wheel khusus iOS dan versi yang tersedia ikut repo BeeWare. Sisanya Python murni.
+requires = [
+    "flask==3.0.3",
+    "flask-sqlalchemy==3.1.1",
+    "flask-migrate==4.1.0",
+    "flask-login==0.6.3",
+    "flask-wtf==1.2.1",
+    "flask-babel==4.0.0",
+    "pytz",
+    "python-dotenv==1.0.1",
+    "qrcode==7.4.2",
+    "pypng",
+    "pillow",
+    "markupsafe",
+    "reportlab",
+    "openpyxl==3.1.5",
+    "sqlalchemy==2.0.54",
+    "werkzeug==3.0.6",
+    "jinja2",
+    "wtforms",
+    "itsdangerous",
+    "alembic",
+    "babel",
+    "click",
+    "blinker",
+    "mako",
+    "typing-extensions",
+]
+
+[tool.briefcase.app.orupos.macOS]
+requires = [
+    "toga-cocoa~=0.5.0",
+    "std-nslog~=2.0.0",
+]
+
+[tool.briefcase.app.orupos.windows]
+requires = [
+    "toga-winforms~=0.5.0",
+]
+
+[tool.briefcase.app.orupos.linux]
+requires = [
+    "toga-gtk~=0.5.0",
+]
+
+[tool.briefcase.app.orupos.iOS]
+requires = [
+    "toga-iOS~=0.5.0",
+]
+# Pesanan hanya lewat localhost (server di dalam app sendiri).
+[tool.briefcase.app.orupos.iOS.app]
+min_os_version = "15.4"
