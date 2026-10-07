@@ -41,7 +41,7 @@ from ..imaging import MENU_PHOTO_MAX_SIDE, shrink_photo
 from ..backup import write_backup_zip
 from ..decorators import roles_required
 from ..inventory import check_and_deduct_stock, restore_stock_for_order
-from ..rate_limit import is_blocked, record_failure
+from ..rate_limit import clear_failures, is_blocked, record_failure
 from ..models import (
     Category,
     Floor,
@@ -2648,6 +2648,46 @@ def export_report_pdf(period_key):
 # ADMIN - USER & HAK AKSES
 # ============================================================
 
+MIN_PASSWORD_LENGTH = 6
+# Ganti password butuh password lama, jadi orang yang meminjam HP yang sedang
+# login tidak bisa langsung mengambil alih akun - dibatasi 5 salah / 5 menit.
+PASSWORD_CHANGE_ATTEMPTS = 5
+PASSWORD_CHANGE_WINDOW_SECONDS = 300
+
+
+@staff_bp.route("/account/password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    """Ganti password akun sendiri (semua peran)."""
+    if request.method == "POST":
+        current = request.form.get("current_password", "")
+        new = request.form.get("new_password", "")
+        confirm = request.form.get("confirm_password", "")
+        rate_key = "pwchange:%s" % current_user.id
+
+        if is_blocked(rate_key, PASSWORD_CHANGE_ATTEMPTS, PASSWORD_CHANGE_WINDOW_SECONDS):
+            flash(_("Terlalu banyak percobaan gagal. Coba lagi beberapa menit lagi."), "danger")
+        elif not current_user.check_password(current):
+            record_failure(rate_key, PASSWORD_CHANGE_WINDOW_SECONDS)
+            flash(_("Password saat ini salah."), "danger")
+        elif len(new) < MIN_PASSWORD_LENGTH:
+            flash(_("Password baru minimal %(n)s karakter.", n=MIN_PASSWORD_LENGTH), "danger")
+        elif new != confirm:
+            flash(_("Konfirmasi password baru tidak sama."), "danger")
+        elif current_user.check_password(new):
+            flash(_("Password baru harus berbeda dari password saat ini."), "danger")
+        else:
+            current_user.set_password(new)
+            db.session.commit()
+            clear_failures(rate_key)
+            flash(_("Password berhasil diganti."), "success")
+            return redirect(url_for("staff.dashboard"))
+
+        return redirect(url_for("staff.change_password"))
+
+    return render_template("staff/change_password.html", min_length=MIN_PASSWORD_LENGTH)
+
+
 @staff_bp.route("/admin/users", methods=["GET", "POST"])
 @roles_required(ROLE_OWNER)
 def admin_users():
@@ -2658,6 +2698,8 @@ def admin_users():
 
         if not username or not password or role not in ROLES:
             flash(_("Isi username, password, dan role dengan benar."), "danger")
+        elif len(password) < MIN_PASSWORD_LENGTH:
+            flash(_("Password baru minimal %(n)s karakter.", n=MIN_PASSWORD_LENGTH), "danger")
         elif User.query.filter(db.func.lower(User.username) == username.lower()).first():
             # Case-insensitive - cegah "budi" dan "Budi" ke-anggap 2 akun
             # beda (lihat juga catatan di auth.py soal auto-capitalize
@@ -2713,6 +2755,27 @@ def admin_users_status():
             for user in users
         ]
     }
+
+
+@staff_bp.route("/admin/users/<int:user_id>/password", methods=["POST"])
+@roles_required(ROLE_OWNER)
+def reset_user_password(user_id):
+    """Owner mengatur ulang password akun lain (mis. karyawan lupa password)."""
+    user = User.query.get_or_404(user_id)
+
+    if user.id == current_user.id:
+        flash(_("Untuk akun sendiri, pakai menu Ganti Password di profil."), "warning")
+        return redirect(url_for("staff.admin_users"))
+
+    new = request.form.get("new_password", "")
+    if len(new) < MIN_PASSWORD_LENGTH:
+        flash(_("Password baru minimal %(n)s karakter.", n=MIN_PASSWORD_LENGTH), "danger")
+    else:
+        user.set_password(new)
+        db.session.commit()
+        flash(_("Password user '%(username)s' berhasil diatur ulang.", username=user.username), "success")
+
+    return redirect(url_for("staff.admin_users"))
 
 
 @staff_bp.route("/admin/users/<int:user_id>/toggle", methods=["POST"])

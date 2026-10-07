@@ -145,6 +145,13 @@
               </label>
             </li>
 
+            <li>
+              <a class="profile-dropdown-row profile-dropdown-row-link" href="{{ url_for('staff.change_password') }}">
+                <span class="profile-dropdown-row-icon"><i class="bi bi-key"></i></span>
+                <span class="profile-dropdown-row-label">{{ _('Ganti Password') }}</span>
+              </a>
+            </li>
+
             {% if current_user.role == 'owner' %}
               <li>
                 <a class="profile-dropdown-row profile-dropdown-row-link" href="{{ url_for('staff.admin_users') }}">
