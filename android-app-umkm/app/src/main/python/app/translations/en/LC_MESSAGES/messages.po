@@ -3280,3 +3280,54 @@ msgstr "Confirm"
 
 msgid "Pemberitahuan"
 msgstr "Notice"
+
+msgid "Ganti Password"
+msgstr "Change Password"
+
+msgid "Terlalu banyak percobaan gagal. Coba lagi beberapa menit lagi."
+msgstr "Too many failed attempts. Please try again in a few minutes."
+
+msgid "Password saat ini salah."
+msgstr "Current password is incorrect."
+
+msgid "Password baru minimal %(n)s karakter."
+msgstr "New password must be at least %(n)s characters."
+
+msgid "Konfirmasi password baru tidak sama."
+msgstr "Password confirmation does not match."
+
+msgid "Password baru harus berbeda dari password saat ini."
+msgstr "The new password must differ from the current one."
+
+msgid "Password berhasil diganti."
+msgstr "Password changed successfully."
+
+msgid "Untuk akun sendiri, pakai menu Ganti Password di profil."
+msgstr "For your own account, use Change Password in the profile menu."
+
+msgid "Password user '%(username)s' berhasil diatur ulang."
+msgstr "Password for user '%(username)s' has been reset."
+
+msgid "Akun: %(username)s"
+msgstr "Account: %(username)s"
+
+msgid "Password lama"
+msgstr "Old password"
+
+msgid "Password baru"
+msgstr "New password"
+
+msgid "Ulangi password"
+msgstr "Repeat password"
+
+msgid "Minimal %(n)s karakter."
+msgstr "At least %(n)s characters."
+
+msgid "Simpan Password"
+msgstr "Save Password"
+
+msgid "Atur Ulang Password"
+msgstr "Reset Password"
+
+msgid "Atur Ulang Password - %(username)s"
+msgstr "Reset Password - %(username)s"

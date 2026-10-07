@@ -3817,3 +3817,31 @@ textarea.form-control {
   font-size: 0.74rem;
   color: var(--color-muted);
 }
+
+/* Layar HP: nama toko + chip TRIAL boleh menyusut supaya tombol profil tetap di sisi
+   kanan baris pertama (kalau tidak, tombol pindah ke baris kedua dan menu profil -
+   bahasa, mode gelap, Keluar - terpotong keluar layar). */
+@media (max-width: 575.98px) {
+  .app-navbar .navbar-brand {
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: 1.02rem;
+    gap: 6px;
+  }
+
+  /* Chip cukup "TRIAL" di layar sempit - sisa hari ada di halaman login & Pengaturan. */
+  .app-navbar .trial-chip-days {
+    display: none;
+  }
+
+  /* Tile menu 3 kolom di HP: label panjang ("Pengaturan") jangan terpecah di tengah kata. */
+  .menu-launcher-card .card-body {
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
+  }
+
+  .menu-launcher-label {
+    font-size: 0.8rem;
+  }
+}
+

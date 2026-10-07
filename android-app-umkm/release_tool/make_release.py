@@ -75,6 +75,13 @@ PAGE_TEMPLATE = """# Oru POS GO
 
 Pembaruan aplikasi muncul otomatis di dalam aplikasi (Pengaturan &rarr; Sistem &rarr; Cek Pembaruan). Tidak perlu mengunduh ulang dari sini.
 
+## Buku panduan / User manual
+
+**[Buku Panduan Pengguna (PDF)]({manual_url})** - langkah demi langkah, lengkap dengan gambar, untuk pemilik dan kasir.
+*Step-by-step user guide with screenshots (Indonesian).*
+
+<p align="center"><img src="manual-qr.png" width="180" alt="QR buku panduan"><br><sub>Scan untuk membuka buku panduan / Scan to open the manual</sub></p>
+
 ## Keamanan file / File integrity
 
 SHA-256 `{sha256}`
@@ -84,6 +91,9 @@ APK ini ditandatangani **Orulabs** (sidik jari sertifikat SHA-256 `{cert}`). And
 ---
 &copy; Orulabs
 """
+
+# Buku panduan pengguna (PDF) disimpan di repo rilis, folder manual/ (dibuat terpisah, bukan oleh skrip ini).
+MANUAL_URL = "https://raw.githubusercontent.com/{repo}/main/manual/Panduan-Oru-POS-GO.pdf"
 
 # Sidik jari sertifikat penanda tangan rilis (keystore Orulabs) - tampil di halaman unduh.
 CERT_SHA256 = "5ed6b68757b0c2092cd75e43bccc89028c58f1d61b203441c0fe75d460eb40aa"
@@ -99,6 +109,7 @@ def write_download_page(out_dir, manifest, repo):
         date=datetime.date.today().strftime("%d-%m-%Y"),
         sha256=manifest["sha256"],
         cert=CERT_SHA256,
+        manual_url=MANUAL_URL.format(repo=repo),
     )
     with open(os.path.join(out_dir, "README.md"), "w", encoding="utf-8", newline="\n") as f:
         f.write(page)
@@ -108,6 +119,10 @@ def write_download_page(out_dir, manifest, repo):
         img.add_data(manifest["apkUrl"])
         img.make(fit=True)
         img.make_image(fill_color="black", back_color="white").save(os.path.join(out_dir, "download-qr.png"))
+        mq = qrcode.QRCode(box_size=10, border=3)
+        mq.add_data(MANUAL_URL.format(repo=repo))
+        mq.make(fit=True)
+        mq.make_image(fill_color="black", back_color="white").save(os.path.join(out_dir, "manual-qr.png"))
     except ImportError:
         print("(qrcode tidak terpasang - QR tidak dibuat; jalankan dengan python venv POS)")
 
@@ -167,7 +182,7 @@ def main():
     print()
     print("Langkah berikutnya (lihat RILIS.md):")
     if args.host == "repo":
-        print("  Di folder repo rilis: git add version.json README.md download-qr.png apk && git commit && git push")
+        print("  Di folder repo rilis: git add version.json README.md download-qr.png manual-qr.png manual apk && git commit && git push")
         print("  Link untuk calon customer: https://github.com/%s" % args.repo)
     else:
         print("  1. GitHub > %s > Releases > Draft a new release, tag v%s," % (args.repo, name))
