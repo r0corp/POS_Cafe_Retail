@@ -14,6 +14,7 @@ author_email = "itsupport@tradecorp.co.id"
 [tool.briefcase.app.orupos]
 formal_name = "Oru POS GO"
 description = "Aplikasi kasir offline untuk warung dan gerobak"
+icon = "src/orupos/resources/orupos"
 sources = [
     "src/orupos",
 ]

@@ -12,8 +12,11 @@ lewat WebView - pola yang sama dengan `MainActivity.java` di Android. **Belum un
 | `src/orupos/ios_support.py` | Pengganti `get_device_id()` yang khusus Android (id acak tersimpan di folder data app) |
 | `sync_go.py` | Menyalin kode GO ke `src/orupos/gopos` (tidak ikut git; dibuat ulang tiap build) |
 | `ci_pick_simulator.py` | Memilih simulator iPhone untuk CI |
-| `ci_smoke.py` | Uji alur kasir otomatis terhadap server di dalam app (18 langkah, hanya pustaka standar; bisa dijalankan lokal juga) |
-| `../.github/workflows/ios-spike.yml` | Workflow manual di GitHub Actions (macOS) |
+| `ci_smoke.py` | Uji alur kasir otomatis terhadap server di dalam app (18 langkah; 20 dengan `--ios`, hanya pustaka standar; bisa dijalankan lokal juga) |
+| `../.github/workflows/ios-spike.yml` | Workflow manual di GitHub Actions (macOS): build + simulator + uji kasir |
+| `../.github/workflows/ios-testflight.yml` | **Draft belum diuji**: build bertanda tangan + unggah ke TestFlight (butuh akun Apple) |
+| `IOS-SETUP.md` | Daftar langkah menuju iPhone sungguhan |
+| `src/orupos/resources/` | Ikon app (dari logo GO) |
 
 ## Cara menjalankan uji coba
 
@@ -24,6 +27,15 @@ lewat WebView - pola yang sama dengan `MainActivity.java` di Android. **Belum un
 Biaya: repo ini saat ini **publik**, jadi menit GitHub Actions (termasuk macOS) gratis. Kalau suatu saat diubah
 menjadi private, runner macOS dihitung 10x menit (jatah gratis 2.000 menit per bulan, sekitar 200 menit macOS);
 satu run tetap cukup beberapa kali.
+
+## Hasil uji di simulator iPhone (GitHub Actions, 7 Okt 2026)
+
+Run #4 (commit `65976de`): **sukses, 18 dari 18 langkah lolos** - login, menu, pesanan, bayar tunai dan QRIS,
+struk PDF, batal pesanan, laporan + ekspor Excel/PDF, ganti password, backup. `briefcase create` dan `build`
+juga lolos (Pillow, MarkupSafe, dan paket lain punya wheel iOS). Yang belum terbukti: iPhone sungguhan, cetak
+struk, dan aturan lisensi App Store. Langkah menuju iPhone sungguhan ada di **IOS-SETUP.md**.
+
+Hasil tiap run (tangkapan layar simulator + log) juga dipublikasikan ke branch `ios-spike-results`.
 
 ## Sudah diuji lokal (Windows)
 

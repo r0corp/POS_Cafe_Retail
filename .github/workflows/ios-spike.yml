@@ -9,6 +9,11 @@ name: iOS spike (Oru POS GO)
 on:
   workflow_dispatch:
 
+# contents: write - hanya untuk mengunggah tangkapan layar + log ke branch
+# ios-spike-results (supaya bisa dilihat tanpa login).
+permissions:
+  contents: write
+
 jobs:
   ios-simulator:
     runs-on: macos-15
@@ -61,7 +66,7 @@ jobs:
           # alur kasir lengkap terhadap server di dalam app (login, menu, pesanan, bayar, laporan, dll.)
           SMOKE=skipped
           if [ "$OK" = yes ]; then
-            python ci_smoke.py > "$GITHUB_WORKSPACE/smoke.log" 2>&1 && SMOKE=pass || SMOKE=fail
+            python ci_smoke.py --ios > "$GITHUB_WORKSPACE/smoke.log" 2>&1 && SMOKE=pass || SMOKE=fail
             cp smoke-result.json "$GITHUB_WORKSPACE/smoke-result.json" 2>/dev/null
           fi
           DATA=$(xcrun simctl get_app_container "$UDID" id.orulabs.orupos data)
@@ -95,3 +100,19 @@ jobs:
             ios-login.png
             server_error.txt
             app-log.txt
+
+      - name: Publikasikan hasil ke branch ios-spike-results
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/res"
+          for f in ios-login.png smoke.log smoke-result.json server_error.txt; do cp "$f" "$RUNNER_TEMP/res/" 2>/dev/null || true; done
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan ios-spike-results
+          git rm -rf -q . || true
+          git clean -fdxq
+          cp "$RUNNER_TEMP"/res/* . 2>/dev/null || true
+          echo "Hasil uji iOS - run ${{ github.run_id }} (commit ${{ github.sha }})" > RUN.txt
+          git add -A
+          git commit -q -m "Hasil uji iOS run ${{ github.run_id }}" || true
+          git push -f origin ios-spike-results

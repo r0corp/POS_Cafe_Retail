@@ -16,7 +16,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8731").rstrip("/")
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+IOS = "--ios" in sys.argv[1:]
+BASE = (ARGS[0] if ARGS else "http://127.0.0.1:8731").rstrip("/")
 
 jar = http.cookiejar.CookieJar()
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
@@ -138,6 +140,16 @@ def cash_flow():
     step("bayar tunai + kembalian Rp 16.000 di struk", status == 200 and money(16000) in html, "url %s" % url)
     status, raw, _, ctype = fetch("/orders/%d/receipt.pdf" % oid)
     step("struk PDF (reportlab + Pillow)", status == 200 and raw[:4] == b"%PDF", "status %s, %s byte" % (status, len(raw)))
+    if IOS:
+        # iPhone tidak punya printer Bluetooth klasik: Cetak Struk harus mengarahkan ke PDF, bukan error.
+        status, raw, _, _ = post_form("/cashier", "/orders/%d/print" % oid, {})
+        try:
+            data = json.loads(text(raw))
+        except ValueError:
+            data = {}
+        step("iPhone: Cetak Struk diarahkan ke PDF (bukan Bluetooth)", status == 200 and data.get("unsupported") is True and str(data.get("pdf_url", "")).endswith("/receipt.pdf"), "status %s, %s" % (status, str(data)[:120]))
+        status, raw, _, _ = fetch("/admin/settings/bluetooth-printers")
+        step("iPhone: daftar printer Bluetooth disembunyikan", status == 200 and json.loads(text(raw)).get("supported") is False)
 
 
 guard("alur tunai", cash_flow)
