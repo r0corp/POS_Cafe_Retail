@@ -3,8 +3,9 @@ name: iOS spike (Oru POS GO)
 # Uji coba MANUAL: Actions > "iOS spike (Oru POS GO)" > Run workflow.
 # Membangun GO untuk simulator iPhone, menjalankannya, lalu memeriksa apakah
 # server Flask di dalam app hidup dan halaman login tampil. Hasil (tangkapan
-# layar + log) ada di Artifacts. Runner macOS di repo private dihitung 10x
-# menit - satu proses sekitar 15-30 menit (lihat ios-app-umkm/README.md).
+# layar + log) ada di Artifacts. Repo publik: menit Actions gratis. Kalau repo
+# jadi private, runner macOS dihitung 10x menit (lihat ios-app-umkm/README.md).
+# Satu proses sekitar 15-30 menit.
 on:
   workflow_dispatch:
 

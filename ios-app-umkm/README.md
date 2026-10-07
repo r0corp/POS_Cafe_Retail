@@ -20,8 +20,9 @@ lewat WebView - pola yang sama dengan `MainActivity.java` di Android. **Belum un
 2. GitHub > **Actions** > **iOS spike (Oru POS GO)** > **Run workflow**.
 3. Tunggu sekitar 15-30 menit. Buka run-nya: bagian **Summary** menunjukkan apakah server di dalam app menjawab `/login`; di **Artifacts** (`ios-spike-hasil`) ada `ios-login.png` (tangkapan layar simulator), `login.html`, `create.log`, `build.log`, `app-log.txt`, dan `server_error.txt` bila ada.
 
-Biaya: runner macOS di repo **private** dihitung 10x menit (jatah gratis 2.000 menit per bulan, jadi sekitar 200 menit macOS).
-Satu run cukup beberapa kali.
+Biaya: repo ini saat ini **publik**, jadi menit GitHub Actions (termasuk macOS) gratis. Kalau suatu saat diubah
+menjadi private, runner macOS dihitung 10x menit (jatah gratis 2.000 menit per bulan, sekitar 200 menit macOS);
+satu run tetap cukup beberapa kali.
 
 ## Sudah diuji lokal (Windows)
 
