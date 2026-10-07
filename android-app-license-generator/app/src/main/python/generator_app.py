@@ -20,7 +20,9 @@ memverifikasi kode yang dibuat di sini.
 """
 
 import base64
+import csv
 import hashlib
+import io
 import hmac
 import json
 import os
@@ -30,7 +32,7 @@ import threading
 import time
 from datetime import date, timedelta
 
-from flask import (Flask, g, has_request_context, redirect, render_template_string, request,
+from flask import (Response, Flask, g, has_request_context, redirect, render_template_string, request,
                    session, url_for)
 from markupsafe import Markup, escape
 
@@ -291,6 +293,7 @@ _EN = {
     "s/d": "until",
     "Salin": "Copy",
     "Belum ada riwayat.": "No history yet.",
+    "Ekspor Riwayat (CSV)": "Export History (CSV)",
     "Keamanan": "Security",
     "Kunci App": "Lock App",
     "Kode Perangkat, Nama Customer, dan Nama Toko wajib diisi.":
@@ -430,6 +433,36 @@ def _list_records(data_dir, limit=30):
     ).fetchall()
     conn.close()
     return rows
+
+
+def _csv_cell(value):
+    """Cegah 'CSV injection': teks yang diawali = + - @ dianggap rumus oleh Excel/Sheets."""
+    text = "" if value is None else str(value)
+    if text[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + text
+    return text
+
+
+def _export_csv(data_dir):
+    """Seluruh riwayat (bukan hanya yang tampil di layar) sebagai teks CSV, UTF-8 dengan BOM
+    supaya Excel membaca huruf Indonesia dengan benar."""
+    conn = sqlite3.connect(_db_path(data_dir))
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute("SELECT * FROM customers ORDER BY id ASC").fetchall()
+    conn.close()
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(["Tanggal", "Nama customer", "Nama toko", "Alamat", "Telepon", "Jenis lisensi",
+                     "Masa sewa", "Berlaku sampai", "Kode perangkat", "Kode aktivasi"])
+    for r in rows:
+        token = r["expiry_token"]
+        until = "Permanen" if token == "PERMANENT" else "%s-%s-%s" % (token[0:4], token[4:6], token[6:8])
+        writer.writerow([_csv_cell(v) for v in (
+            r["created_at"], r["customer_name"], r["shop_name"], r["address"], r["phone"],
+            "Beli putus" if r["license_type"] == "buy" else "Sewa",
+            r["rental_period"] or "", until, r["device_code"], r["activation_code"],
+        )])
+    return "\ufeff" + out.getvalue()
 
 
 def _whatsapp_link(phone, message):
@@ -731,6 +764,7 @@ _MAIN_PAGE = """
       <p style="color:#64748b; font-size:0.85rem;">{{ _('Belum ada riwayat.') }}</p>
     {% endif %}
 
+    {% if records %}<a class="btn btn-secondary" href="{{ url_for('export_csv') }}">{{ _('Ekspor Riwayat (CSV)') }}</a>{% endif %}
     <a class="btn btn-secondary" href="{{ url_for('security_page') }}">{{ _('Keamanan') }}</a>
     <form method="post" action="{{ url_for('lock') }}"><button type="submit" class="btn-secondary">{{ _('Kunci App') }}</button></form>
     {{ lang_switch('/') }}
@@ -911,6 +945,15 @@ def create_app(files_dir):
         return render_template_string(
             _MAIN_PAGE, style=_BASE_STYLE, result=None, error=None,
             records=_list_records(data_dir), license_labels=LICENSE_LABELS,
+        )
+
+    @app.route("/export.csv")
+    def export_csv():
+        filename = "riwayat-%s.csv" % date.today().strftime("%Y%m%d")
+        return Response(
+            _export_csv(data_dir),
+            mimetype="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="%s"' % filename},
         )
 
     @app.route("/generate", methods=["POST"])

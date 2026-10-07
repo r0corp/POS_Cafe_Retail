@@ -1,15 +1,19 @@
 package id.orulabs.licensegen;
 
 import android.animation.ValueAnimator;
+import android.app.DownloadManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Environment;
 import android.os.Looper;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.webkit.JavascriptInterface;
+import android.webkit.CookieManager;
 import android.webkit.JsResult;
+import android.webkit.URLUtil;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -130,6 +134,25 @@ public class MainActivity extends AppCompatActivity {
         });
 
         webView.addJavascriptInterface(new AuthBridge(), "AndroidAuth");
+
+        // Ekspor riwayat (CSV): WebView polos tidak bisa mengunduh file. Diarahkan ke folder
+        // Download lewat DownloadManager; cookie sesi dioper manual karena DownloadManager
+        // berjalan sebagai proses terpisah (tanpa itu yang terunduh halaman login).
+        webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
+            String filename = URLUtil.guessFileName(url, contentDisposition, mimetype);
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+            String cookie = CookieManager.getInstance().getCookie(url);
+            if (cookie != null) {
+                request.addRequestHeader("Cookie", cookie);
+            }
+            request.setMimeType(mimetype);
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename);
+            request.setTitle(filename);
+            DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+            dm.enqueue(request);
+            Toast.makeText(this, filename, Toast.LENGTH_SHORT).show();
+        });
 
         if (!Python.isStarted()) {
             Python.start(new AndroidPlatform(this));

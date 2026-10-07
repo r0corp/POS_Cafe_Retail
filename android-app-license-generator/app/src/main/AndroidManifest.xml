@@ -7,6 +7,7 @@
          sungguhan, app ini tetap butuh izin ini walau tidak pernah
          benar-benar akses jaringan luar. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 
     <application
         android:allowBackup="false"

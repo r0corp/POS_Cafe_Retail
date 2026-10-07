@@ -317,3 +317,47 @@ def test_every_screen_text_has_an_english_translation():
     msgids = {m for m in msgids if not m.startswith("Halo %(name)s")}
     missing = sorted(m for m in msgids if m not in generator_app._EN)
     assert not missing, missing
+
+
+# ---------------------------------------------------------------- ekspor riwayat (CSV)
+
+def _seed_history(tmp_path_dir):
+    data_dir = os.path.join(str(tmp_path_dir), "data")
+    generator_app._save_record(data_dir, {
+        "customer_name": "=HYPERLINK(\"http://x\")", "shop_name": "Warung \u00c9ka", "address": "Jl. Mawar", "phone": "0812",
+        "license_type": "buy", "rental_period": None, "device_code": "K7QM2XPD4VR9WZ3T",
+        "expiry_token": "PERMANENT", "activation_code": "ABC.DEF",
+    })
+    generator_app._save_record(data_dir, {
+        "customer_name": "Sari", "shop_name": "Kedai Sari", "address": "", "phone": "",
+        "license_type": "rent", "rental_period": "monthly", "device_code": "AAAABBBBCCCCDDDD",
+        "expiry_token": "20261108", "activation_code": "XYZ.123",
+    })
+
+
+def test_export_requires_login(client):
+    resp = client.get("/export.csv")
+    assert resp.status_code == 302 and "/login" in resp.headers["Location"]
+
+
+def test_export_csv_contains_all_history_safely(client, tmp_path):
+    _seed_history(tmp_path)
+    assert _login(client).status_code in (200, 302)
+    resp = client.get("/export.csv")
+    assert resp.status_code == 200
+    assert resp.mimetype == "text/csv"
+    assert "attachment" in resp.headers["Content-Disposition"] and ".csv" in resp.headers["Content-Disposition"]
+    text = resp.get_data(as_text=True)
+    assert text.startswith("\ufeff")
+    assert "Kode aktivasi" in text and "ABC.DEF" in text and "XYZ.123" in text
+    assert "Warung \u00c9ka" in text
+    assert "Permanen" in text and "2026-11-08" in text and "Beli putus" in text and "Sewa" in text
+    # rumus tidak boleh ikut dieksekusi saat dibuka di Excel
+    assert "'=HYPERLINK" in text
+
+
+def test_export_button_only_when_history_exists(client, tmp_path):
+    _login(client)
+    assert b"/export.csv" not in client.get("/").data
+    _seed_history(tmp_path)
+    assert b"/export.csv" in client.get("/").data
