@@ -58,6 +58,12 @@ jobs:
           done
           sleep 15
           xcrun simctl io "$UDID" screenshot "$GITHUB_WORKSPACE/ios-login.png"
+          # alur kasir lengkap terhadap server di dalam app (login, menu, pesanan, bayar, laporan, dll.)
+          SMOKE=skipped
+          if [ "$OK" = yes ]; then
+            python ci_smoke.py > "$GITHUB_WORKSPACE/smoke.log" 2>&1 && SMOKE=pass || SMOKE=fail
+            cp smoke-result.json "$GITHUB_WORKSPACE/smoke-result.json" 2>/dev/null
+          fi
           DATA=$(xcrun simctl get_app_container "$UDID" id.orulabs.orupos data)
           find "$DATA" -name "server_error.txt" -exec cp {} "$GITHUB_WORKSPACE/server_error.txt" \;
           xcrun simctl spawn "$UDID" log show --last 5m --style compact --predicate 'process == "Oru POS GO"' > "$GITHUB_WORKSPACE/app-log.txt" 2>&1
@@ -66,8 +72,13 @@ jobs:
             echo "- Server Flask di dalam app menjawab /login: **$OK**"
             [ -f "$GITHUB_WORKSPACE/server_error.txt" ] && echo "- Ada server_error.txt (lihat artifact)"
             echo "- Ukuran login.html: $(wc -c < "$GITHUB_WORKSPACE/login.html" 2>/dev/null || echo 0) byte"
+            echo "- Uji alur kasir: **$SMOKE**"
+            echo ""
+            echo '```'
+            cat "$GITHUB_WORKSPACE/smoke.log" 2>/dev/null
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          [ "$OK" = yes ]
+          [ "$OK" = yes ] && [ "$SMOKE" = pass ]
 
       - name: Unggah hasil
         if: always()
@@ -79,6 +90,8 @@ jobs:
             create.log
             build.log
             login.html
+            smoke.log
+            smoke-result.json
             ios-login.png
             server_error.txt
             app-log.txt

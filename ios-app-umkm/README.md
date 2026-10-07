@@ -12,6 +12,7 @@ lewat WebView - pola yang sama dengan `MainActivity.java` di Android. **Belum un
 | `src/orupos/ios_support.py` | Pengganti `get_device_id()` yang khusus Android (id acak tersimpan di folder data app) |
 | `sync_go.py` | Menyalin kode GO ke `src/orupos/gopos` (tidak ikut git; dibuat ulang tiap build) |
 | `ci_pick_simulator.py` | Memilih simulator iPhone untuk CI |
+| `ci_smoke.py` | Uji alur kasir otomatis terhadap server di dalam app (18 langkah, hanya pustaka standar; bisa dijalankan lokal juga) |
 | `../.github/workflows/ios-spike.yml` | Workflow manual di GitHub Actions (macOS) |
 
 ## Cara menjalankan uji coba
@@ -37,7 +38,8 @@ Pillow/MarkupSafe, kompilasi Xcode, dan perilaku Python di iOS), dan itulah yang
 | `create` gagal di pip | Ada paket tanpa wheel iOS (biasanya Pillow/MarkupSafe versi tertentu) | Ubah pin versi di `pyproject.toml` ke yang punya wheel iOS |
 | `build` gagal | Masalah Xcode/template | Lihat `build.log` |
 | Server tidak menjawab, ada `server_error.txt` | Kode GO butuh modul yang tak ada di iOS | Baca traceback, tambal di `ios_support.py` |
-| Server menjawab + screenshot login tampil | **Lolos.** Dasar port iOS terbukti | Lanjut ke daftar di bawah |
+| Server menjawab + `smoke.log` semua OK | **Lolos.** Alur kasir terbukti di iOS (login, menu, pesanan, bayar tunai/QRIS, struk PDF, batal, laporan + Excel/PDF, ganti password, backup) | Lanjut ke daftar di bawah |
+| Ada langkah GAGAL di `smoke.log` | Bagian tertentu bermasalah di iOS (mis. PDF/Excel) | Baca baris GAGAL + `app-log.txt` |
 
 ## Yang BELUM ada (sengaja, di luar uji coba ini)
 
