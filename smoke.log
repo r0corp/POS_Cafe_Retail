@@ -1,0 +1,22 @@
+OK    halaman login tampil
+OK    login owner berhasil
+OK    kategori ditambahkan
+OK    dua menu tersimpan
+OK    menu tampil di halaman pesanan
+OK    pesanan muncul di Kasir (Rp 34.000)
+OK    bayar tunai + kembalian Rp 16.000 di struk
+OK    struk PDF (reportlab + Pillow)
+OK    iPhone: Cetak Struk diarahkan ke PDF (bukan Bluetooth)
+OK    iPhone: daftar printer Bluetooth disembunyikan
+OK    pesanan kedua muncul di Kasir
+OK    bayar QRIS
+OK    pesanan ketiga ada untuk dibatalkan
+OK    batalkan pesanan
+OK    laporan harian: total Rp 46.000
+OK    laporan harian: 2 transaksi, tunai dan QRIS
+OK    ekspor Excel (openpyxl)
+OK    ekspor PDF laporan
+OK    ganti password
+OK    buat backup (zip)
+
+20 langkah, 0 gagal

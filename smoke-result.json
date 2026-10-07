@@ -1,0 +1,102 @@
+[
+  {
+    "langkah": "halaman login tampil",
+    "ok": true,
+    "detail": "status 200"
+  },
+  {
+    "langkah": "login owner berhasil",
+    "ok": true,
+    "detail": "url http://127.0.0.1:8731/?show_login_loader=1"
+  },
+  {
+    "langkah": "kategori ditambahkan",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "langkah": "dua menu tersimpan",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "langkah": "menu tampil di halaman pesanan",
+    "ok": true,
+    "detail": "id: [1, 2]"
+  },
+  {
+    "langkah": "pesanan muncul di Kasir (Rp 34.000)",
+    "ok": true,
+    "detail": "pesanan [1]"
+  },
+  {
+    "langkah": "bayar tunai + kembalian Rp 16.000 di struk",
+    "ok": true,
+    "detail": "url http://127.0.0.1:8731/orders/1/receipt?just_paid=1"
+  },
+  {
+    "langkah": "struk PDF (reportlab + Pillow)",
+    "ok": true,
+    "detail": "status 200, 2277 byte"
+  },
+  {
+    "langkah": "iPhone: Cetak Struk diarahkan ke PDF (bukan Bluetooth)",
+    "ok": true,
+    "detail": "status 200, {'error': 'Printer Bluetooth belum tersedia di iPhone. Struk dibuka sebagai PDF - bagikan atau cetak lewat AirPrint.', '"
+  },
+  {
+    "langkah": "iPhone: daftar printer Bluetooth disembunyikan",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "langkah": "pesanan kedua muncul di Kasir",
+    "ok": true,
+    "detail": "pesanan [2]"
+  },
+  {
+    "langkah": "bayar QRIS",
+    "ok": true,
+    "detail": "status 200"
+  },
+  {
+    "langkah": "pesanan ketiga ada untuk dibatalkan",
+    "ok": true,
+    "detail": "pesanan [3]"
+  },
+  {
+    "langkah": "batalkan pesanan",
+    "ok": true,
+    "detail": "sisa []"
+  },
+  {
+    "langkah": "laporan harian: total Rp 46.000",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "langkah": "laporan harian: 2 transaksi, tunai dan QRIS",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "langkah": "ekspor Excel (openpyxl)",
+    "ok": true,
+    "detail": "status 200, 5764 byte"
+  },
+  {
+    "langkah": "ekspor PDF laporan",
+    "ok": true,
+    "detail": "status 200, 2599 byte"
+  },
+  {
+    "langkah": "ganti password",
+    "ok": true,
+    "detail": "url http://127.0.0.1:8731/"
+  },
+  {
+    "langkah": "buat backup (zip)",
+    "ok": true,
+    "detail": "status 200"
+  }
+]
