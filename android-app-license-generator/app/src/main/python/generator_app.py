@@ -294,6 +294,33 @@ _EN = {
     "Salin": "Copy",
     "Belum ada riwayat.": "No history yet.",
     "Ekspor Riwayat (CSV)": "Export History (CSV)",
+    "Dasbor Lisensi": "License Dashboard",
+    "Pelanggan (perangkat)": "Customers (devices)",
+    "Aktif sekarang": "Active now",
+    "Sewa berakhir dalam 30 hari": "Rentals ending within 30 days",
+    "Sewa sudah berakhir": "Rentals expired",
+    "Pendapatan": "Revenue",
+    "Bulan ini (%(n)s penjualan)": "This month (%(n)s sales)",
+    "Bulan lalu": "Last month",
+    "Total": "Total",
+    "Total penjualan kode": "Total codes sold",
+    "Isi kolom Harga saat membuat kode, supaya pendapatan terhitung di sini.": "Fill in the Price field when creating a code so revenue is counted here.",
+    "Segera berakhir (30 hari)": "Ending soon (30 days)",
+    "sisa %(n)s hari": "%(n)s days left",
+    "Ingatkan": "Remind",
+    "Tidak ada sewa yang akan berakhir dalam 30 hari.": "No rentals ending within 30 days.",
+    "Sudah berakhir (90 hari terakhir)": "Expired (last 90 days)",
+    "berakhir %(until)s": "ended %(until)s",
+    "Tawarkan": "Offer renewal",
+    "Tidak ada.": "None.",
+    "Rincian paket (status terakhir tiap perangkat)": "Plans (latest status per device)",
+    "Kembali": "Back",
+    "Harga (Rp, boleh dikosongkan)": "Price (Rp, optional)",
+    "mis. 99000": "e.g. 99000",
+    "Halo %(name)s, paket sewa Oru POS GO untuk %(shop)s berakhir tanggal %(until)s. Kalau mau diperpanjang, kabari ya. Data toko tetap aman.":
+        "Hi %(name)s, your Oru POS GO rental for %(shop)s ends on %(until)s. Let me know if you would like to renew. Your store data stays safe.",
+    "Halo %(name)s, paket sewa Oru POS GO untuk %(shop)s sudah berakhir tanggal %(until)s. Mau diperpanjang? Data toko Anda tetap aman dan akan tampil kembali setelah diaktifkan.":
+        "Hi %(name)s, your Oru POS GO rental for %(shop)s ended on %(until)s. Would you like to renew? Your store data is safe and will be back once reactivated.",
     "Keamanan": "Security",
     "Kunci App": "Lock App",
     "Kode Perangkat, Nama Customer, dan Nama Toko wajib diisi.":
@@ -404,6 +431,10 @@ def _init_db(data_dir):
             created_at TEXT NOT NULL
         )
     """)
+    # kolom harga (opsional) ditambahkan belakangan - database lama dimigrasi di sini
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(customers)")}
+    if "price" not in columns:
+        conn.execute("ALTER TABLE customers ADD COLUMN price INTEGER")
     conn.commit()
     conn.close()
 
@@ -413,12 +444,12 @@ def _save_record(data_dir, fields):
     conn.execute(
         """INSERT INTO customers
            (customer_name, shop_name, address, phone, license_type, rental_period,
-            device_code, expiry_token, activation_code, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))""",
+            device_code, expiry_token, activation_code, price, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))""",
         (
             fields["customer_name"], fields["shop_name"], fields["address"], fields["phone"],
             fields["license_type"], fields["rental_period"], fields["device_code"],
-            fields["expiry_token"], fields["activation_code"],
+            fields["expiry_token"], fields["activation_code"], fields.get("price"),
         ),
     )
     conn.commit()
@@ -453,16 +484,101 @@ def _export_csv(data_dir):
     out = io.StringIO()
     writer = csv.writer(out)
     writer.writerow(["Tanggal", "Nama customer", "Nama toko", "Alamat", "Telepon", "Jenis lisensi",
-                     "Masa sewa", "Berlaku sampai", "Kode perangkat", "Kode aktivasi"])
+                     "Masa sewa", "Berlaku sampai", "Harga (Rp)", "Kode perangkat", "Kode aktivasi"])
     for r in rows:
         token = r["expiry_token"]
         until = "Permanen" if token == "PERMANENT" else "%s-%s-%s" % (token[0:4], token[4:6], token[6:8])
         writer.writerow([_csv_cell(v) for v in (
             r["created_at"], r["customer_name"], r["shop_name"], r["address"], r["phone"],
             "Beli putus" if r["license_type"] == "buy" else "Sewa",
-            r["rental_period"] or "", until, r["device_code"], r["activation_code"],
+            r["rental_period"] or "", until, r["price"] if r["price"] is not None else "",
+            r["device_code"], r["activation_code"],
         )])
     return "\ufeff" + out.getvalue()
+
+
+def _parse_price(text):
+    digits = "".join(ch for ch in (text or "") if ch.isdigit())
+    return int(digits) if digits else None
+
+
+def _rupiah(value):
+    return "Rp " + "{:,}".format(int(value or 0)).replace(",", ".")
+
+
+def _expiry_date(token):
+    return date(int(token[0:4]), int(token[4:6]), int(token[6:8]))
+
+
+def _dashboard_data(data_dir, today=None):
+    """Ringkasan untuk Dasbor Lisensi. Status tiap perangkat diambil dari catatan TERAKHIR
+    perangkat itu (perpanjangan membuat catatan baru untuk Kode Perangkat yang sama)."""
+    today = today or date.today()
+    conn = sqlite3.connect(_db_path(data_dir))
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute("SELECT * FROM customers ORDER BY id ASC").fetchall()
+    conn.close()
+
+    latest = {}
+    for r in rows:
+        latest[r["device_code"]] = r  # urutan naik: yang terakhir menang
+
+    expiring, expired, labels = [], [], {}
+    active = 0
+    for r in latest.values():
+        label = LICENSE_LABELS["buy"] if r["license_type"] == "buy" else LICENSE_LABELS[r["rental_period"]]
+        labels[label] = labels.get(label, 0) + 1
+        if r["expiry_token"] == "PERMANENT":
+            active += 1
+            continue
+        until = _expiry_date(r["expiry_token"])
+        days = (until - today).days
+        item = {"shop": r["shop_name"], "customer": r["customer_name"], "phone": r["phone"], "label": tr(label),
+                "days": days, "until": until.strftime("%d-%m-%Y"), "date": until}
+        if days < 0:
+            if days >= -90:
+                expired.append(item)
+        else:
+            active += 1
+            if days <= 30:
+                expiring.append(item)
+    expiring.sort(key=lambda i: i["days"])
+    expired.sort(key=lambda i: -i["days"])
+
+    for i in expiring:
+        i["wa"] = _whatsapp_link(i["phone"], tr_plain(
+            "Halo %(name)s, paket sewa Oru POS GO untuk %(shop)s berakhir tanggal %(until)s. "
+            "Kalau mau diperpanjang, kabari ya. Data toko tetap aman.",
+            name=i["customer"], shop=i["shop"], until=i["until"]))
+    for i in expired:
+        i["wa"] = _whatsapp_link(i["phone"], tr_plain(
+            "Halo %(name)s, paket sewa Oru POS GO untuk %(shop)s sudah berakhir tanggal %(until)s. "
+            "Mau diperpanjang? Data toko Anda tetap aman dan akan tampil kembali setelah diaktifkan.",
+            name=i["customer"], shop=i["shop"], until=i["until"]))
+
+    month_key = today.strftime("%Y-%m")
+    last_key = (today.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+    rev = {"month": 0, "last": 0, "total": 0}
+    sales_month = 0
+    has_price = False
+    for r in rows:
+        if r["created_at"][:7] == month_key:
+            sales_month += 1
+        if r["price"] is None:
+            continue
+        has_price = True
+        rev["total"] += r["price"]
+        if r["created_at"][:7] == month_key:
+            rev["month"] += r["price"]
+        elif r["created_at"][:7] == last_key:
+            rev["last"] += r["price"]
+
+    return {
+        "customers": len(latest), "active": active, "expiring": expiring, "expired": expired,
+        "by_label": sorted(labels.items(), key=lambda kv: -kv[1]),
+        "has_price": has_price, "rev_month": _rupiah(rev["month"]), "rev_last": _rupiah(rev["last"]),
+        "rev_total": _rupiah(rev["total"]), "sales_month": sales_month, "sales_total": len(rows),
+    }
 
 
 def _whatsapp_link(phone, message):
@@ -695,6 +811,79 @@ _SECURITY_PAGE = """
 """
 
 
+_DASH_PAGE = """
+<!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oru Go License</title><style>{{ style }}
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 4px; }
+  .stat { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px; }
+  .stat b { display: block; font-size: 1.35rem; font-family: 'Poppins', 'Inter', sans-serif; color: #f1f5f9; }
+  .stat span { font-size: 0.78rem; color: #94a3b8; }
+  .stat.warn b { color: #fb923c; }
+  .stat.bad b { color: #f87171; }
+  .item { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+          padding: 10px 0; border-top: 1px solid #334155; }
+  .item .who { min-width: 0; flex: 1 1 auto; }
+  .item .who div { font-weight: 600; word-break: break-word; }
+  .item .btn { flex: 0 0 auto; width: auto; display: inline-block; margin: 0; padding: 8px 12px; font-size: 0.8rem; text-decoration: none; }
+  .muted { color: #64748b; font-size: 0.85rem; }
+</style></head><body>
+  <div class="card">
+    <h1>{{ _('Dasbor Lisensi') }}</h1>
+
+    <div class="stats">
+      <div class="stat"><b>{{ d.customers }}</b><span>{{ _('Pelanggan (perangkat)') }}</span></div>
+      <div class="stat"><b>{{ d.active }}</b><span>{{ _('Aktif sekarang') }}</span></div>
+      <div class="stat warn"><b>{{ d.expiring|length }}</b><span>{{ _('Sewa berakhir dalam 30 hari') }}</span></div>
+      <div class="stat bad"><b>{{ d.expired|length }}</b><span>{{ _('Sewa sudah berakhir') }}</span></div>
+    </div>
+
+    <h2>{{ _('Pendapatan') }}</h2>
+    {% if d.has_price %}
+      <div class="stats">
+        <div class="stat"><b>{{ d.rev_month }}</b><span>{{ _('Bulan ini (%(n)s penjualan)', n=d.sales_month) }}</span></div>
+        <div class="stat"><b>{{ d.rev_last }}</b><span>{{ _('Bulan lalu') }}</span></div>
+        <div class="stat"><b>{{ d.rev_total }}</b><span>{{ _('Total') }}</span></div>
+        <div class="stat"><b>{{ d.sales_total }}</b><span>{{ _('Total penjualan kode') }}</span></div>
+      </div>
+    {% else %}
+      <p class="muted">{{ _('Isi kolom Harga saat membuat kode, supaya pendapatan terhitung di sini.') }}</p>
+    {% endif %}
+
+    <h2>{{ _('Segera berakhir (30 hari)') }}</h2>
+    {% for r in d.expiring %}
+      <div class="item">
+        <div class="who"><div>{{ r.shop }}</div><span class="muted">{{ r.customer }} &middot; {{ r.label }} &middot; {{ _('sisa %(n)s hari', n=r.days) }} ({{ r.until }})</span></div>
+        {% if r.wa %}<a class="btn" href="{{ r.wa }}">{{ _('Ingatkan') }}</a>{% endif %}
+      </div>
+    {% else %}
+      <p class="muted">{{ _('Tidak ada sewa yang akan berakhir dalam 30 hari.') }}</p>
+    {% endfor %}
+
+    <h2>{{ _('Sudah berakhir (90 hari terakhir)') }}</h2>
+    {% for r in d.expired %}
+      <div class="item">
+        <div class="who"><div>{{ r.shop }}</div><span class="muted">{{ r.customer }} &middot; {{ r.label }} &middot; {{ _('berakhir %(until)s', until=r.until) }}</span></div>
+        {% if r.wa %}<a class="btn" href="{{ r.wa }}">{{ _('Tawarkan') }}</a>{% endif %}
+      </div>
+    {% else %}
+      <p class="muted">{{ _('Tidak ada.') }}</p>
+    {% endfor %}
+
+    <h2>{{ _('Rincian paket (status terakhir tiap perangkat)') }}</h2>
+    {% for label, n in d.by_label %}
+      <div class="item"><div class="who"><div>{{ _(label) }}</div></div><b>{{ n }}</b></div>
+    {% else %}
+      <p class="muted">{{ _('Belum ada riwayat.') }}</p>
+    {% endfor %}
+
+    <a class="btn btn-secondary" href="{{ url_for('index') }}">{{ _('Kembali') }}</a>
+    {{ lang_switch('/dasbor') }}
+  </div>
+</body></html>
+"""
+
+
 _MAIN_PAGE = """
 <!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -731,6 +920,9 @@ _MAIN_PAGE = """
         <label>{{ _('No HP') }}</label>
         <input type="tel" name="phone" placeholder="{{ _('08xx atau 62xx') }}">
 
+        <label>{{ _('Harga (Rp, boleh dikosongkan)') }}</label>
+        <input type="text" name="price" inputmode="numeric" placeholder="{{ _('mis. 99000') }}">
+
         <label>{{ _('Jenis Lisensi') }}</label>
         <div class="radio-row">
           <label><input type="radio" name="license_choice" value="buy" checked> {{ _('Beli Putus') }}</label>
@@ -764,6 +956,7 @@ _MAIN_PAGE = """
       <p style="color:#64748b; font-size:0.85rem;">{{ _('Belum ada riwayat.') }}</p>
     {% endif %}
 
+    <a class="btn btn-secondary" href="{{ url_for('dashboard') }}">{{ _('Dasbor Lisensi') }}</a>
     {% if records %}<a class="btn btn-secondary" href="{{ url_for('export_csv') }}">{{ _('Ekspor Riwayat (CSV)') }}</a>{% endif %}
     <a class="btn btn-secondary" href="{{ url_for('security_page') }}">{{ _('Keamanan') }}</a>
     <form method="post" action="{{ url_for('lock') }}"><button type="submit" class="btn-secondary">{{ _('Kunci App') }}</button></form>
@@ -947,6 +1140,12 @@ def create_app(files_dir):
             records=_list_records(data_dir), license_labels=LICENSE_LABELS,
         )
 
+    @app.route("/dasbor")
+    def dashboard():
+        return render_template_string(
+            _DASH_PAGE, style=_BASE_STYLE, d=_dashboard_data(data_dir),
+        )
+
     @app.route("/export.csv")
     def export_csv():
         filename = "riwayat-%s.csv" % date.today().strftime("%Y%m%d")
@@ -982,6 +1181,7 @@ def create_app(files_dir):
             "customer_name": customer_name, "shop_name": shop_name, "address": address,
             "phone": phone, "license_type": license_type, "rental_period": rental_period,
             "device_code": device_code, "expiry_token": expiry_token, "activation_code": activation_code,
+            "price": _parse_price(request.form.get("price")),
         })
 
         wa_message = tr_plain(

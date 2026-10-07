@@ -361,3 +361,113 @@ def test_export_button_only_when_history_exists(client, tmp_path):
     assert b"/export.csv" not in client.get("/").data
     _seed_history(tmp_path)
     assert b"/export.csv" in client.get("/").data
+
+
+# ---------------------------------------------------------------- Dasbor Lisensi
+
+def _insert(data_dir, shop, device, license_type, rental, token, price, created, phone="0812345678", customer="Budi"):
+    import sqlite3
+
+    conn = sqlite3.connect(os.path.join(data_dir, "licenses.db"))
+    conn.execute(
+        """INSERT INTO customers (customer_name, shop_name, address, phone, license_type, rental_period, device_code,
+                                  expiry_token, activation_code, price, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+        (customer, shop, "", phone, license_type, rental, device, token, "X.Y", price, created),
+    )
+    conn.commit()
+    conn.close()
+
+
+def _token(days):
+    from datetime import date, timedelta
+
+    return (date.today() + timedelta(days=days)).strftime("%Y%m%d")
+
+
+def _seed_dashboard(tmp_path):
+    from datetime import date, timedelta
+
+    data_dir = os.path.join(str(tmp_path), "data")
+    today = date.today()
+    this_month = today.strftime("%Y-%m-%d 10:00:00")
+    last_month = (today.replace(day=1) - timedelta(days=1)).strftime("%Y-%m-%d 10:00:00")
+    _insert(data_dir, "Toko Permanen", "AAAA", "buy", None, "PERMANENT", 1490000, this_month)
+    _insert(data_dir, "Warung Segera", "BBBB", "rent", "monthly", _token(5), 99000, this_month, phone="0811")
+    _insert(data_dir, "Kedai Lewat", "CCCC", "rent", "monthly", _token(-10), 99000, last_month, phone="0822")
+    _insert(data_dir, "Lama Sekali", "DDDD", "rent", "weekly", _token(-200), 19000, last_month)
+    _insert(data_dir, "Sudah Perpanjang", "EEEE", "rent", "monthly", _token(-40), 99000, last_month)
+    _insert(data_dir, "Sudah Perpanjang", "EEEE", "rent", "yearly", _token(300), 890000, this_month)
+    _insert(data_dir, "Tanpa Harga", "FFFF", "rent", "weekly", _token(20), None, this_month)
+
+
+def test_dashboard_requires_login(client):
+    resp = client.get("/dasbor")
+    assert resp.status_code == 302 and "/login" in resp.headers["Location"]
+
+
+def test_dashboard_numbers(client, tmp_path):
+    _seed_dashboard(tmp_path)
+    _login(client)
+    html = client.get("/dasbor").get_data(as_text=True)
+    # 6 perangkat; aktif = permanen + Segera + Sudah Perpanjang + Tanpa Harga
+    data = generator_app._dashboard_data(os.path.join(str(tmp_path), "data"))
+    assert data["customers"] == 6
+    assert data["active"] == 4
+    assert [i["shop"] for i in data["expiring"]] == ["Warung Segera", "Tanpa Harga"]
+    assert [i["shop"] for i in data["expired"]] == ["Kedai Lewat"]          # >90 hari dan yang sudah diperpanjang tidak masuk
+    assert data["sales_total"] == 7
+    assert data["rev_total"] == "Rp 2.696.000"
+    assert data["rev_month"] == "Rp 2.479.000"      # 1.490.000 + 99.000 + 890.000
+    assert data["rev_last"] == "Rp 217.000"          # 99.000 (Kedai Lewat) + 19.000 (Lama Sekali) + 99.000 (Sudah Perpanjang, lama)
+
+
+def test_dashboard_page_has_whatsapp_reminders(client, tmp_path):
+    _seed_dashboard(tmp_path)
+    _login(client)
+    html = client.get("/dasbor").get_data(as_text=True)
+    assert "Warung Segera" in html and "Kedai Lewat" in html
+    assert "wa.me/62811" in html and "wa.me/62822" in html
+    assert "Lama Sekali" not in html
+    assert "Dasbor Lisensi" in html
+    # tombol di halaman utama
+    assert b"/dasbor" in client.get("/").data
+
+
+def test_dashboard_english(client, tmp_path):
+    _seed_dashboard(tmp_path)
+    _login(client)
+    client.get("/set-language/en?next=/dasbor")
+    html = client.get("/dasbor").get_data(as_text=True)
+    assert "License Dashboard" in html and "Remind" in html
+    assert "Hi%20Budi" in html          # pesan WhatsApp ikut bahasa
+
+
+def test_price_saved_and_exported(client, tmp_path):
+    _login(client)
+    resp = client.post("/generate", data={
+        "device_code": "ZZZZ1111ZZZZ1111", "customer_name": "Sari", "shop_name": "Kedai Sari", "phone": "0813",
+        "license_choice": "monthly", "price": "Rp 99.000",
+    })
+    assert resp.status_code == 200
+    text = client.get("/export.csv").get_data(as_text=True)
+    assert "Harga (Rp)" in text and "99000" in text
+    data = generator_app._dashboard_data(os.path.join(str(tmp_path), "data"))
+    assert data["has_price"] and data["rev_total"] == "Rp 99.000"
+
+
+def test_old_database_without_price_column_is_migrated(tmp_path):
+    import sqlite3
+
+    data_dir = os.path.join(str(tmp_path), "data")
+    os.makedirs(data_dir)
+    conn = sqlite3.connect(os.path.join(data_dir, "licenses.db"))
+    conn.execute("""CREATE TABLE customers (id INTEGER PRIMARY KEY AUTOINCREMENT, customer_name TEXT NOT NULL, shop_name TEXT NOT NULL,
+        address TEXT, phone TEXT, license_type TEXT NOT NULL, rental_period TEXT, device_code TEXT NOT NULL, expiry_token TEXT NOT NULL,
+        activation_code TEXT NOT NULL, created_at TEXT NOT NULL)""")
+    conn.execute("INSERT INTO customers (customer_name, shop_name, license_type, device_code, expiry_token, activation_code, created_at) "
+                 "VALUES ('A','B','buy','D1','PERMANENT','X.Y','2026-01-01 00:00:00')")
+    conn.commit()
+    conn.close()
+    generator_app._init_db(data_dir)
+    data = generator_app._dashboard_data(data_dir)
+    assert data["customers"] == 1 and not data["has_price"]
