@@ -11,6 +11,10 @@ from ..rate_limit import clear_failures, is_blocked, record_failure
 
 auth_bp = Blueprint("auth", __name__)
 
+# Password akun Owner yang dibuat otomatis saat aplikasi pertama kali dibuka (umkm_app.py).
+# Siapa pun yang tahu password ini bisa masuk, jadi pemakainya dipaksa menggantinya dulu.
+DEFAULT_OWNER_PASSWORD = "owner123"
+
 # Maks 10 percobaan login gagal / 5 menit per (IP, username) - cukup
 # longgar buat staf yang salah ketik password berkali-kali, tapi
 # menghambat script brute-force nebak password.
@@ -62,6 +66,8 @@ def login():
             if lang:
                 session["lang"] = lang
             login_user(user)
+            if user.check_password(DEFAULT_OWNER_PASSWORD):
+                session["force_pw_change"] = True
             user.last_seen_at = datetime.now()
             user.is_logged_in = True
             db.session.add(LoginLog(

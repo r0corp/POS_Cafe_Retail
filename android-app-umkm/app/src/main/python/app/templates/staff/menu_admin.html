@@ -171,6 +171,21 @@
 
                       <hr class="my-3" style="border-color: var(--color-border);">
 
+                      <form method="post" action="{{ url_for('staff.edit_menu_item', item_id=item.id) }}" class="text-start mb-3" autocomplete="off">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-2 form-field-row" style="--form-field-label-width: 96px;">
+                          <label class="form-label form-field-label small" for="menuEditName{{ item.id }}">{{ _('Nama') }}</label>
+                          <input type="text" id="menuEditName{{ item.id }}" name="name" class="form-control" value="{{ item.name }}" required>
+                        </div>
+                        <div class="mb-2 form-field-row" style="--form-field-label-width: 96px;">
+                          <label class="form-label form-field-label small" for="menuEditPrice{{ item.id }}">{{ _('Harga (Rp)') }}</label>
+                          <input type="text" inputmode="numeric" id="menuEditPrice{{ item.id }}" name="price" class="form-control" value="{{ item.price }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-accent btn-sm w-100"><i class="bi bi-check2"></i> {{ _('Simpan Perubahan') }}</button>
+                      </form>
+
+                      <hr class="my-3" style="border-color: var(--color-border);">
+
                       <div class="text-start" id="menuRecipe{{ item.id }}">
                         {% include 'staff/_menu_recipe.html' %}
                       </div>

@@ -2,7 +2,7 @@ import os
 import sqlite3
 from datetime import datetime
 
-from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
+from flask import Flask, Request, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
@@ -187,6 +187,22 @@ def _ensure_schema():
         raw.close()
 
 
+RESTORE_UPLOAD_PATH = "/admin/system/backup/restore-upload"
+RESTORE_UPLOAD_LIMIT = 100 * 1024 * 1024  # file backup (database + foto menu) bisa lebih besar dari 16 MB
+
+
+class AppRequest(Request):
+    """Batas MAX_CONTENT_LENGTH (16 MB) tetap berlaku di semua halaman; hanya unggahan
+    file backup untuk Pulihkan yang boleh lebih besar (tetap dibatasi, dan hanya Owner
+    yang bisa menuntaskannya)."""
+
+    @property
+    def max_content_length(self):
+        if self.path == RESTORE_UPLOAD_PATH:
+            return RESTORE_UPLOAD_LIMIT
+        return super().max_content_length
+
+
 def create_app(config_overrides=None):
     """`config_overrides` dipakai TES SAJA (lihat tests/conftest.py) -
     config.Config baca SQLALCHEMY_DATABASE_URI dkk dari os.environ cuma
@@ -197,6 +213,7 @@ def create_app(config_overrides=None):
     sini, SEBELUM db.init_app()/_ensure_schema() jalan."""
 
     app = Flask(__name__)
+    app.request_class = AppRequest
     app.config.from_object("config.Config")
     app.config.setdefault("BABEL_DEFAULT_LOCALE", DEFAULT_LANGUAGE)
     app.config.setdefault("BABEL_TRANSLATION_DIRECTORIES", "translations")
@@ -334,6 +351,18 @@ def create_app(config_overrides=None):
         canvas.save(buffer, format="PNG")
         buffer.seek(0)
         return send_file(buffer, mimetype="image/png", max_age=3600)
+
+    @app.before_request
+    def _force_default_password_change():
+        """Login dengan password bawaan -> semua halaman staf dialihkan ke Ganti Password
+        sampai password diganti (bendera dipasang di auth.login, dibuang di staff.change_password).
+        Halaman login/logout, bahasa, dan file statis tetap bisa diakses."""
+        if not session.get("force_pw_change") or not current_user.is_authenticated:
+            return None
+        endpoint = request.endpoint or ""
+        if endpoint.startswith("staff.") and endpoint != "staff.change_password":
+            return redirect(url_for("staff.change_password"))
+        return None
 
     @app.before_request
     def track_last_seen():

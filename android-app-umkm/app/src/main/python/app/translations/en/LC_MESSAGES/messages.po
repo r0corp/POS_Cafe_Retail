@@ -3334,3 +3334,48 @@ msgstr "Reset Password - %(username)s"
 
 msgid "Printer Bluetooth belum tersedia di iPhone. Struk dibuka sebagai PDF - bagikan atau cetak lewat AirPrint."
 msgstr "Bluetooth printers are not available on iPhone. The receipt opens as a PDF - share it or print via AirPrint."
+
+msgid "Backup tidak bisa dipulihkan: %(error)s"
+msgstr "The backup cannot be restored: %(error)s"
+
+msgid "Pemulihan dibatalkan: salinan pengaman data saat ini gagal dibuat (%(error)s)."
+msgstr "Restore cancelled: a safety copy of the current data could not be created (%(error)s)."
+
+msgid "Pemulihan GAGAL: %(error)s. Data sebelumnya tersimpan di %(safety)s."
+msgstr "Restore FAILED: %(error)s. Your previous data is kept in %(safety)s."
+
+msgid "Backup %(label)s berhasil dipulihkan. Silakan login ulang. Data sebelumnya tersimpan di %(safety)s."
+msgstr "Backup %(label)s restored. Please log in again. Your previous data is kept in %(safety)s."
+
+msgid "Pilih file backup berformat .zip."
+msgstr "Choose a backup file in .zip format."
+
+msgid "Pulihkan"
+msgstr "Restore"
+
+msgid "Pulihkan data dari %(name)s? Data saat ini akan DIGANTI isi backup ini (salinan pengaman dibuat otomatis) dan semua pengguna harus login ulang."
+msgstr "Restore data from %(name)s? Current data will be REPLACED by this backup (a safety copy is made automatically) and everyone must log in again."
+
+msgid "Pulihkan data dari file yang dipilih? Data saat ini akan DIGANTI isi file itu (salinan pengaman dibuat otomatis) dan semua pengguna harus login ulang."
+msgstr "Restore data from the selected file? Current data will be REPLACED by it (a safety copy is made automatically) and everyone must log in again."
+
+msgid "Pulihkan dari file backup (.zip), misalnya saat ganti HP"
+msgstr "Restore from a backup file (.zip), e.g. when changing phones"
+
+msgid "Pulihkan dari File"
+msgstr "Restore from File"
+
+msgid "Isi nama dan harga (lebih dari 0) dengan benar."
+msgstr "Enter a valid name and a price greater than 0."
+
+msgid "Menu \"%(name)s\" diperbarui."
+msgstr "Menu \"%(name)s\" updated."
+
+msgid "Nama"
+msgstr "Name"
+
+msgid "Simpan Perubahan"
+msgstr "Save Changes"
+
+msgid "Demi keamanan, ganti password bawaan dulu sebelum memakai aplikasi. Password bawaan diketahui banyak orang."
+msgstr "For security, change the default password before using the app. The default password is widely known."
