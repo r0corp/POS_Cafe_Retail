@@ -73,8 +73,10 @@ class OruPosGo(toga.App):
             bar.scrollEdgeAppearance = appearance
             bar.compactAppearance = appearance
             impl.native.backgroundColor = color
-            # Toga memakai nama app bila judul kosong, jadi pakai spasi lewat UIKit langsung.
-            impl.container.controller.topViewController.title = " "
+            # Judul teks tidak dipakai sama sekali: ganti dengan tampilan kosong (judul " " pun
+            # tampil sebagai tanda kutip di iOS).
+            top = impl.container.controller.topViewController
+            top.navigationItem.titleView = ObjCClass("UIView").alloc().init()
             # 2 = gelap (teks status bar putih), 1 = terang
             impl.native.overrideUserInterfaceStyle = 2 if dark else 1
         except Exception:
