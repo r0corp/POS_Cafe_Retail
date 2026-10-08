@@ -3415,3 +3415,15 @@ msgstr "On the kitchen or another cashier tablet (same WiFi), open this address 
 
 msgid "HP/tablet ini belum tersambung ke WiFi. Sambungkan ke WiFi toko dulu, lalu buka ulang halaman ini."
 msgstr "This phone/tablet is not connected to WiFi. Connect to the shop WiFi first, then reopen this page."
+
+msgid "Uang pas"
+msgstr "Exact amount"
+
+msgid "Simpan pesanan tanpa bayar"
+msgstr "Save order without paying"
+
+msgid "Tunjukkan QRIS toko ke pembeli, lalu tekan Bayar setelah uangnya masuk."
+msgstr "Show the shop QRIS to the buyer, then press Pay once the money has arrived."
+
+msgid "Pesanan %(label)s dibuat, tetapi uang diterima kurang dari total. Selesaikan pembayaran di Kasir."
+msgstr "Order %(label)s was created, but the cash received is less than the total. Finish the payment in Cashier."

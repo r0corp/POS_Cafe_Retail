@@ -803,6 +803,14 @@ def new_order():
                 flash(_("Pesanan gagal disimpan. Coba lagi."), "danger")
             return redirect(url_for("staff.new_order"))
 
+        # Jual cepat (edisi GO): tombol "Bayar Tunai/QRIS" di layar pesanan membuat pesanan sekaligus melunasinya.
+        pay_now = request.form.get("pay_now")
+        if pay_now in PAYMENT_METHODS and current_user.role in (ROLE_OWNER, ROLE_KASIR):
+            import edition
+
+            if edition.info()["quick_sale"]:
+                return _quick_pay(order, pay_now, request.form.get("cash_received", type=digits_int))
+
         flash(_("Pesanan untuk %(label)s berhasil dibuat.", label=order.display_label), "success")
         if order_type in (ORDER_TYPE_OJOL, ORDER_TYPE_TAKEAWAY) or table is None:
             # Tamu/driver (atau tamu makan di tempat tanpa meja) biasanya
@@ -812,8 +820,11 @@ def new_order():
             return redirect(url_for("staff.cashier"))
         return redirect(url_for("staff.dashboard"))
 
+    import edition
+
     return render_template(
         "staff/order_new.html",
+        quick_sale=bool(edition.info()["quick_sale"] and current_user.role in (ROLE_OWNER, ROLE_KASIR)),
         tables=tables,
         categories=categories,
         channels=channels,
@@ -1118,6 +1129,48 @@ def cancel_order(order_id):
     else:
         flash(_("Pesanan #%(id)s dibatalkan. Stok tidak dikembalikan karena pesanan sudah mulai diproses dapur.", id=order_id), "success")
     return redirect(url_for("staff.cashier"))
+
+
+def _quick_pay(order, method, cash_received):
+    """Lunasi pesanan yang BARU dibuat di request yang sama (jual cepat). Kalau uang tunai kurang, pesanan tetap
+    tersimpan belum lunas dan kasir diarahkan ke layar Kasir untuk menyelesaikannya."""
+    settings = get_settings()
+    if settings.ppn_enabled and settings.ppn_percentage:
+        ppn_percentage = settings.ppn_percentage
+        ppn_amount = calculate_ppn(order.total, settings.ppn_percentage)
+    else:
+        ppn_percentage = None
+        ppn_amount = None
+    grand_total = order.total + (ppn_amount or 0)
+
+    change_amount = None
+    if method == "cash":
+        if not cash_received or cash_received < grand_total:
+            flash(_("Pesanan %(label)s dibuat, tetapi uang diterima kurang dari total. Selesaikan pembayaran di Kasir.", label=order.display_label), "warning")
+            return redirect(url_for("staff.cashier"))
+        change_amount = cash_received - grand_total
+    else:
+        cash_received = None
+
+    result = db.session.execute(
+        Order.__table__.update()
+        .where(Order.id == order.id, Order.is_paid.is_(False))
+        .values(
+            is_paid=True,
+            payment_method=method,
+            paid_at=datetime.now(),
+            served_by=current_user.username,
+            cash_received=cash_received,
+            change_amount=change_amount,
+            ppn_percentage=ppn_percentage,
+            ppn_amount=ppn_amount,
+        )
+    )
+    db.session.commit()
+    if result.rowcount == 0:
+        return redirect(url_for("staff.cashier"))
+    flash(_("Pesanan #%(id)s ditandai sudah dibayar.", id=order.id), "success")
+    return redirect(url_for("staff.receipt", order_id=order.id, just_paid=1))
 
 
 @staff_bp.route("/orders/<int:order_id>/pay", methods=["POST"])

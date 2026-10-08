@@ -158,3 +158,80 @@ def test_heartbeat_payload_carries_the_edition(tmp_path, monkeypatch):
     finally:
         edition.set_edition("go")
     assert monitor.build_payload(str(tmp_path), version="1.0.9")["e"] == "go"
+
+
+# ---- jual cepat (GO): Bayar Tunai/QRIS langsung dari layar pesanan ----
+
+@pytest.fixture
+def menu_item(env):
+    from app.models import Category, MenuItem
+
+    with env["app"].app_context():
+        cat = Category.query.first()
+        if cat is None:
+            cat = Category(name="Minuman")
+            env["db"].session.add(cat)
+            env["db"].session.commit()
+        item = MenuItem.query.filter_by(name="Es Teh Tes").first()
+        if item is None:
+            item = MenuItem(name="Es Teh Tes", price=5000, category_id=cat.id, is_available=True)
+            env["db"].session.add(item)
+            env["db"].session.commit()
+        return item.id
+
+
+def _order_form(menu_id, qty=2, **extra):
+    data = {"order_type": "takeaway", "qty_%d" % menu_id: str(qty)}
+    data.update(extra)
+    return data
+
+
+def _latest_order(env):
+    from app.models import Order
+
+    with env["app"].app_context():
+        o = Order.query.order_by(Order.id.desc()).first()
+        return dict(id=o.id, is_paid=o.is_paid, method=o.payment_method, cash=o.cash_received, change=o.change_amount, total=o.total)
+
+
+def test_quick_sale_cash_pays_the_new_order_and_computes_change(env, client, menu_item):
+    r = client.post("/orders/new", data=_order_form(menu_item, 2, pay_now="cash", cash_received="20.000"))
+    o = _latest_order(env)
+    assert r.status_code == 302 and "/receipt" in r.headers["Location"] and "just_paid=1" in r.headers["Location"]
+    assert o["is_paid"] and o["method"] == "cash" and o["total"] == 10000 and o["cash"] == 20000 and o["change"] == 10000
+
+
+def test_quick_sale_qris_needs_no_cash_amount(env, client, menu_item):
+    client.post("/orders/new", data=_order_form(menu_item, 1, pay_now="qris"))
+    o = _latest_order(env)
+    assert o["is_paid"] and o["method"] == "qris" and o["cash"] is None and o["change"] is None
+
+
+def test_quick_sale_with_too_little_cash_keeps_the_order_unpaid_and_goes_to_cashier(env, client, menu_item):
+    r = client.post("/orders/new", data=_order_form(menu_item, 2, pay_now="cash", cash_received="5000"))
+    o = _latest_order(env)
+    assert not o["is_paid"] and r.headers["Location"].endswith("/cashier")
+
+
+def test_normal_order_without_pay_now_stays_unpaid(env, client, menu_item):
+    client.post("/orders/new", data=_order_form(menu_item, 1))
+    assert not _latest_order(env)["is_paid"]
+
+
+def test_cafe_edition_ignores_pay_now(env, client, menu_item):
+    edition.set_edition("cafe")
+    client.post("/orders/new", data=_order_form(menu_item, 1, pay_now="qris"))
+    assert not _latest_order(env)["is_paid"]
+
+
+def test_invalid_pay_now_value_is_ignored(env, client, menu_item):
+    client.post("/orders/new", data=_order_form(menu_item, 1, pay_now="bitcoin"))
+    assert not _latest_order(env)["is_paid"]
+
+
+def test_order_page_shows_the_pay_button_only_for_go(env, client):
+    html = client.get("/orders/new").get_data(as_text=True)
+    assert 'id="quickPayBtn"' in html and 'id="quickPayModal"' in html
+    edition.set_edition("cafe")
+    html = client.get("/orders/new").get_data(as_text=True)
+    assert 'id="quickPayBtn"' not in html and 'name="pay_now"' not in html

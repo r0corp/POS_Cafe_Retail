@@ -174,10 +174,60 @@
       </span>
       <i class="bi bi-chevron-up cart-summary-chevron"></i>
     </button>
-    <button type="submit" class="btn btn-accent btn-lg" id="submitBtn" disabled>
+    {% if quick_sale %}
+      <button type="button" class="btn btn-accent btn-lg" id="quickPayBtn" disabled>
+        <i class="bi bi-cash-coin"></i> {{ _('Bayar') }}
+      </button>
+    {% endif %}
+    <button type="submit" class="btn btn-accent btn-lg{{ ' d-none' if quick_sale }}" id="submitBtn" disabled>
       <i class="bi bi-check2"></i> {{ _('Buat Pesanan') }}
     </button>
   </div>
+
+  {% if quick_sale %}
+    <input type="hidden" name="pay_now" id="payNowInput" value="">
+    <input type="hidden" name="cash_received" id="cashReceivedInput" value="">
+    <div class="modal fade" id="quickPayModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h6 class="modal-title">{{ _('Bayar') }}</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="text-muted small">{{ _('Total Bayar') }}</div>
+            <div class="fs-3 fw-bold mb-3" id="quickPayTotal" style="font-family: var(--font-heading);">Rp 0</div>
+            <div class="cash-pay-form mb-3">
+              <div class="pay-method-buttons">
+                <button type="button" class="pay-method-btn active" data-quick-method="cash"><i class="bi bi-cash-coin"></i> {{ _('Tunai') }}</button>
+                <button type="button" class="pay-method-btn" data-quick-method="qris"><i class="bi bi-qr-code"></i> QRIS</button>
+              </div>
+            </div>
+            <div id="quickCashArea">
+              <input type="text" class="form-control" id="quickCashInput" inputmode="numeric" autocomplete="off" placeholder="{{ _('Uang diterima') }}">
+              <div class="d-flex flex-wrap gap-2 mt-2" id="quickCashChips"></div>
+              <div class="d-flex justify-content-between mt-3">
+                <span class="text-muted">{{ _('Kembalian') }}</span>
+                <span class="fw-bold" id="quickChange">Rp 0</span>
+              </div>
+            </div>
+            <div id="quickQrisArea" class="d-none text-center">
+              {% if site_settings.qris_image %}
+                <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.qris_image) }}" class="img-fluid"
+                     style="max-width: 280px; width: 100%; max-height: 38vh; object-fit: contain; border: 1px solid var(--color-border); border-radius: var(--radius-sm);" alt="QRIS">
+              {% else %}
+                <p class="text-muted small mb-0">{{ _('Tunjukkan QRIS toko ke pembeli, lalu tekan Bayar setelah uangnya masuk.') }}</p>
+              {% endif %}
+            </div>
+          </div>
+          <div class="modal-footer flex-column align-items-stretch gap-2">
+            <button type="button" class="btn btn-accent" id="quickPayConfirm" disabled><i class="bi bi-check2"></i> {{ _('Bayar') }}</button>
+            <button type="button" class="btn btn-link" id="quickPayLater">{{ _('Simpan pesanan tanpa bayar') }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 </form>
 {% endblock %}
 
@@ -225,9 +275,89 @@
     document.getElementById("cartTotal").textContent = formatRupiah(total);
     document.getElementById("cartCount").textContent = count > 0 ? (count + " " + CART_ITEMS_SELECTED_LABEL) : CART_EMPTY_LABEL;
     document.getElementById("submitBtn").disabled = count === 0;
+    window.__cartTotal = total;
+    const quickBtn = document.getElementById("quickPayBtn");
+    if (quickBtn) quickBtn.disabled = count === 0;
     renderCartPanel(count);
     if (window.adjustFooterClearance) window.adjustFooterClearance();
   }
+
+  // ---- Jual cepat (edisi GO): jendela Bayar Tunai / QRIS langsung dari layar pesanan
+  (function () {
+    const btn = document.getElementById("quickPayBtn");
+    if (!btn) return;
+    const modalEl = document.getElementById("quickPayModal");
+    const modal = new bootstrap.Modal(modalEl);
+    const form = document.getElementById("orderForm");
+    const cashInput = document.getElementById("quickCashInput");
+    const confirmBtn = document.getElementById("quickPayConfirm");
+    let method = "cash";
+
+    function digits(s) { return parseInt(String(s).replace(/[^0-9]/g, ""), 10) || 0; }
+
+    function suggestions(total) {
+      const out = [total];
+      [2000, 5000, 10000, 20000, 50000, 100000].forEach((step) => {
+        const v = Math.ceil(total / step) * step;
+        if (v > total && out.indexOf(v) === -1) out.push(v);
+      });
+      return out.slice(0, 5);
+    }
+
+    function refresh() {
+      const total = window.__cartTotal || 0;
+      document.getElementById("quickPayTotal").textContent = formatRupiah(total);
+      document.getElementById("quickCashArea").classList.toggle("d-none", method !== "cash");
+      document.getElementById("quickQrisArea").classList.toggle("d-none", method !== "qris");
+      modalEl.querySelectorAll("[data-quick-method]").forEach((b) => b.classList.toggle("active", b.dataset.quickMethod === method));
+      if (method === "cash") {
+        const received = digits(cashInput.value);
+        document.getElementById("quickChange").textContent = formatRupiah(Math.max(0, received - total));
+        confirmBtn.disabled = received < total || total === 0;
+      } else {
+        confirmBtn.disabled = total === 0;
+      }
+    }
+
+    function renderChips() {
+      const total = window.__cartTotal || 0;
+      const wrap = document.getElementById("quickCashChips");
+      wrap.innerHTML = "";
+      suggestions(total).forEach((value, i) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "btn btn-sm btn-outline-secondary";
+        chip.textContent = i === 0 ? {{ _('Uang pas')|tojson }} : formatRupiah(value);
+        chip.addEventListener("click", () => { cashInput.value = value.toLocaleString("id-ID"); refresh(); });
+        wrap.appendChild(chip);
+      });
+    }
+
+    btn.addEventListener("click", () => {
+      method = "cash";
+      cashInput.value = "";
+      renderChips();
+      refresh();
+      modal.show();
+    });
+    modalEl.querySelectorAll("[data-quick-method]").forEach((b) => b.addEventListener("click", () => { method = b.dataset.quickMethod; refresh(); }));
+    cashInput.addEventListener("input", () => {
+      const v = digits(cashInput.value);
+      cashInput.value = v ? v.toLocaleString("id-ID") : "";
+      refresh();
+    });
+    confirmBtn.addEventListener("click", () => {
+      document.getElementById("payNowInput").value = method;
+      document.getElementById("cashReceivedInput").value = method === "cash" ? String(digits(cashInput.value)) : "";
+      confirmBtn.disabled = true;
+      form.requestSubmit(document.getElementById("submitBtn"));
+    });
+    document.getElementById("quickPayLater").addEventListener("click", () => {
+      document.getElementById("payNowInput").value = "";
+      document.getElementById("cashReceivedInput").value = "";
+      form.requestSubmit(document.getElementById("submitBtn"));
+    });
+  })();
 
   const cartPanel = document.getElementById("cartPanel");
   const cartPanelList = document.getElementById("cartPanelList");
