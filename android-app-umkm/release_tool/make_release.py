@@ -77,10 +77,24 @@ Pembaruan aplikasi muncul otomatis di dalam aplikasi (Pengaturan &rarr; Sistem &
 
 ## Buku panduan / User manual
 
-**[Buku Panduan Oru POS GO (PDF)]({manual_url})** dan **[Buku Panduan Oru POS Cafe (PDF)]({manual_cafe_url})** - langkah demi langkah, lengkap dengan gambar, untuk pemilik, kasir, pelayan, dan dapur.
-*Step-by-step user guide with screenshots (Indonesian).*
+Langkah demi langkah, lengkap dengan gambar, untuk pemilik, kasir, pelayan, dan dapur. *Step-by-step guides with screenshots (Indonesian).*
 
-<p align="center"><img src="manual-qr.png" width="180" alt="QR buku panduan"><br><sub>Scan untuk membuka buku panduan / Scan to open the manual</sub></p>
+<div align="center">
+<table>
+<tr>
+<th align="center" width="405">Buku Panduan Oru POS GO</th>
+<th align="center" width="405">Buku Panduan Oru POS Cafe</th>
+</tr>
+<tr>
+<td align="center"><br><a href="{manual_url}"><b>&#128214; Buka PDF GO</b></a><br><sub>gerobak &amp; warung</sub><br><br></td>
+<td align="center"><br><a href="{manual_cafe_url}"><b>&#128214; Buka PDF Cafe</b></a><br><sub>mini cafe: meja, dapur, kasir</sub><br><br></td>
+</tr>
+<tr>
+<td align="center"><br><img src="manual-qr.png" width="170" alt="QR buku panduan GO"><br><sub>Scan untuk membuka buku panduan GO</sub><br><br></td>
+<td align="center"><br><img src="manual-cafe-qr.png" width="170" alt="QR buku panduan Cafe"><br><sub>Scan untuk membuka buku panduan Cafe</sub><br><br></td>
+</tr>
+</table>
+</div>
 
 ## Keamanan file / File integrity
 
@@ -268,6 +282,7 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
         elif os.path.exists(cafe_png):
             os.remove(cafe_png)
         _qr(MANUAL_URL.format(repo=repo), os.path.join(out_dir, "manual-qr.png"))
+        _qr(MANUAL_CAFE_URL.format(repo=repo), os.path.join(out_dir, "manual-cafe-qr.png"))
         wa_png = os.path.join(out_dir, "wa-qr.png")
         if contact:
             _qr(whatsapp_url(contact), wa_png)
