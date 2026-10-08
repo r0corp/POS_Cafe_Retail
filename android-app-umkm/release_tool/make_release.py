@@ -89,12 +89,12 @@ Langkah demi langkah, lengkap dengan gambar, untuk pemilik, kasir, pelayan, dan 
 <tr>
 <td align="center"><br><a href="{manual_url}"><b>&#128214; Buka PDF GO</b></a><br><sub>gerobak &amp; warung</sub><br><br></td>
 <td align="center"><br><a href="{manual_cafe_url}"><b>&#128214; Buka PDF Cafe</b></a><br><sub>mini cafe: meja, dapur, kasir</sub><br><br></td>
-<td align="center"><br>Diberikan penjual<br><sub>saat pemasangan di lokasi</sub><br><br></td>
+<td align="center">{pro_manual_cell}</td>
 </tr>
 <tr>
 <td align="center"><br><img src="manual-qr.png" width="190" alt="QR buku panduan GO"><br><sub>Scan untuk membuka panduan GO</sub><br><br></td>
 <td align="center"><br><img src="manual-cafe-qr.png" width="190" alt="QR buku panduan Cafe"><br><sub>Scan untuk membuka panduan Cafe</sub><br><br></td>
-<td align="center">&nbsp;</td>
+<td align="center">{pro_manual_qr}</td>
 </tr>
 </table>
 </div>
@@ -192,11 +192,15 @@ def read_contact(out_dir):
     return cfg if cfg.get("whatsapp") else None
 
 
-def whatsapp_url(contact):
+def whatsapp_url(contact, text=None):
     from urllib.parse import quote
 
     url = "https://wa.me/%s" % contact["whatsapp"]
-    return url + ("?text=" + quote(contact["text"]) if contact.get("text") else "")
+    text = text if text is not None else contact.get("text")
+    return url + ("?text=" + quote(text) if text else "")
+
+
+PRO_MANUAL_TEXT = "Halo, saya ingin meminta buku panduan Oru POS PRO."
 
 
 CAFE_MANIFEST = os.path.join("cafe", "version.json")
@@ -239,6 +243,13 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
         pro_cell = ('<br><a href="%s"><b>&#128172; Hubungi penjual</b></a><br><sub>lewat WhatsApp &middot; pemasangan di lokasi</sub><br><br>'
                     % whatsapp_url(contact))
         pro_qr = '<br><img src="wa-qr.png" width="190" alt="QR WhatsApp penjual"><br><sub>Scan untuk chat WhatsApp</sub><br><br>'
+    pro_manual_cell = "<br>Diberikan penjual<br><sub>saat pemasangan di lokasi</sub><br><br>"
+    pro_manual_qr = "&nbsp;"
+    if contact:
+        pro_manual_cell = ('<br><a href="%s"><b>&#128196; Minta panduan PRO</b></a><br><sub>kirim permintaan lewat WhatsApp</sub><br><br>'
+                           % whatsapp_url(contact, PRO_MANUAL_TEXT))
+        pro_manual_qr = ('<br><img src="wa-panduan-pro-qr.png" width="190" alt="QR minta panduan PRO"><br>'
+                         '<sub>Scan untuk meminta panduan PRO</sub><br><br>')
     cards = CARDS_TEMPLATE.format(pro_cell=pro_cell, pro_qr=pro_qr, go_url=manifest["apkUrl"], go_version=manifest["versionName"],
                                   go_size="%.0f" % (manifest["sizeBytes"] / 1048576.0), cafe_cell=cafe_cell, cafe_qr=cafe_qr)
     if cafe:
@@ -267,6 +278,8 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
         cert=CERT_SHA256,
         manual_url=MANUAL_URL.format(repo=repo),
         manual_cafe_url=MANUAL_CAFE_URL.format(repo=repo),
+        pro_manual_cell=pro_manual_cell,
+        pro_manual_qr=pro_manual_qr,
     )
     with open(os.path.join(out_dir, "README.md"), "w", encoding="utf-8", newline="\n") as f:
         f.write(page)
@@ -283,10 +296,14 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
         _qr(MANUAL_URL.format(repo=repo), os.path.join(out_dir, "manual-qr.png"))
         _qr(MANUAL_CAFE_URL.format(repo=repo), os.path.join(out_dir, "manual-cafe-qr.png"))
         wa_png = os.path.join(out_dir, "wa-qr.png")
+        wa_pro_png = os.path.join(out_dir, "wa-panduan-pro-qr.png")
         if contact:
             _qr(whatsapp_url(contact), wa_png)
-        elif os.path.exists(wa_png):
-            os.remove(wa_png)
+            _qr(whatsapp_url(contact, PRO_MANUAL_TEXT), wa_pro_png)
+        else:
+            for stale in (wa_png, wa_pro_png):
+                if os.path.exists(stale):
+                    os.remove(stale)
     except ImportError:
         print("(qrcode tidak terpasang - QR tidak dibuat; jalankan dengan python venv POS)")
 
