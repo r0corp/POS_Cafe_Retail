@@ -2,6 +2,8 @@ package id.orulabs.licensegen;
 
 import android.animation.ValueAnimator;
 import android.app.DownloadManager;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -75,6 +77,25 @@ public class MainActivity extends AppCompatActivity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                // Halaman aplikasi sendiri (server lokal) tetap di dalam WebView. Semua tautan lain
+                // (terutama wa.me untuk "Kirim lewat WhatsApp" / "Ingatkan") dibuka lewat aplikasi di HP.
+                // Tanpa ini, wa.me dimuat di dalam WebView, gagal, lalu aplikasi melempar balik ke beranda.
+                Uri uri = request.getUrl();
+                String host = uri.getHost();
+                boolean local = host != null && (host.equals("127.0.0.1") || host.equals("localhost"));
+                if (local) {
+                    return false;
+                }
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                } catch (ActivityNotFoundException e) {
+                    Toast.makeText(MainActivity.this, "Tidak ada aplikasi untuk membuka tautan ini.", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            }
+
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);

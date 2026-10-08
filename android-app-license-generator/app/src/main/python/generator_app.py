@@ -302,6 +302,9 @@ _EN = {
     "Riwayat": "History",
     "Ekspor CSV": "Export CSV",
     "Pantau Aplikasi": "App Monitor",
+    "Kirim lewat WhatsApp (pilih kontak)": "Send via WhatsApp (choose contact)",
+    "Kirim ke nomor pelanggan": "Send to a customer's number",
+    "Ketuk satu nama: WhatsApp terbuka ke nomor itu dengan kode sudah terisi. Tekan Kirim di WhatsApp.": "Tap a name: WhatsApp opens to that number with the code filled in. Press Send in WhatsApp.",
     "Siaran ke pelanggan": "Broadcast to customers",
     "Siaran aktif:": "Active broadcast:",
     "Belum ada siaran aktif. Pesan tampil sebagai banner di bagian atas layar pemilik toko, sekali per siaran, dan hanya pada pelanggan yang status aktifnya menyala.": "No active broadcast. The message appears as a banner at the top of the shop owner's screen, once per broadcast, and only for customers who have the active status switch on.",
@@ -784,9 +787,14 @@ def _monitor_view(data_dir, devices, now=None):
 
 
 
-def _whatsapp_link(phone, message):
+def _whatsapp_link(phone, message, allow_pick=False):
+    """Tautan WhatsApp berisi pesan. Tanpa nomor HP: None, atau (allow_pick) tautan tanpa penerima
+    sehingga WhatsApp membuka daftar kontak untuk dipilih penjual."""
     digits = "".join(ch for ch in (phone or "") if ch.isdigit())
     if not digits:
+        if allow_pick:
+            from urllib.parse import quote
+            return f"https://wa.me/?text={quote(message)}"
         return None
     if digits.startswith("0"):
         digits = "62" + digits[1:]
@@ -794,6 +802,22 @@ def _whatsapp_link(phone, message):
         digits = "62" + digits
     from urllib.parse import quote
     return f"https://wa.me/{digits}?text={quote(message)}"
+
+
+def _wa_contacts(data_dir, message, limit=30):
+    """Daftar pelanggan (satu baris per nomor HP, riwayat terbaru dulu) beserta tautan WhatsApp berisi `message`.
+    Dipakai di halaman hasil kode: ketuk satu nama untuk membuka WhatsApp ke nomor itu dengan pesan terisi."""
+    seen, contacts = set(), []
+    for r in _list_records(data_dir, limit=300):          # urut terbaru dulu
+        link = _whatsapp_link(r["phone"], message)
+        if not link or link in seen:
+            continue
+        seen.add(link)
+        contacts.append({"shop": r["shop_name"], "customer": r["customer_name"], "phone": r["phone"], "link": link,
+                         "rental": r["license_type"] != "buy"})
+        if len(contacts) >= limit:
+            break
+    return contacts
 
 
 # ============================================================
@@ -1274,7 +1298,13 @@ _HOME_PAGE = """
 _CREATE_PAGE = """
 <!doctype html><html lang="{{ lang }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Oru Go License</title><style>{{ style }}</style></head><body>
+<title>Oru Go License</title><style>{{ style }}
+  .muted { color: #64748b; font-size: 0.85rem; }
+  .contact { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; margin-top: 8px;
+    background: #0f172a; border: 1px solid #334155; border-radius: 12px; color: #f1f5f9; text-decoration: none; }
+  .contact .who { min-width: 0; display: flex; flex-direction: column; gap: 2px; word-break: break-word; }
+  .contact .tag { flex: 0 0 auto; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; background: #334155; color: #cbd5e1; }
+</style></head><body>
   {{ navbar('/buat') }}
   <div class="card">
     <h1>{{ _('Buat Kode Aktivasi') }}</h1>
@@ -1287,7 +1317,17 @@ _CREATE_PAGE = """
       <div class="result-code" id="resultCode">{{ result.activation_code }}</div>
       <button type="button" onclick="copyText('resultCode')">{{ _('Salin Kode Aktivasi') }}</button>
       {% if result.wa_link %}
-        <a class="btn btn-secondary" href="{{ result.wa_link }}" target="_blank">{{ _('Kirim lewat WhatsApp') }}</a>
+        <a class="btn btn-secondary" href="{{ result.wa_link }}">{{ _('Kirim lewat WhatsApp') if not result.wa_pick else _('Kirim lewat WhatsApp (pilih kontak)') }}</a>
+      {% endif %}
+      {% if result.contacts %}
+        <h2>{{ _('Kirim ke nomor pelanggan') }}</h2>
+        <p class="muted">{{ _('Ketuk satu nama: WhatsApp terbuka ke nomor itu dengan kode sudah terisi. Tekan Kirim di WhatsApp.') }}</p>
+        {% for c in result.contacts %}
+          <a class="contact" href="{{ c.link }}">
+            <span class="who"><b>{{ c.shop }}</b><span class="muted">{{ c.customer }} &middot; {{ c.phone }}</span></span>
+            <span class="tag">{{ _('Sewa') if c.rental else _('Beli putus') }}</span>
+          </a>
+        {% endfor %}
       {% endif %}
       <a class="btn btn-secondary" href="{{ url_for('create_page') }}">{{ _('+ Buat Kode Baru') }}</a>
     {% else %}
@@ -1661,7 +1701,9 @@ def create_app(files_dir):
             "shop_name": shop_name,
             "license_label": tr(LICENSE_LABELS[license_choice]),
             "activation_code": activation_code,
-            "wa_link": _whatsapp_link(phone, wa_message),
+            "wa_link": _whatsapp_link(phone, wa_message, allow_pick=True),
+            "wa_pick": not any(ch.isdigit() for ch in phone),
+            "contacts": _wa_contacts(data_dir, wa_message),
         }
 
         return render_template_string(_CREATE_PAGE, style=_BASE_STYLE, result=result, error=None)

@@ -224,3 +224,49 @@ def test_create_and_history_pages_work(client):
     assert client.get("/set-language/en?next=/buat").headers["Location"].endswith("/buat")
     home = client.get("/").get_data(as_text=True)
     assert "Create Code" in home and "History" in home
+
+
+def test_whatsapp_button_on_new_code(client):
+    post = lambda phone: client.post("/generate", data={"device_code": DEVICE_A, "customer_name": "Budi", "shop_name": "Kedai Budi",
+                                                         "phone": phone, "license_choice": "buy"}).get_data(as_text=True)
+    html = post("0812-3456-7890")
+    assert 'href="https://wa.me/6281234567890?text=' in html
+    assert "target=" not in html.split("Kirim lewat WhatsApp")[0][-200:]       # tidak buka jendela baru di WebView
+    assert "pilih kontak" not in html
+    html = post("")
+    assert 'href="https://wa.me/?text=' in html and "pilih kontak" in html     # tanpa nomor: pilih kontak di WhatsApp
+    assert "PERMANENT" in html or "Kode Aktivasi" in html
+
+
+def test_whatsapp_link_helper():
+    f = generator_app._whatsapp_link
+    assert f("08123", "hai") == "https://wa.me/628123?text=hai"
+    assert f("", "hai") is None                                                # dasbor: tanpa nomor tidak ada tombol
+    assert f("", "hai", allow_pick=True) == "https://wa.me/?text=hai"
+
+
+def test_result_page_lists_customer_numbers_with_prefilled_whatsapp_links(client):
+    def make(code, name, shop, phone, choice="buy"):
+        return client.post("/generate", data={"device_code": code, "customer_name": name, "shop_name": shop, "phone": phone,
+                                              "license_choice": choice}).get_data(as_text=True)
+    make(DEVICE_A, "Budi", "Kedai Budi", "0812-1111-0001", "monthly")
+    make(DEVICE_B, "Sari", "Warung Sari", "0813 2222 0002")
+    make(DEVICE_C, "Tanpa", "Toko Tanpa Nomor", "")
+    html = make("DDDDDDDDDDDDDDDD", "Budi", "Kedai Budi 2", "081211110001", "monthly")       # nomor sama dengan pelanggan pertama
+    # satu baris per nomor: Budi muncul sekali di daftar (ditambah tombol utama), Sari sekali, yang tanpa nomor tidak ada
+    daftar = html.split("Kirim ke nomor pelanggan")[1]
+    assert daftar.count("wa.me/6281211110001?text=") == 1
+    assert daftar.count("wa.me/6281322220002?text=") == 1
+    assert "Toko Tanpa Nomor" not in daftar
+    assert "Warung Sari" in daftar and "Sewa" in daftar and "Beli putus" in daftar
+    code = html.split('id="resultCode">')[1].split("<")[0]
+    assert code.split(".")[0] in ("PERMANENT",) or code
+    # pesan di tautan memuat Kode Aktivasi yang BARU dibuat
+    from urllib.parse import quote
+    assert quote(code) in daftar
+
+
+def test_no_contact_list_when_nobody_has_a_phone(client):
+    html = client.post("/generate", data={"device_code": DEVICE_A, "customer_name": "Budi", "shop_name": "Kedai Budi",
+                                          "license_choice": "buy"}).get_data(as_text=True)
+    assert "Kirim ke nomor pelanggan" not in html
