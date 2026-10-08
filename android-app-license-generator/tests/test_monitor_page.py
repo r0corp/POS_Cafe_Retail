@@ -80,8 +80,8 @@ def client(tmp_path):
     return c
 
 
-def _device(code, seen_ago, version="1.0.6", mode="trial", expiry="", platform="android"):
-    return {"device": code, "version": version, "mode": mode, "expiry": expiry, "platform": platform,
+def _device(code, seen_ago, version="1.0.6", mode="trial", expiry="", platform="android", edition="go"):
+    return {"device": code, "version": version, "mode": mode, "expiry": expiry, "platform": platform, "edition": edition,
             "lang": "id", "first_seen": 1, "last_seen": int(time.time()) - seen_ago}
 
 
@@ -207,7 +207,7 @@ def test_broadcast_without_connection_and_without_unlock(client, tmp_path, stub)
 
 def test_home_is_a_tile_menu_linking_to_every_feature(client):
     html = client.get("/").get_data(as_text=True)
-    for href in ("/buat", "/riwayat", "/dasbor", "/pantau", "/security"):
+    for href in ("/buat?edisi=go", "/buat?edisi=cafe", "/riwayat", "/dasbor", "/pantau", "/security"):
         assert 'href="%s"' % href in html
     assert 'action="/lock"' in html
     assert "/export.csv" not in html                          # belum ada riwayat
@@ -223,7 +223,7 @@ def test_create_and_history_pages_work(client):
     assert client.get("/set-language/en?next=/riwayat").headers["Location"].endswith("/riwayat")
     assert client.get("/set-language/en?next=/buat").headers["Location"].endswith("/buat")
     home = client.get("/").get_data(as_text=True)
-    assert "Create Code" in home and "History" in home
+    assert "GO Code" in home and "Cafe Code" in home and "History" in home
 
 
 def test_whatsapp_button_on_new_code(client):
@@ -270,3 +270,12 @@ def test_no_contact_list_when_nobody_has_a_phone(client):
     html = client.post("/generate", data={"device_code": DEVICE_A, "customer_name": "Budi", "shop_name": "Kedai Budi",
                                           "license_choice": "buy"}).get_data(as_text=True)
     assert "Kirim ke nomor pelanggan" not in html
+
+
+def test_pantau_shows_the_edition_of_each_device(client, stub):
+    stub.devices = [_device(DEVICE_A, 30, edition="cafe"), _device(DEVICE_B, 40)]
+    html = _connect(client, stub).get_data(as_text=True)
+    assert html.count('<span class="tag">Cafe</span>') == 1 and html.count('<span class="tag">GO</span>') == 1
+    old = {k: v for k, v in _device(DEVICE_C, 10).items() if k != "edition"}          # Worker lama tanpa kolom edisi
+    stub.devices = [old]
+    assert '<span class="tag">GO</span>' in client.get("/pantau").get_data(as_text=True)
