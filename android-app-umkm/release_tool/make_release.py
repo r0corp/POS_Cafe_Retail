@@ -1,13 +1,16 @@
-"""Siapkan rilis Oru POS GO untuk repo rilis publik.
+"""Siapkan rilis Oru POS (edisi GO atau Cafe) untuk repo rilis publik.
 
-Dipakai SETELAH build rilis (./gradlew.bat assembleRelease). Skrip ini:
+Dipakai SETELAH build rilis:  ./gradlew.bat assembleRelease  (GO)  /  ./gradlew.bat assembleRelease -Pedition=cafe  (Cafe).
+Skrip ini:
   1. membaca versionCode/versionName dari app/build.gradle,
-  2. menyalin APK rilis ke folder repo rilis dengan nama oru-go-<versi>.apk,
+  2. menyalin APK rilis ke folder repo rilis (GO: apk/oru-go-<versi>.apk, Cafe: apk/oru-pos-cafe-<versi>.apk),
   3. menghitung SHA-256 APK-nya,
-  4. menulis version.json (yang dibaca aplikasi GO di HP pelanggan).
+  4. menulis manifest yang dibaca aplikasi di HP pelanggan (GO: version.json, Cafe: cafe/version.json),
+  5. membuat ulang halaman unduh (README.md + QR) yang memuat kedua edisi.
 
 Contoh:
   python release_tool/make_release.py --notes "Perbaikan kasir QRIS" --out "D:/10.  PROJECT/oru-go-releases"
+  python release_tool/make_release.py --edition cafe --notes "Rilis pertama Cafe" --out "D:/10.  PROJECT/oru-go-releases"
 
 Setelah itu (lihat RILIS.md): unggah APK sebagai Release di GitHub dengan tag
 v<versionName>, lalu commit + push version.json di repo rilis.
@@ -26,6 +29,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
 GRADLE = os.path.join(PROJECT, "app", "build.gradle")
 DEFAULT_APK = os.path.join(PROJECT, "app", "build", "outputs", "apk", "release", "app-release.apk")
+DEFAULT_CAFE_APK = os.path.join(PROJECT, "app", "build-cafe", "outputs", "apk", "release", "app-release.apk")
 DEFAULT_REPO = "r0corp/oru-go-releases"
 
 
@@ -46,22 +50,26 @@ def sha256_of(path):
     return h.hexdigest()
 
 
-PAGE_TEMPLATE = """# Oru POS GO
+PAGE_TEMPLATE = """# Oru POS
 
-**Aplikasi kasir (POS) untuk warung, kedai, dan toko kecil - jalan langsung di HP / tablet Android.**
-*Point-of-sale app for small shops and cafes - runs right on your Android phone or tablet.*
+**Aplikasi kasir (POS) untuk gerobak, warung, dan mini cafe - jalan langsung di HP / tablet Android.**
+*Point-of-sale apps for street stalls, small shops, and cafes - running right on your Android phone or tablet.*
 
-[![Download](https://img.shields.io/badge/%E2%AC%87%20Download%20APK-v{version}-f97316?style=for-the-badge)]({apk_url})
+## Oru POS GO &mdash; gerobak & warung
+
+Satu HP, tanpa meja dan tanpa WiFi. Pilih menu, tekan **Bayar**, struk langsung jadi.
+
+[![Download GO](https://img.shields.io/badge/%E2%AC%87%20Download%20GO-v{version}-f97316?style=for-the-badge)]({apk_url})
 
 > **{version}** &middot; {size_mb} MB &middot; Android 7.0+ &middot; {date}
 
-<p align="center"><img src="download-qr.png" width="220" alt="QR download"><br><sub>Scan untuk mengunduh / Scan to download</sub></p>
-{ios_section}
+<p align="center"><img src="download-qr.png" width="200" alt="QR download GO"><br><sub>Scan untuk mengunduh GO / Scan to download GO</sub></p>
+{cafe_section}{ios_section}
 ## Yang didapat / What you get
 
 - Kasir dengan pembayaran **Tunai** dan **QRIS**, struk (printer Bluetooth), dan riwayat transaksi
 - Menu & kategori, stok bahan baku, laporan harian / mingguan / bulanan (Excel & PDF)
-- Beberapa akun staf dengan hak akses berbeda
+- Akun staf dengan hak akses berbeda
 - Dua bahasa (Indonesia / English), tema terang / gelap
 - Data tersimpan di perangkat Anda sendiri, **tanpa langganan server**
 - **Coba gratis 7 hari**, lanjut dengan kode aktivasi dari penjual
@@ -70,26 +78,40 @@ PAGE_TEMPLATE = """# Oru POS GO
 
 1. Buka link unduhan di HP Android Anda, lalu unduh file APK. Kalau peramban memperingatkan file APK, pilih **Tetap unduh**.
 2. Buka file yang terunduh. Android akan meminta izin **"Instal dari sumber ini"** - izinkan satu kali untuk peramban Anda.
-3. Tekan **Instal**, lalu buka **Oru POS GO**. Login awal ada di petunjuk dari penjual.
-4. Masa percobaan 7 hari langsung berjalan. Untuk lanjut setelahnya, buka **Aktifkan Lisensi**, kirim **Kode Perangkat** ke penjual, lalu tempel **Kode Aktivasi** yang Anda terima.
+3. Tekan **Instal**, lalu buka aplikasinya. Login awal ada di petunjuk dari penjual.
+4. Masa percobaan 7 hari langsung berjalan. Untuk lanjut setelahnya, buka **Aktifkan Lisensi**, kirim **Kode Perangkat** ke penjual, lalu tempel **Kode Aktivasi** yang Anda terima. Kode GO dan kode Cafe berbeda; pastikan penjual membuatkan untuk edisi yang Anda pasang.
 
 Pembaruan aplikasi muncul otomatis di dalam aplikasi (Pengaturan &rarr; Sistem &rarr; Cek Pembaruan). Tidak perlu mengunduh ulang dari sini.
 
 ## Buku panduan / User manual
 
-**[Buku Panduan Pengguna (PDF)]({manual_url})** - langkah demi langkah, lengkap dengan gambar, untuk pemilik dan kasir.
+**[Buku Panduan Pengguna (PDF)]({manual_url})** - langkah demi langkah, lengkap dengan gambar, untuk pemilik dan kasir (ditulis untuk GO; Cafe memakai dasar yang sama).
 *Step-by-step user guide with screenshots (Indonesian).*
 
 <p align="center"><img src="manual-qr.png" width="180" alt="QR buku panduan"><br><sub>Scan untuk membuka buku panduan / Scan to open the manual</sub></p>
 
 ## Keamanan file / File integrity
 
-SHA-256 `{sha256}`
-
-APK ini ditandatangani **Orulabs** (sidik jari sertifikat SHA-256 `{cert}`). Android hanya mau memperbarui aplikasi ini dengan APK bertanda tangan yang sama.
+- GO: SHA-256 `{sha256}`
+{cafe_sha_line}
+APK ditandatangani **Orulabs** (sidik jari sertifikat SHA-256 `{cert}`). Android hanya mau memperbarui aplikasi ini dengan APK bertanda tangan yang sama.
 
 ---
 &copy; Orulabs
+"""
+
+CAFE_SECTION = """
+## Oru POS Cafe &mdash; mini cafe
+
+Meja, layar dapur, sampai 3 pengguna, dan tablet dapur/kasir lain yang tersambung lewat WiFi toko. HP atau tablet kasir menjadi servernya; biarkan aplikasinya terbuka dan tercolok charger.
+
+[![Download Cafe](https://img.shields.io/badge/%E2%AC%87%20Download%20Cafe-v{version}-f97316?style=for-the-badge)]({apk_url})
+
+> **{version}** &middot; {size_mb} MB &middot; Android 7.0+ &middot; {date}
+
+<p align="center"><img src="cafe-qr.png" width="200" alt="QR download Cafe"><br><sub>Scan untuk mengunduh Cafe / Scan to download Cafe</sub></p>
+
+Cafe dan GO adalah aplikasi terpisah; keduanya boleh terpasang di HP yang sama. Kode Aktivasi tidak saling tukar.
 """
 
 # Buku panduan pengguna (PDF) disimpan di repo rilis, folder manual/ (dibuat terpisah, bukan oleh skrip ini).
@@ -122,17 +144,47 @@ def read_ios_config(out_dir):
     return cfg if cfg.get("url") else None
 
 
-def write_download_page(out_dir, manifest, repo, date=None):
+CAFE_MANIFEST = os.path.join("cafe", "version.json")
+
+
+def read_cafe_manifest(out_dir):
+    path = os.path.join(out_dir, CAFE_MANIFEST)
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _qr(data, path):
+    import qrcode
+
+    img = qrcode.QRCode(box_size=10, border=3)
+    img.add_data(data)
+    img.make(fit=True)
+    img.make_image(fill_color="black", back_color="white").save(path)
+
+
+def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
     """README.md di repo rilis = halaman unduh yang dibagikan ke calon customer
-    (https://github.com/<repo>) + QR menuju link unduhan langsung."""
+    (https://github.com/<repo>) + QR menuju link unduhan langsung. Memuat GO, dan Cafe bila cafe/version.json ada."""
     ios = read_ios_config(out_dir)
+    cafe = read_cafe_manifest(out_dir)
+    today = datetime.date.today().strftime("%d-%m-%Y")
+    cafe_section, cafe_sha_line = "", ""
+    if cafe:
+        cafe_section = CAFE_SECTION.format(
+            version=cafe["versionName"], apk_url=cafe["apkUrl"], size_mb="%.0f" % (cafe["sizeBytes"] / 1048576.0),
+            date=cafe_date or cafe.get("releasedAt") or today)
+        cafe_sha_line = "- Cafe: SHA-256 `%s`\n" % cafe["sha256"]
     page = PAGE_TEMPLATE.format(
+        cafe_section=cafe_section,
+        cafe_sha_line=cafe_sha_line,
         ios_section=IOS_SECTION.format(label=ios.get("label", "Unduh untuk iPhone"), url=ios["url"],
                            note=ios.get("note", "Buka tautan ini di iPhone.")) if ios else "",
         version=manifest["versionName"],
         apk_url=manifest["apkUrl"],
         size_mb="%.0f" % (manifest["sizeBytes"] / 1048576.0),
-        date=date or datetime.date.today().strftime("%d-%m-%Y"),
+        date=date or manifest.get("releasedAt") or today,
         sha256=manifest["sha256"],
         cert=CERT_SHA256,
         manual_url=MANUAL_URL.format(repo=repo),
@@ -140,30 +192,26 @@ def write_download_page(out_dir, manifest, repo, date=None):
     with open(os.path.join(out_dir, "README.md"), "w", encoding="utf-8", newline="\n") as f:
         f.write(page)
     try:
-        import qrcode
-        img = qrcode.QRCode(box_size=10, border=3)
-        img.add_data(manifest["apkUrl"])
-        img.make(fit=True)
-        img.make_image(fill_color="black", back_color="white").save(os.path.join(out_dir, "download-qr.png"))
+        _qr(manifest["apkUrl"], os.path.join(out_dir, "download-qr.png"))
         ios_png = os.path.join(out_dir, "ios-qr.png")
         if ios:
-            iq = qrcode.QRCode(box_size=10, border=3)
-            iq.add_data(ios["url"])
-            iq.make(fit=True)
-            iq.make_image(fill_color="black", back_color="white").save(ios_png)
+            _qr(ios["url"], ios_png)
         elif os.path.exists(ios_png):
             os.remove(ios_png)
-        mq = qrcode.QRCode(box_size=10, border=3)
-        mq.add_data(MANUAL_URL.format(repo=repo))
-        mq.make(fit=True)
-        mq.make_image(fill_color="black", back_color="white").save(os.path.join(out_dir, "manual-qr.png"))
+        cafe_png = os.path.join(out_dir, "cafe-qr.png")
+        if cafe:
+            _qr(cafe["apkUrl"], cafe_png)
+        elif os.path.exists(cafe_png):
+            os.remove(cafe_png)
+        _qr(MANUAL_URL.format(repo=repo), os.path.join(out_dir, "manual-qr.png"))
     except ImportError:
         print("(qrcode tidak terpasang - QR tidak dibuat; jalankan dengan python venv POS)")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--apk", default=DEFAULT_APK, help="path APK rilis (default: hasil assembleRelease)")
+    parser.add_argument("--edition", choices=["go", "cafe"], default="go", help="edisi yang dirilis (default: go)")
+    parser.add_argument("--apk", default=None, help="path APK rilis (default: hasil assembleRelease edisi itu)")
     parser.add_argument("--out", required=True, help="folder kerja repo rilis (hasil git clone)")
     parser.add_argument("--repo", default=DEFAULT_REPO, help="owner/nama repo rilis di GitHub")
     parser.add_argument("--host", choices=["repo", "release"], default="repo",
@@ -175,13 +223,16 @@ def main():
                         help="versionCode terendah yang masih boleh jalan; di bawahnya dipaksa update")
     args = parser.parse_args()
 
+    if not args.apk:
+        args.apk = DEFAULT_APK if args.edition == "go" else DEFAULT_CAFE_APK
     if not os.path.exists(args.apk):
-        sys.exit("APK tidak ditemukan: %s\nJalankan dulu: ./gradlew.bat assembleRelease" % args.apk)
+        sys.exit("APK tidak ditemukan: %s\nJalankan dulu: ./gradlew.bat assembleRelease%s" % (
+            args.apk, "" if args.edition == "go" else " -Pedition=cafe"))
     if not os.path.isdir(args.out):
         sys.exit("Folder repo rilis tidak ada: %s" % args.out)
 
     code, name = read_version()
-    apk_name = "oru-go-%s.apk" % name
+    apk_name = ("oru-go-%s.apk" if args.edition == "go" else "oru-pos-cafe-%s.apk") % name
     release_dir = os.path.join(args.out, "apk")
     os.makedirs(release_dir, exist_ok=True)
     target = os.path.join(release_dir, apk_name)
@@ -201,13 +252,23 @@ def main():
         "notes": args.notes,
         "mandatory": args.mandatory,
         "minSupportedVersionCode": args.min_supported,
+        "releasedAt": datetime.date.today().strftime("%d-%m-%Y"),
     }
-    manifest_path = os.path.join(args.out, "version.json")
+    if args.edition == "go":
+        manifest_path = os.path.join(args.out, "version.json")
+    else:
+        manifest_path = os.path.join(args.out, CAFE_MANIFEST)
+        os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
-    write_download_page(args.out, manifest, args.repo)
+    if args.edition == "go":
+        write_download_page(args.out, manifest, args.repo)
+    else:
+        with open(os.path.join(args.out, "version.json"), encoding="utf-8") as f:
+            go_manifest = json.load(f)
+        write_download_page(args.out, go_manifest, args.repo, cafe_date=manifest["releasedAt"])
     print("APK       :", target)
     print("version   : %s (kode %d)" % (name, code))
     print("SHA-256   :", manifest["sha256"])

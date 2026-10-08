@@ -16,8 +16,14 @@ mengunduh APK dari GitHub Releases dan memeriksa SHA-256 sebelum memasang.
 
 ## Langkah rilis versi baru
 
-Ini alur edisi **GO**. Edisi Cafe dibangun dengan `-Pedition=cafe` (lihat `EDISI.md`); rilis Cafe punya manifest sendiri
-(`cafe/version.json` di repo rilis) dan belum diterbitkan.
+Alur ini untuk edisi **GO**. Edisi **Cafe** sama, hanya dibangun dengan `-Pedition=cafe` (hasil di `app/build-cafe/`) dan
+dirilis dengan `python release_tool/make_release.py --edition cafe ...`; manifest-nya `cafe/version.json` dan APK-nya
+`apk/oru-pos-cafe-<versi>.apk`. Versi (`versionCode`/`versionName`) satu angka untuk dua edisi, jadi bangun dan rilis keduanya
+setiap kali menaikkan versi. Halaman unduh (README.md di repo rilis) memuat GO dan Cafe sekaligus. Rilis GO lebih dulu, baru Cafe
+(halaman unduh membaca manifest GO untuk bagian GO).
+
+Catatan ukuran repo rilis: dua APK per rilis (+/- 100 MB) membuat repo cepat membesar. Bila `.git` repo rilis mendekati 1 GB,
+pindah ke `--host release` (APK diunggah sebagai GitHub Release, bukan di-commit).
 
 1. Naikkan `versionCode` (WAJIB lebih besar dari sebelumnya) dan `versionName`
    di `app/build.gradle`.

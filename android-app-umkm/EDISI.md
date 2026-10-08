@@ -31,7 +31,8 @@ Definisi per edisi ada di `app/src/main/python/edition.py` (satu tempat untuk me
 |---|---|---|
 | applicationId | `id.orulabs.umkm` | `id.orulabs.pos.cafe` (bisa terpasang bersama GO) |
 | Nama di HP | Oru POS GO | Oru POS Cafe |
-| Manifest pembaruan | `.../main/version.json` | `.../main/cafe/version.json` (belum dibuat) |
+| Manifest pembaruan | `.../main/version.json` | `.../main/cafe/version.json` |
+| APK di repo rilis | `apk/oru-go-<versi>.apk` | `apk/oru-pos-cafe-<versi>.apk` |
 | Layar | normal | dijaga tetap menyala (HP kasir adalah server) |
 
 Keduanya ditandatangani keystore rilis yang sama. versionCode/versionName satu angka untuk dua edisi.
