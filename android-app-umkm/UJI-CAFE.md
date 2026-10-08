@@ -6,7 +6,7 @@ Tujuan: memastikan mode server-di-tablet bekerja di perangkat asli sebelum Cafe 
 
 ## Siapkan
 - Tablet/HP **A** (kasir, jadi server) dan **B** (dapur). Keduanya di **WiFi yang sama** (bukan data seluler).
-- APK uji: `D:\10.  PROJECT\orugo-cafe-uji\oru-pos-cafe-1.0.11-uji.apk` (kirim ke tablet A saja).
+- APK uji: `D:\10.  PROJECT\0_PROJECT_2026\ORUPOS\orugo-cafe-uji\oru-pos-cafe-1.0.11-uji.apk` (kirim ke tablet A saja).
 - Cafe punya paket sendiri (`id.orulabs.pos.cafe`), jadi **tidak menimpa** Oru POS GO. Boleh terpasang berdampingan.
 - Masa percobaan 7 hari berlaku, jadi aktivasi tidak perlu untuk uji ini. (Uji aktivasi ada di bagian 6.)
 

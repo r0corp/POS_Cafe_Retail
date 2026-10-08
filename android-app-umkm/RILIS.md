@@ -31,7 +31,7 @@ pindah ke `--host release` (APK diunggah sebagai GitHub Release, bukan di-commit
    `./gradlew.bat assembleRelease`
    (hasil: `app/build/outputs/apk/release/app-release.apk`)
 3. Siapkan file rilis (APK disimpan langsung di repo rilis):
-   `python release_tool/make_release.py --notes "Catatan perubahan" --out "D:/10.  PROJECT/oru-go-releases"`
+   `python release_tool/make_release.py --notes "Catatan perubahan" --out "D:/10.  PROJECT/0_PROJECT_2026/ORUPOS/oru-go-releases"`
    (tambah `--mandatory` kalau semua pelanggan WAJIB update; atau
    `--min-supported <versionCode>` untuk memaksa update di bawah kode tertentu)
 4. Di folder repo rilis: `git add version.json README.md download-qr.png apk`, `git commit`, `git push`.
@@ -59,7 +59,7 @@ Link unduhan langsung ada di tombol pada halaman itu dan di `version.json` (`apk
 Halaman unduh otomatis memuat bagian "iPhone / iOS" lengkap dengan QR **hanya setelah** ada link-nya
 (TestFlight atau App Store). Sebelum itu bagian tersebut tidak muncul. Cara memasang link:
 
-    python release_tool/update_page.py --out "D:/10.  PROJECT/oru-go-releases" --ios-url https://testflight.apple.com/join/XXXX --ios-label TestFlight
+    python release_tool/update_page.py --out "D:/10.  PROJECT/0_PROJECT_2026/ORUPOS/oru-go-releases" --ios-url https://testflight.apple.com/join/XXXX --ios-label TestFlight
 
 Lalu di repo rilis: `git add -A`, `git commit`, `git push`. Menghapus bagian iOS: tambahkan `--clear-ios`.
 Status uji coba iOS ada di `../ios-app-umkm/README.md`.

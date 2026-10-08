@@ -2,7 +2,7 @@
 
 Dipakai terutama untuk memasang link iPhone begitu ada (TestFlight / App Store):
 
-    python release_tool/update_page.py --out "D:/10.  PROJECT/oru-go-releases" \\
+    python release_tool/update_page.py --out "D:/10.  PROJECT/0_PROJECT_2026/ORUPOS/oru-go-releases" \\
         --ios-url https://testflight.apple.com/join/XXXXXXXX --ios-label TestFlight
 
 Hasil: ios.json, ios-qr.png, dan bagian "iPhone / iOS" di README.md. Untuk

@@ -4,7 +4,7 @@ plugins {
 }
 
 // Tanda tangan rilis memakai keystore YANG SAMA dengan Oru POS GO
-// (D:\10.  PROJECT\orugo-keystore). Detailnya dibaca dari keystore.properties
+// (D:\10.  PROJECT\0_PROJECT_2026\ORUPOS\orugo-keystore). Detailnya dibaca dari keystore.properties
 // (di-gitignore, jangan pernah di-commit). Tanpa file ini build rilis tidak
 // ditandatangani dan tidak bisa dipasang.
 def keystoreProps = new Properties()

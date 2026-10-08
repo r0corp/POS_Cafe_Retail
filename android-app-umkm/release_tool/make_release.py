@@ -9,8 +9,8 @@ Skrip ini:
   5. membuat ulang halaman unduh (README.md + QR) yang memuat kedua edisi.
 
 Contoh:
-  python release_tool/make_release.py --notes "Perbaikan kasir QRIS" --out "D:/10.  PROJECT/oru-go-releases"
-  python release_tool/make_release.py --edition cafe --notes "Rilis pertama Cafe" --out "D:/10.  PROJECT/oru-go-releases"
+  python release_tool/make_release.py --notes "Perbaikan kasir QRIS" --out "D:/10.  PROJECT/0_PROJECT_2026/ORUPOS/oru-go-releases"
+  python release_tool/make_release.py --edition cafe --notes "Rilis pertama Cafe" --out "D:/10.  PROJECT/0_PROJECT_2026/ORUPOS/oru-go-releases"
 
 Setelah itu (lihat RILIS.md): unggah APK sebagai Release di GitHub dengan tag
 v<versionName>, lalu commit + push version.json di repo rilis.

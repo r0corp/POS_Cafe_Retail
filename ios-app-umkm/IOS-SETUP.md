@@ -31,7 +31,7 @@ Secret yang dibutuhkan workflow `iOS TestFlight (Oru POS GO)`:
 2. App Store Connect > TestFlight > tambahkan penguji (hingga 100 orang internal tanpa review; link publik butuh review ringan).
 3. Salin **link TestFlight**, lalu pasang QR di halaman unduh:
 
-        python android-app-umkm/release_tool/update_page.py --out "D:/10.  PROJECT/oru-go-releases" --ios-url https://testflight.apple.com/join/XXXX --ios-label TestFlight
+        python android-app-umkm/release_tool/update_page.py --out "D:/10.  PROJECT/0_PROJECT_2026/ORUPOS/oru-go-releases" --ios-url https://testflight.apple.com/join/XXXX --ios-label TestFlight
 
    Commit dan push repo rilis; QR iPhone muncul di halaman unduh.
 
