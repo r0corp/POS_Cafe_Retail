@@ -69,3 +69,4 @@ tools/*.ico
 *.jks
 *.keystore
 keystore.properties
+build-cafe/

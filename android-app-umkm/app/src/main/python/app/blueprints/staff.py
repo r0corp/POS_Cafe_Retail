@@ -2644,7 +2644,16 @@ def admin_users():
         password = request.form.get("password", "")
         role = request.form.get("role")
 
-        if not username or not password or role not in ROLES:
+        import edition
+
+        max_users = edition.info()["max_users"]
+        if max_users and User.query.filter_by(is_active_user=True).count() >= max_users:
+            flash(
+                _("Edisi %(edisi)s dibatasi %(n)s pengguna aktif (termasuk Owner). Nonaktifkan atau hapus akun lain dulu.",
+                  edisi=edition.info()["short"], n=max_users),
+                "danger",
+            )
+        elif not username or not password or role not in ROLES:
             flash(_("Isi username, password, dan role dengan benar."), "danger")
         elif len(password) < MIN_PASSWORD_LENGTH:
             flash(_("Password baru minimal %(n)s karakter.", n=MIN_PASSWORD_LENGTH), "danger")
@@ -2921,10 +2930,35 @@ def admin_settings():
         "staff/settings_admin.html",
         settings=settings,
         floors=floors,
+        **_lan_connect_context(),
         demo_mode_unlocked=_dev_unlock_valid("demo_mode_unlocked"),
         factory_reset_unlocked=_dev_unlock_valid("factory_reset_unlocked"),
         **_system_tab_context(),
     )
+
+
+def _lan_connect_context():
+    """Edisi Cafe: alamat server di WiFi toko + QR-nya, untuk menghubungkan tablet dapur/kasir lain."""
+    import base64
+    import io
+
+    import edition
+
+    if not edition.info()["lan_server"]:
+        return {"lan_url": None, "lan_qr": None}
+    ip = edition.lan_ip()
+    if not ip:
+        return {"lan_url": "", "lan_qr": None}
+    url = "http://%s:%s" % (ip, request.host.rsplit(":", 1)[-1] if ":" in request.host else "5000")
+    try:
+        import qrcode
+
+        buf = io.BytesIO()
+        qrcode.make(url).save(buf, format="PNG")
+        qr = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+    except Exception:
+        qr = None
+    return {"lan_url": url, "lan_qr": qr}
 
 
 @staff_bp.route("/admin/floors/add", methods=["POST"])

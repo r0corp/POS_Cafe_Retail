@@ -69,6 +69,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Cafe: HP/tablet kasir ini adalah server untuk tablet dapur/kasir lain di WiFi toko, jadi layar dijaga tetap
+        // menyala selama aplikasi terbuka (kalau layar mati, Android bisa menghentikan server).
+        if ("cafe".equals(BuildConfig.EDITION)) {
+            getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+
         requestBluetoothPermissionIfNeeded();
 
         fileChooserLauncher = registerForActivityResult(
@@ -239,7 +245,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     Python py = Python.getInstance();
                     PyObject module = py.getModule("umkm_app");
-                    module.callAttr("run", PORT, filesDir);
+                    module.callAttr("run", PORT, filesDir, BuildConfig.EDITION);
                 } catch (Throwable t) {
                     // Kalau server gagal jalan karena alasan APA PUN,
                     // biarkan WebView tetap coba reload seperti biasa

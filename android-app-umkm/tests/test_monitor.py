@@ -51,7 +51,7 @@ def test_payload_has_only_status_fields(tmp_path, monkeypatch, server):
     assert monitor.send_once(str(tmp_path), endpoint=url, version="1.0.6") is True
     path, body, headers = received[0]
     assert path == "/v1/hb"
-    assert body == {"d": DEVICE, "v": "1.0.6", "m": "trial", "x": "", "p": "android", "l": "id"}
+    assert body == {"d": DEVICE, "v": "1.0.6", "m": "trial", "x": "", "p": "android", "l": "id", "e": "go"}
 
 
 @pytest.mark.parametrize("state,expected_mode,expected_expiry", [

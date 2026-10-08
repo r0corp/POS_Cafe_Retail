@@ -3403,3 +3403,15 @@ msgstr "User Accounts"
 
 msgid "Tambah karyawan, atur peran, atau atur ulang password staf."
 msgstr "Add staff, set roles, or reset staff passwords."
+
+msgid "Edisi %(edisi)s dibatasi %(n)s pengguna aktif (termasuk Owner). Nonaktifkan atau hapus akun lain dulu."
+msgstr "The %(edisi)s edition is limited to %(n)s active users (including the Owner). Deactivate or delete another account first."
+
+msgid "Hubungkan Perangkat Lain"
+msgstr "Connect Another Device"
+
+msgid "Di tablet dapur atau kasir lain (WiFi yang sama), buka alamat ini di browser lalu login dengan akun Anda. Biarkan HP/tablet ini tetap menyala dan aplikasinya terbuka."
+msgstr "On the kitchen or another cashier tablet (same WiFi), open this address in the browser and sign in with your account. Keep this phone/tablet on with the app open."
+
+msgid "HP/tablet ini belum tersambung ke WiFi. Sambungkan ke WiFi toko dulu, lalu buka ulang halaman ini."
+msgstr "This phone/tablet is not connected to WiFi. Connect to the shop WiFi first, then reopen this page."

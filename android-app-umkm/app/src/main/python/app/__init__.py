@@ -467,6 +467,11 @@ def create_app(config_overrides=None):
 
         values["v"] = g.cache_version
 
+    def _edition_template_info():
+        import edition
+
+        return dict(edition.info(), code=edition.current())
+
     @app.context_processor
     def inject_globals():
         from .nav import NAV_ITEMS
@@ -478,12 +483,14 @@ def create_app(config_overrides=None):
         settings = get_settings()
 
         if current_user.is_authenticated:
-            is_android = os.environ.get("ORULABS_PLATFORM") == "android"
+            import edition
+
+            hidden_nav = edition.info()["hidden_nav"]
             nav_items = [
                 item
                 for item in NAV_ITEMS
                 if (item["roles"] is None or current_user.role in item["roles"])
-                and not (is_android and item.get("android_hidden"))
+                and item["endpoint"] not in hidden_nav
                 and not (not settings.uses_tables and item.get("hide_without_tables"))
             ]
 
@@ -503,6 +510,7 @@ def create_app(config_overrides=None):
             "site_settings": settings,
             "now": datetime.now,
             "nav_items": nav_items,
+            "edition_info": _edition_template_info(),
             "online_staff": online_staff,
             "current_lang": get_locale(),
             "holidays_id": HOLIDAYS_ID,

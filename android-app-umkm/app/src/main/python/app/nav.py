@@ -30,9 +30,8 @@ NAV_ITEMS = [
         "icon": "bi-egg-fried",
         "label": _l("Dapur"),
         "roles": [ROLE_OWNER, ROLE_DAPUR],
-        # Toko 1-orang (APK UMKM) tidak punya staf dapur terpisah - lihat
-        # inject_globals() di app/__init__.py.
-        "android_hidden": True,
+        # Edisi GO (toko 1 orang) tidak punya staf dapur terpisah: disembunyikan
+        # lewat edition.EDITIONS[...]["hidden_nav"] (lihat inject_globals di app/__init__.py).
     },
     {
         "endpoint": "staff.waiter",
@@ -63,8 +62,7 @@ NAV_ITEMS = [
         "icon": "bi-people",
         "label": _l("Pengguna"),
         "roles": [ROLE_OWNER],
-        # Di APK GO jarang dipakai: dipindah ke Pengaturan > Sistem dan menu profil.
-        "android_hidden": True,
+        # Edisi GO: dipindah ke Pengaturan > Sistem dan menu profil (hidden_nav di edition.py).
     },
     {
         "endpoint": "staff.reports",

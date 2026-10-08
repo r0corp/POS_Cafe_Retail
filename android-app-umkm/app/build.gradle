@@ -12,17 +12,32 @@ if (keystoreFile.exists()) {
     keystoreFile.withInputStream { keystoreProps.load(it) }
 }
 
+// Edisi produk: GO (bawaan) atau Cafe. Bangun Cafe dengan:  ./gradlew.bat assembleRelease -Pedition=cafe
+// (hasilnya di app/build-cafe/, terpisah dari GO). Cafe punya applicationId sendiri sehingga bisa terpasang
+// berdampingan dengan GO, dan kodenya terikat edisi (lihat edition.py dan licensing.py).
+def edition = (project.findProperty("edition") ?: "go").toString()
+if (!["go", "cafe"].contains(edition)) {
+    throw new GradleException("edition harus go atau cafe, bukan '${edition}'")
+}
+if (edition == "cafe") {
+    buildDir = "build-cafe"
+}
+
 // Alamat manifest update (version.json) di repo rilis publik. Build debug
 // (emulator) membaca dari PC pengembang lewat 10.0.2.2 supaya alur update
 // bisa dites tanpa menerbitkan apa pun.
-def releaseManifestUrl = "https://raw.githubusercontent.com/r0corp/oru-go-releases/main/version.json"
+def releaseManifestUrl = edition == "cafe"
+        ? "https://raw.githubusercontent.com/r0corp/oru-go-releases/main/cafe/version.json"
+        : "https://raw.githubusercontent.com/r0corp/oru-go-releases/main/version.json"
 
 android {
     namespace 'id.orulabs.umkm'
     compileSdk 34
 
     defaultConfig {
-        applicationId "id.orulabs.umkm"
+        applicationId edition == "cafe" ? "id.orulabs.pos.cafe" : "id.orulabs.umkm"
+        manifestPlaceholders = [appLabel: edition == "cafe" ? "Oru POS Cafe" : "Oru POS GO"]
+        buildConfigField "String", "EDITION", "\"${edition}\"" 
         minSdk 24
         targetSdk 34
         versionCode 10

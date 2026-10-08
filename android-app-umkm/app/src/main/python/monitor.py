@@ -99,6 +99,12 @@ def dismiss_message(data_dir):
             pass
 
 
+def _edition_code():
+    import edition
+
+    return edition.current()
+
+
 def app_version():
     """Versi aplikasi: dari env (cangkang iOS) atau PackageInfo Android (lewat Chaquopy)."""
     value = os.environ.get("ORULABS_APP_VERSION")
@@ -130,6 +136,7 @@ def build_payload(data_dir, version=None, today=None):
         "x": expiry,
         "p": "ios" if os.environ.get("ORULABS_MOBILE_OS") == "ios" else "android",
         "l": "id",
+        "e": _edition_code(),
     }
 
 

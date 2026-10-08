@@ -697,7 +697,7 @@
                   <div class="d-flex align-items-center gap-3">
                     <i class="bi bi-patch-check fs-2" style="color: var(--color-accent);"></i>
                     <div>
-                      <div class="fw-semibold mb-1">{{ _('Status') }}</div>
+                      <div class="fw-semibold mb-1">{{ _('Status') }} <span class="badge-soft" style="text-transform: none;">{{ edition_info.label }}</span></div>
                       {% if license_state.mode == 'trial' %}
                         <span class="badge-soft badge-status-pending" style="text-transform: none;">{{ _('Masa percobaan - sisa %(n)s hari', n=license_state.days_left) }}</span>
                       {% elif license_state.mode == 'rental' %}
@@ -754,6 +754,27 @@
                 <p class="text-muted small mt-3 mb-0" id="appUpdateStatus">
                   {{ _('Pembaruan diunduh dari internet. Data toko Anda tetap aman setelah update.') }}
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if lan_url is not none %}
+        <div class="row g-4 mb-4">
+          <div class="col-md-6 d-flex flex-column">
+            <div class="settings-section-title">
+              <i class="bi bi-wifi"></i> {{ _('Hubungkan Perangkat Lain') }}
+            </div>
+            <div class="card flex-grow-1">
+              <div class="card-body system-card-body">
+                {% if lan_url %}
+                  <p class="text-muted small mb-2">{{ _('Di tablet dapur atau kasir lain (WiFi yang sama), buka alamat ini di browser lalu login dengan akun Anda. Biarkan HP/tablet ini tetap menyala dan aplikasinya terbuka.') }}</p>
+                  <div class="fw-semibold mb-2" style="word-break: break-all;">{{ lan_url }}</div>
+                  {% if lan_qr %}<img src="{{ lan_qr }}" alt="QR" style="width: 160px; max-width: 100%; background: #fff; padding: 8px; border-radius: 10px;">{% endif %}
+                {% else %}
+                  <p class="text-muted small mb-0">{{ _('HP/tablet ini belum tersambung ke WiFi. Sambungkan ke WiFi toko dulu, lalu buka ulang halaman ini.') }}</p>
+                {% endif %}
               </div>
             </div>
           </div>

@@ -90,7 +90,41 @@ def _refresh_bundled_assets(bundled_static_dir, writable_static_dir):
                 shutil.copyfile(src, dst)
 
 
-def run(port, files_dir):
+def _is_local_network(addr):
+    """True untuk alamat perangkat di jaringan toko (rumah/kantor/hotspot) atau perangkat ini sendiri."""
+    import ipaddress
+
+    try:
+        ip = ipaddress.ip_address(addr)
+    except ValueError:
+        return False
+    if getattr(ip, "ipv4_mapped", None):
+        ip = ip.ipv4_mapped
+    return ip.is_private or ip.is_loopback or ip.is_link_local
+
+
+def _apply_edition_defaults(app, data_dir, edition_code):
+    """Sekali saja pada instalasi baru: pengaturan awal sesuai edisi (mis. Cafe: pakai meja)."""
+    marker = os.path.join(data_dir, "edition_init.json")
+    if os.path.exists(marker):
+        return
+    import json
+
+    import edition
+    from app.blueprints.staff import get_settings
+    from app import db
+
+    with app.app_context():
+        get_settings().uses_tables = bool(edition.info(edition_code)["uses_tables_default"])
+        db.session.commit()
+    with open(marker, "w", encoding="utf-8") as f:
+        json.dump({"edition": edition_code}, f)
+
+
+def run(port, files_dir, edition_code="go"):
+    import edition
+
+    edition_code = edition.set_edition(edition_code)
     data_dir = os.path.join(files_dir, "data")
     os.makedirs(data_dir, exist_ok=True)
 
@@ -119,6 +153,7 @@ def run(port, files_dir):
     import licensing
 
     app = create_app()
+    _apply_edition_defaults(app, data_dir, edition_code)
 
     bundled_static_dir = os.path.join(app.root_path, "static")
     writable_static_dir = os.path.join(data_dir, "static")
@@ -142,4 +177,16 @@ def run(port, files_dir):
 
     monitor.start(data_dir)
 
-    app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False, threaded=True)
+    host = "127.0.0.1"
+    if edition.info()["lan_server"]:
+        # Cafe: dibuka ke WiFi toko supaya tablet dapur/kasir lain bisa terhubung. Hanya perangkat di jaringan
+        # lokal yang dilayani; permintaan dari alamat publik ditolak.
+        host = "0.0.0.0"
+        from flask import abort, request
+
+        @app.before_request
+        def _local_network_only():
+            if not _is_local_network(request.remote_addr or ""):
+                abort(403)
+
+    app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)

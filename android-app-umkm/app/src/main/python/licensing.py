@@ -102,13 +102,26 @@ def _hash_to_int_legacy(device_id):
     return int.from_bytes(digest, "big")
 
 
-def _hash_to_int(device_id, expiry_token):
-    digest = hashlib.sha256(_SIGN_SALT + device_id.encode() + b"|" + expiry_token.encode()).digest()
+def _hash_to_int(device_id, expiry_token, edition_code="go"):
+    """Edisi GO memakai rumus asli (kode GO yang sudah beredar tetap sah). Edisi lain menambahkan |<edisi>
+    ke pesan yang ditandatangani, jadi kode GO tidak bisa mengaktifkan Cafe dan sebaliknya."""
+    tag = b"" if edition_code == "go" else b"|" + edition_code.encode()
+    digest = hashlib.sha256(_SIGN_SALT + device_id.encode() + b"|" + expiry_token.encode() + tag).digest()
     return int.from_bytes(digest, "big")
 
 
 def _verify_signature(message_int, signature_int):
     return pow(signature_int, PUBLIC_KEY_E, PUBLIC_KEY_N) == message_int % PUBLIC_KEY_N
+
+
+def other_edition_of(device_id, code):
+    """Kode ini ternyata untuk edisi lain? Return kode edisi itu (mis. "cafe"), atau None. Dipakai buat pesan yang jelas."""
+    import edition as _edition
+
+    for other in _edition.EDITIONS:
+        if other != _edition.current() and verify_activation_code(device_id, code, other) is not None:
+            return other
+    return None
 
 
 def _is_expired(expiry_token):
@@ -119,7 +132,7 @@ def _is_expired(expiry_token):
         return True  # Format tanggal aneh - anggap kedaluwarsa, lebih aman daripada salah loloskan.
 
 
-def verify_activation_code(device_id, code):
+def verify_activation_code(device_id, code, edition_code=None):
     """Return "PERMANENT" atau expiry_token "YYYYMMDD" kalau signature-nya
     valid, None kalau tidak valid sama sekali (tidak cek kedaluwarsa di
     sini - itu tanggung jawab pemanggil, supaya kode yang signature-nya
@@ -129,6 +142,9 @@ def verify_activation_code(device_id, code):
     if PUBLIC_KEY_N == 0:
         return None
 
+    import edition as _edition
+
+    edition_code = edition_code or _edition.current()
     code = code.strip()
 
     if "." in code:
@@ -138,10 +154,12 @@ def verify_activation_code(device_id, code):
             signature_int = int.from_bytes(_b32decode(sig_part), "big")
         except Exception:
             signature_int = None
-        if signature_int is not None and _verify_signature(_hash_to_int(device_id, expiry_token), signature_int):
+        if signature_int is not None and _verify_signature(_hash_to_int(device_id, expiry_token, edition_code), signature_int):
             return expiry_token
 
-    # Format lama (tanpa titik) - lihat _hash_to_int_legacy().
+    # Format lama (tanpa titik) - lihat _hash_to_int_legacy(). Hanya edisi GO yang pernah memakainya.
+    if edition_code != "go":
+        return None
     try:
         signature_int = int.from_bytes(_b32decode(code), "big")
     except Exception:
@@ -564,7 +582,14 @@ def install_activation_gate(app, data_dir):
             elif expiry_token is not None:
                 error = "Kode ini sudah kedaluwarsa - minta Kode Aktivasi baru ke penjual."
             else:
-                error = "Kode Aktivasi salah atau bukan untuk perangkat ini."
+                import edition as _edition
+
+                other = other_edition_of(device_id, code)
+                if other:
+                    error = "Kode ini untuk %s, bukan %s. Minta kode untuk edisi yang benar ke penjual." % (
+                        _edition.info(other)["label"], _edition.info()["label"])
+                else:
+                    error = "Kode Aktivasi salah atau bukan untuk perangkat ini."
 
         trial = get_trial_info(data_dir)
         return render_template_string(
