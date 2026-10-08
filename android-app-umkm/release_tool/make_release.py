@@ -94,11 +94,28 @@ APK ditandatangani **Orulabs** (sidik jari sertifikat SHA-256 `{cert}`). Android
 
 CARDS_TEMPLATE = """## Pilih edisi / Choose your edition
 
-| **Oru POS GO** | **Oru POS Cafe** | **Oru POS PRO** |
-|:---|:---|:---|
-| **Gerobak & warung**<br>Satu HP, tanpa meja<br>Pilih menu, tekan Bayar | **Mini cafe**<br>2-3 HP/tablet satu WiFi<br>Meja, dapur, dan kasir | **Resto & banyak perangkat**<br>Server mini PC + tablet<br>Dipasang oleh penjual |
-| [**&#11015; Unduh GO**]({go_url})<br><sub>v{go_version} &middot; {go_size} MB</sub> | {cafe_cell} | Hubungi penjual<br><sub>pemasangan di lokasi</sub> |
-| <img src="download-qr.png" width="150" alt="QR download GO"><br><sub>Scan untuk mengunduh</sub> | {cafe_qr} | &nbsp; |
+<table width="100%">
+<tr>
+<th align="center" width="33%">Oru POS GO</th>
+<th align="center" width="34%">Oru POS Cafe</th>
+<th align="center" width="33%">Oru POS PRO</th>
+</tr>
+<tr>
+<td align="center" valign="top"><br><b>Gerobak &amp; warung</b><br><br>Satu HP, tanpa meja<br>Pilih menu, tekan Bayar<br><br></td>
+<td align="center" valign="top"><br><b>Mini cafe</b><br><br>2-3 HP/tablet satu WiFi<br>Meja, dapur, dan kasir<br><br></td>
+<td align="center" valign="top"><br><b>Resto &amp; banyak perangkat</b><br><br>Server mini PC + tablet<br>Dipasang oleh penjual<br><br></td>
+</tr>
+<tr>
+<td align="center"><br><a href="{go_url}"><b>&#11015; Unduh GO</b></a><br><sub>v{go_version} &middot; {go_size} MB</sub><br><br></td>
+<td align="center">{cafe_cell}</td>
+<td align="center"><br>Hubungi penjual<br><sub>pemasangan di lokasi</sub><br><br></td>
+</tr>
+<tr>
+<td align="center"><br><img src="download-qr.png" width="170" alt="QR download GO"><br><sub>Scan untuk mengunduh</sub><br><br></td>
+<td align="center">{cafe_qr}</td>
+<td align="center">&nbsp;</td>
+</tr>
+</table>
 
 """
 
@@ -171,12 +188,12 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
     cafe = read_cafe_manifest(out_dir)
     today = datetime.date.today().strftime("%d-%m-%Y")
     cafe_section, cafe_sha_line = "", ""
-    cafe_cell = "Segera hadir<br><sub>edisi Cafe</sub>"
+    cafe_cell = "<br>Segera hadir<br><sub>edisi Cafe</sub><br><br>"
     cafe_qr = "&nbsp;"
     if cafe:
-        cafe_qr = '<img src="cafe-qr.png" width="150" alt="QR download Cafe"><br><sub>Scan untuk mengunduh</sub>'
-        cafe_cell = "[**&#11015; Unduh Cafe**](%s)<br><sub>v%s &middot; %.0f MB</sub>" % (
+        cafe_cell = '<br><a href="%s"><b>&#11015; Unduh Cafe</b></a><br><sub>v%s &middot; %.0f MB</sub><br><br>' % (
             cafe["apkUrl"], cafe["versionName"], cafe["sizeBytes"] / 1048576.0)
+        cafe_qr = '<br><img src="cafe-qr.png" width="170" alt="QR download Cafe"><br><sub>Scan untuk mengunduh</sub><br><br>'
     cards = CARDS_TEMPLATE.format(go_url=manifest["apkUrl"], go_version=manifest["versionName"],
                                   go_size="%.0f" % (manifest["sizeBytes"] / 1048576.0), cafe_cell=cafe_cell, cafe_qr=cafe_qr)
     if cafe:
