@@ -82,16 +82,19 @@ Langkah demi langkah, lengkap dengan gambar, untuk pemilik, kasir, pelayan, dan 
 <div align="center">
 <table>
 <tr>
-<th align="center" width="405">Buku Panduan Oru POS GO</th>
-<th align="center" width="405">Buku Panduan Oru POS Cafe</th>
+<th align="center" width="270">Panduan Oru POS GO</th>
+<th align="center" width="270">Panduan Oru POS Cafe</th>
+<th align="center" width="270">Panduan Oru POS PRO</th>
 </tr>
 <tr>
 <td align="center"><br><a href="{manual_url}"><b>&#128214; Buka PDF GO</b></a><br><sub>gerobak &amp; warung</sub><br><br></td>
 <td align="center"><br><a href="{manual_cafe_url}"><b>&#128214; Buka PDF Cafe</b></a><br><sub>mini cafe: meja, dapur, kasir</sub><br><br></td>
+<td align="center"><br>Diberikan penjual<br><sub>saat pemasangan di lokasi</sub><br><br></td>
 </tr>
 <tr>
-<td align="center"><br><img src="manual-qr.png" width="170" alt="QR buku panduan GO"><br><sub>Scan untuk membuka buku panduan GO</sub><br><br></td>
-<td align="center"><br><img src="manual-cafe-qr.png" width="170" alt="QR buku panduan Cafe"><br><sub>Scan untuk membuka buku panduan Cafe</sub><br><br></td>
+<td align="center"><br><img src="manual-qr.png" width="190" alt="QR buku panduan GO"><br><sub>Scan untuk membuka panduan GO</sub><br><br></td>
+<td align="center"><br><img src="manual-cafe-qr.png" width="190" alt="QR buku panduan Cafe"><br><sub>Scan untuk membuka panduan Cafe</sub><br><br></td>
+<td align="center">&nbsp;</td>
 </tr>
 </table>
 </div>
