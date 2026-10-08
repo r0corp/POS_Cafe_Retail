@@ -104,7 +104,13 @@ def _is_local_network(addr):
 
 
 def _apply_edition_defaults(app, data_dir, edition_code):
-    """Sekali saja pada instalasi baru: pengaturan awal sesuai edisi (mis. Cafe: pakai meja)."""
+    """Sekali saja pada instalasi baru: pengaturan awal sesuai edisi (mis. Cafe: pakai meja).
+
+    Edisi GO sengaja TIDAK diproses: bawaan GO sudah ada di model (uses_tables mati untuk instalasi baru), dan
+    pelanggan GO yang sudah berjalan sebelum update ke versi ini tidak boleh ditimpa pilihannya (mis. toko yang
+    memakai meja)."""
+    if edition_code == "go":
+        return
     marker = os.path.join(data_dir, "edition_init.json")
     if os.path.exists(marker):
         return

@@ -235,3 +235,15 @@ def test_order_page_shows_the_pay_button_only_for_go(env, client):
     edition.set_edition("cafe")
     html = client.get("/orders/new").get_data(as_text=True)
     assert 'id="quickPayBtn"' not in html and 'name="pay_now"' not in html
+
+
+def test_go_update_never_overwrites_an_existing_shops_table_setting(env, tmp_path):
+    """Pelanggan GO lama yang memakai meja: update ke versi berisi edisi tidak boleh mematikan meja mereka."""
+    import umkm_app
+    from app.blueprints.staff import get_settings
+
+    _set_tables(env, True)
+    umkm_app._apply_edition_defaults(env["app"], str(tmp_path), "go")
+    with env["app"].app_context():
+        assert get_settings().uses_tables is True
+    assert not os.path.exists(os.path.join(str(tmp_path), "edition_init.json"))
