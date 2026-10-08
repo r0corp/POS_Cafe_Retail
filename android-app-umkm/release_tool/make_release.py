@@ -56,15 +56,7 @@ PAGE_TEMPLATE = """# Oru POS
 *Point-of-sale apps for street stalls, small shops, and cafes - running right on your Android phone or tablet.*
 
 {cards}
-## Oru POS GO &mdash; gerobak & warung
-
-Satu HP, tanpa meja dan tanpa WiFi. Pilih menu, tekan **Bayar**, struk langsung jadi.
-
-[![Download GO](https://img.shields.io/badge/%E2%AC%87%20Download%20GO-v{version}-f97316?style=for-the-badge)]({apk_url})
-
-> **{version}** &middot; {size_mb} MB &middot; Android 7.0+ &middot; {date}
-
-{cafe_section}{ios_section}
+{info_block}{ios_section}
 ## Yang didapat / What you get
 
 - Kasir dengan pembayaran **Tunai** dan **QRIS**, struk (printer Bluetooth), dan riwayat transaksi
@@ -192,8 +184,15 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
             version=cafe["versionName"], apk_url=cafe["apkUrl"], size_mb="%.0f" % (cafe["sizeBytes"] / 1048576.0),
             date=cafe_date or cafe.get("releasedAt") or today)
         cafe_sha_line = "- Cafe: SHA-256 `%s`\n" % cafe["sha256"]
+    info_block = "> Android 7.0 ke atas &middot; GO v%s (%s)" % (manifest["versionName"], date or manifest.get("releasedAt") or today)
+    if cafe:
+        info_block += " &middot; Cafe v%s (%s)" % (cafe["versionName"], cafe_date or cafe.get("releasedAt") or today)
+        info_block += ("\n>\n> **Cafe:** HP atau tablet kasir menjadi servernya, jadi biarkan aplikasinya terbuka dan tercolok charger. "
+                       "GO dan Cafe adalah aplikasi terpisah (boleh terpasang di HP yang sama); Kode Aktivasi tidak saling tukar.")
+    info_block += "\n\n"
     page = PAGE_TEMPLATE.format(
         cards=cards,
+        info_block=info_block,
         cafe_section=cafe_section,
         cafe_sha_line=cafe_sha_line,
         ios_section=IOS_SECTION.format(label=ios.get("label", "Unduh untuk iPhone"), url=ios["url"],
