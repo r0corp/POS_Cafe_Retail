@@ -324,3 +324,15 @@ def test_blocked_activation_page_can_still_load_its_logo_and_styles(env, client,
     assert client.get("/admin/settings").status_code == 302                       # halaman POS tetap diblokir
     assert client.get("/static/uploads/branding/apa-saja.png").status_code == 302  # unggahan toko tetap diblokir
 
+
+def test_activation_page_names_the_edition(env, monkeypatch):
+    import licensing
+
+    monkeypatch.setattr(licensing, "is_activated", lambda d: False)
+    anon = env["app"].test_client()
+    edition.set_edition("cafe")
+    html = anon.get("/__activation").get_data(as_text=True)
+    assert "Oru POS Cafe" in html and "Oru POS GO" not in html
+    edition.set_edition("go")
+    assert "Oru POS GO" in anon.get("/__activation").get_data(as_text=True)
+

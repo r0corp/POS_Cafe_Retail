@@ -376,7 +376,7 @@ _ACTIVATION_PAGE = """
         <img src="{{ url_for('static', filename=edition_info.logo) }}" alt="{{ edition_info.short }}">
       </div>
     </div>
-    <h3 class="login-title">Oru POS GO</h3>
+    <h3 class="login-title">{{ edition_info.label }}</h3>
     <p class="login-subtitle">
       {% if trial_expired %}Masa percobaan sudah berakhir{% elif expired_notice %}Masa aktif sudah berakhir{% elif state.mode == 'trial' %}Aktifkan Lisensi{% elif state.mode == 'rental' %}Perpanjang Lisensi{% else %}Aktivasi diperlukan untuk melanjutkan{% endif %}
     </p>

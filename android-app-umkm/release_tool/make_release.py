@@ -55,6 +55,7 @@ PAGE_TEMPLATE = """# Oru POS
 **Aplikasi kasir (POS) untuk gerobak, warung, dan mini cafe - jalan langsung di HP / tablet Android.**
 *Point-of-sale apps for street stalls, small shops, and cafes - running right on your Android phone or tablet.*
 
+{cards}
 ## Oru POS GO &mdash; gerobak & warung
 
 Satu HP, tanpa meja dan tanpa WiFi. Pilih menu, tekan **Bayar**, struk langsung jadi.
@@ -98,6 +99,15 @@ APK ditandatangani **Orulabs** (sidik jari sertifikat SHA-256 `{cert}`). Android
 
 ---
 &copy; Orulabs
+"""
+
+CARDS_TEMPLATE = """## Pilih edisi / Choose your edition
+
+| **Oru POS GO** | **Oru POS Cafe** | **Oru POS PRO** |
+|:---|:---|:---|
+| **Gerobak & warung**<br>Satu HP, tanpa meja<br>Pilih menu, tekan Bayar | **Mini cafe**<br>2-3 HP/tablet satu WiFi<br>Meja, dapur, dan kasir | **Resto & banyak perangkat**<br>Server mini PC + tablet<br>Dipasang oleh penjual |
+| [**&#11015; Unduh GO**]({go_url})<br><sub>v{go_version} &middot; {go_size} MB</sub> | {cafe_cell} | Hubungi penjual<br><sub>pemasangan di lokasi</sub> |
+
 """
 
 CAFE_SECTION = """
@@ -171,12 +181,19 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
     cafe = read_cafe_manifest(out_dir)
     today = datetime.date.today().strftime("%d-%m-%Y")
     cafe_section, cafe_sha_line = "", ""
+    cafe_cell = "Segera hadir<br><sub>edisi Cafe</sub>"
+    if cafe:
+        cafe_cell = "[**&#11015; Unduh Cafe**](%s)<br><sub>v%s &middot; %.0f MB</sub>" % (
+            cafe["apkUrl"], cafe["versionName"], cafe["sizeBytes"] / 1048576.0)
+    cards = CARDS_TEMPLATE.format(go_url=manifest["apkUrl"], go_version=manifest["versionName"],
+                                  go_size="%.0f" % (manifest["sizeBytes"] / 1048576.0), cafe_cell=cafe_cell)
     if cafe:
         cafe_section = CAFE_SECTION.format(
             version=cafe["versionName"], apk_url=cafe["apkUrl"], size_mb="%.0f" % (cafe["sizeBytes"] / 1048576.0),
             date=cafe_date or cafe.get("releasedAt") or today)
         cafe_sha_line = "- Cafe: SHA-256 `%s`\n" % cafe["sha256"]
     page = PAGE_TEMPLATE.format(
+        cards=cards,
         cafe_section=cafe_section,
         cafe_sha_line=cafe_sha_line,
         ios_section=IOS_SECTION.format(label=ios.get("label", "Unduh untuk iPhone"), url=ios["url"],
