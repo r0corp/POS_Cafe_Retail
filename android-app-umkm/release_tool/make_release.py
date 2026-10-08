@@ -165,8 +165,6 @@ IOS_SECTION = """
 
 **[{label}]({url})**
 {note}
-
-<p align="center"><img src="ios-qr.png" width="200" alt="QR iPhone"><br><sub>Scan dengan kamera iPhone / Scan with your iPhone camera</sub></p>
 """
 
 
@@ -274,10 +272,8 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
         f.write(page)
     try:
         _qr(manifest["apkUrl"], os.path.join(out_dir, "download-qr.png"))
-        ios_png = os.path.join(out_dir, "ios-qr.png")
-        if ios:
-            _qr(ios["url"], ios_png)
-        elif os.path.exists(ios_png):
+        ios_png = os.path.join(out_dir, "ios-qr.png")          # iPhone: hanya tautan, tanpa QR
+        if os.path.exists(ios_png):
             os.remove(ios_png)
         cafe_png = os.path.join(out_dir, "cafe-qr.png")
         if cafe:
