@@ -237,13 +237,55 @@ def test_order_page_shows_the_pay_button_only_for_go(env, client):
     assert 'id="quickPayBtn"' not in html and 'name="pay_now"' not in html
 
 
-def test_go_update_never_overwrites_an_existing_shops_table_setting(env, tmp_path):
-    """Pelanggan GO lama yang memakai meja: update ke versi berisi edisi tidak boleh mematikan meja mereka."""
+def test_go_update_turns_tables_off_only_for_shops_that_never_created_a_table(env, tmp_path):
+    """Toko GO lama tanpa satu pun meja: fitur meja dimatikan sekali. Toko yang sudah punya meja: tidak disentuh."""
     import umkm_app
     from app.blueprints.staff import get_settings
+    from app.models import Table
 
+    # 1. meja menyala, belum ada meja sama sekali -> dimatikan
     _set_tables(env, True)
-    umkm_app._apply_edition_defaults(env["app"], str(tmp_path), "go")
+    with env["app"].app_context():
+        assert Table.query.count() == 0
+    d1 = tmp_path / "a"
+    d1.mkdir()
+    umkm_app._apply_edition_defaults(env["app"], str(d1), "go")
+    with env["app"].app_context():
+        assert get_settings().uses_tables is False
+    assert os.path.exists(os.path.join(str(d1), "edition_init.json"))
+
+    # 2. hanya sekali: pemilik menyalakan lagi -> tidak dimatikan lagi
+    _set_tables(env, True)
+    umkm_app._apply_edition_defaults(env["app"], str(d1), "go")
     with env["app"].app_context():
         assert get_settings().uses_tables is True
-    assert not os.path.exists(os.path.join(str(tmp_path), "edition_init.json"))
+
+    # 3. toko yang punya meja -> tidak disentuh
+    with env["app"].app_context():
+        env["db"].session.add(Table(code="UJI-A1", label="A1", floor=1))
+        env["db"].session.commit()
+    d2 = tmp_path / "b"
+    d2.mkdir()
+    umkm_app._apply_edition_defaults(env["app"], str(d2), "go")
+    with env["app"].app_context():
+        assert get_settings().uses_tables is True
+        Table.query.delete()
+        env["db"].session.commit()
+
+
+def test_logo_follows_the_edition_once_activated(env, client, monkeypatch):
+    import licensing
+
+    monkeypatch.setattr(licensing, "get_license_state", lambda d: {"mode": "permanent", "days_left": None, "expiry_text": None, "device_id": "K7QM2XPD4VR5WZ3T"})
+    edition.set_edition("go")
+    assert "img/go-logo.png" in client.get("/").get_data(as_text=True)
+    edition.set_edition("cafe")
+    html = client.get("/").get_data(as_text=True)
+    assert "img/cafe-logo.png" in html and "img/go-logo.png" not in html
+    edition.set_edition("go")
+
+
+def test_logo_files_exist_for_every_edition():
+    root = os.path.join(os.path.dirname(__file__), "..", "app", "src", "main", "python", "app", "static")
+    for code in edition.EDITIONS:
+        assert os.path.exists(os.path.join(root, edition.info(code)["logo"])), code

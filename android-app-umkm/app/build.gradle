@@ -36,7 +36,12 @@ android {
 
     defaultConfig {
         applicationId edition == "cafe" ? "id.orulabs.pos.cafe" : "id.orulabs.umkm"
-        manifestPlaceholders = [appLabel: edition == "cafe" ? "Oru POS Cafe" : "Oru POS GO"]
+        // Label dan ikon per edisi (ikon Cafe dibuat release_tool/make_edition_logos.py)
+        manifestPlaceholders = [
+            appLabel    : edition == "cafe" ? "Oru POS Cafe" : "Oru POS GO",
+            appIcon     : edition == "cafe" ? "@mipmap/ic_launcher_cafe" : "@mipmap/ic_launcher",
+            appIconRound: edition == "cafe" ? "@mipmap/ic_launcher_cafe_round" : "@mipmap/ic_launcher_round",
+        ]
         buildConfigField "String", "EDITION", "\"${edition}\"" 
         minSdk 24
         targetSdk 34

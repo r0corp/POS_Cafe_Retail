@@ -24,8 +24,8 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="${appIcon}"
+        android:roundIcon="${appIconRound}"
         android:label="${appLabel}"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.OruGo">

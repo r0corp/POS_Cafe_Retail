@@ -106,13 +106,26 @@ def _is_local_network(addr):
 def _apply_edition_defaults(app, data_dir, edition_code):
     """Sekali saja pada instalasi baru: pengaturan awal sesuai edisi (mis. Cafe: pakai meja).
 
-    Edisi GO sengaja TIDAK diproses: bawaan GO sudah ada di model (uses_tables mati untuk instalasi baru), dan
-    pelanggan GO yang sudah berjalan sebelum update ke versi ini tidak boleh ditimpa pilihannya (mis. toko yang
-    memakai meja)."""
-    if edition_code == "go":
-        return
+    GO: bawaan instalasi baru sudah di model (uses_tables mati). Untuk toko GO yang sudah berjalan, SEKALI saja:
+    bila fitur meja masih menyala tetapi toko belum punya satu pun meja (artinya tidak memakainya), dimatikan.
+    Toko yang sudah membuat meja tidak disentuh sama sekali."""
     marker = os.path.join(data_dir, "edition_init.json")
     if os.path.exists(marker):
+        return
+    if edition_code == "go":
+        import json
+
+        from app import db
+        from app.blueprints.staff import get_settings
+        from app.models import Table
+
+        with app.app_context():
+            settings = get_settings()
+            if settings.uses_tables and Table.query.count() == 0:
+                settings.uses_tables = False
+                db.session.commit()
+        with open(marker, "w", encoding="utf-8") as f:
+            json.dump({"edition": "go", "tables_migration": True}, f)
         return
     import json
 

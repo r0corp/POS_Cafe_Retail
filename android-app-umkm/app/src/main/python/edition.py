@@ -15,6 +15,7 @@ EDITIONS = {
     "go": {
         "label": "Oru POS GO",
         "short": "GO",
+        "logo": "img/go-logo.png",
         "lan_server": False,        # hanya 127.0.0.1: satu HP
         "max_users": None,          # tidak dibatasi (menu Pengguna disembunyikan; akun lama tetap jalan)
         "uses_tables_default": False,
@@ -24,6 +25,7 @@ EDITIONS = {
     "cafe": {
         "label": "Oru POS Cafe",
         "short": "Cafe",
+        "logo": "img/cafe-logo.png",
         "lan_server": True,         # dibuka ke WiFi toko supaya tablet dapur/kasir lain bisa terhubung
         "max_users": 3,             # pemilik + 2 akun
         "uses_tables_default": True,
