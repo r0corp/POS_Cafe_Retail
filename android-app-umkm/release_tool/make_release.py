@@ -82,14 +82,12 @@ Langkah demi langkah, lengkap dengan gambar, untuk pemilik, kasir, pelayan, dan 
 <div align="center">
 <table>
 <tr>
-<th align="center" width="270"><img src="hdr-panduan-go.png" width="250" alt="Panduan Oru POS GO"></th>
-<th align="center" width="270"><img src="hdr-panduan-cafe.png" width="250" alt="Panduan Oru POS Cafe"></th>
-<th align="center" width="270"><img src="hdr-panduan-pro.png" width="250" alt="Panduan Oru POS PRO"></th>
+<th colspan="3" align="center"><img src="hdr-panduan.png" width="784" alt="Panduan GO | Panduan Cafe | Panduan PRO"></th>
 </tr>
 <tr>
-<td align="center"><br><a href="{manual_url}"><img src="btn-pdf-go.png" width="220" alt="Buka PDF GO"></a><br><sub>gerobak &amp; warung</sub><br><br></td>
-<td align="center"><br><a href="{manual_cafe_url}"><img src="btn-pdf-cafe.png" width="220" alt="Buka PDF Cafe"></a><br><sub>mini cafe: meja, dapur, kasir</sub><br><br></td>
-<td align="center">{pro_manual_cell}</td>
+<td width="270" align="center"><br><a href="{manual_url}"><img src="btn-pdf-go.png" width="220" alt="Buka PDF GO"></a><br><sub>gerobak &amp; warung</sub><br><br></td>
+<td width="270" align="center"><br><a href="{manual_cafe_url}"><img src="btn-pdf-cafe.png" width="220" alt="Buka PDF Cafe"></a><br><sub>mini cafe: meja, dapur, kasir</sub><br><br></td>
+<td width="270" align="center">{pro_manual_cell}</td>
 </tr>
 <tr>
 <td align="center"><br><img src="manual-qr.png" width="190" alt="QR buku panduan GO"><br><sub>Scan untuk membuka panduan GO</sub><br><br></td>
@@ -114,14 +112,12 @@ CARDS_TEMPLATE = """## Pilih edisi / Choose your edition
 <div align="center">
 <table>
 <tr>
-<th align="center" width="270"><img src="hdr-go.png" width="250" alt="Oru POS GO"></th>
-<th align="center" width="270"><img src="hdr-cafe.png" width="250" alt="Oru POS Cafe"></th>
-<th align="center" width="270"><img src="hdr-pro.png" width="250" alt="Oru POS PRO"></th>
+<th colspan="3" align="center"><img src="hdr-edisi.png" width="784" alt="Oru POS GO | Oru POS Cafe | Oru POS PRO"></th>
 </tr>
 <tr>
-<td align="center" valign="top"><br><b>Gerobak &amp; warung</b><br><br>Satu HP, tanpa meja<br>Pilih menu, tekan Bayar<br><br></td>
-<td align="center" valign="top"><br><b>Mini cafe</b><br><br>2-3 HP/tablet satu WiFi<br>Meja, dapur, dan kasir<br><br></td>
-<td align="center" valign="top"><br><b>Resto &amp; banyak perangkat</b><br><br>Server mini PC + tablet<br>Dipasang oleh penjual<br><br></td>
+<td width="270" align="center" valign="top"><br><b>Gerobak &amp; warung</b><br><br>Satu HP, tanpa meja<br>Pilih menu, tekan Bayar<br><br></td>
+<td width="270" align="center" valign="top"><br><b>Mini cafe</b><br><br>2-3 HP/tablet satu WiFi<br>Meja, dapur, dan kasir<br><br></td>
+<td width="270" align="center" valign="top"><br><b>Resto &amp; banyak perangkat</b><br><br>Server mini PC + tablet<br>Dipasang oleh penjual<br><br></td>
 </tr>
 <tr>
 <td align="center"><br><a href="{go_url}"><img src="btn-unduh-go.png" width="220" alt="Unduh GO"></a><br><sub>v{go_version} &middot; {go_size} MB</sub><br><br></td>
@@ -214,30 +210,6 @@ def read_cafe_manifest(out_dir):
         return json.load(f)
 
 
-HEADER_BANNERS = (
-    ("hdr-go.png", "Oru POS GO"), ("hdr-cafe.png", "Oru POS Cafe"), ("hdr-pro.png", "Oru POS PRO"),
-    ("hdr-panduan-go.png", "Panduan GO"), ("hdr-panduan-cafe.png", "Panduan Cafe"), ("hdr-panduan-pro.png", "Panduan PRO"),
-)
-ORANGE = (244, 123, 39)  # oranye Orulabs
-
-
-def write_header_banners(out_dir):
-    """Banner oranye untuk judul kolom tabel (GitHub membuang pewarnaan tabel, jadi dibuat sebagai gambar)."""
-    from PIL import Image, ImageDraw, ImageFont
-
-    font_path = next((p for p in ("C:/Windows/Fonts/segoeuib.ttf", "C:/Windows/Fonts/arialbd.ttf",
-                                   "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") if os.path.exists(p)), None)
-    w, h = 500, 76  # tampil 250 px (2x supaya tajam)
-    for name, text in HEADER_BANNERS:
-        img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
-        draw.rounded_rectangle([0, 0, w - 1, h - 1], radius=16, fill=ORANGE + (255,))
-        font = ImageFont.truetype(font_path, 34) if font_path else ImageFont.load_default()
-        box = draw.textbbox((0, 0), text, font=font)
-        draw.text(((w - (box[2] - box[0])) / 2 - box[0], (h - (box[3] - box[1])) / 2 - box[1]), text, font=font, fill=(255, 255, 255, 255))
-        img.save(os.path.join(out_dir, name))
-
-
 NAVY = (14, 76, 117)     # biru tua Orulabs (tombol unduh)
 BLUE = (27, 160, 248)    # biru Orulabs (tombol PDF)
 BUTTONS = (
@@ -281,6 +253,34 @@ def write_buttons(out_dir):
         box = d.textbbox((0, 0), text, font=font)
         tx0, tx1 = 2 * cx + r - 40, w - 24  # area teks di kanan ikon
         d.text(((tx0 + tx1 - (box[2] - box[0])) / 2 - box[0], (h - (box[3] - box[1])) / 2 - box[1]), text, font=font, fill=(255, 255, 255, 255))
+        img.save(os.path.join(out_dir, name))
+
+
+ORANGE = (244, 123, 39)  # oranye Orulabs
+BAND_BANNERS = (
+    ("hdr-edisi.png", ("Oru POS GO", "Oru POS Cafe", "Oru POS PRO")),
+    ("hdr-panduan.png", ("Panduan GO", "Panduan Cafe", "Panduan PRO")),
+)
+
+
+def write_header_banners(out_dir):
+    """Pita oranye selebar tabel untuk baris judul (GitHub membuang pewarnaan tabel, jadi dibuat sebagai gambar).
+    Ukuran mengikuti tabel di GitHub: 811 px, tiga kolom 270 px; isi sel 784 px, mulai 13 px dari tepi kiri tabel."""
+    from PIL import Image, ImageDraw
+
+    s = 2  # 2x supaya tajam
+    w, h = 784 * s, 36 * s
+    centers = (122 * s, 392 * s, 662 * s)
+    dividers = (257 * s, 527 * s)
+    font = _button_font(17 * s)
+    for name, titles in BAND_BANNERS:
+        img = Image.new("RGBA", (w, h), ORANGE + (255,))
+        d = ImageDraw.Draw(img)
+        for x in dividers:
+            d.rectangle([x - 1, 0, x, h], fill=(255, 255, 255, 90))
+        for cx, text in zip(centers, titles):
+            box = d.textbbox((0, 0), text, font=font)
+            d.text((cx - (box[2] - box[0]) / 2 - box[0], (h - (box[3] - box[1])) / 2 - box[1]), text, font=font, fill=(255, 255, 255, 255))
         img.save(os.path.join(out_dir, name))
 
 
