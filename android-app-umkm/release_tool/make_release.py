@@ -77,7 +77,7 @@ Pembaruan aplikasi muncul otomatis di dalam aplikasi (Pengaturan &rarr; Sistem &
 
 ## Buku panduan / User manual
 
-**[Buku Panduan Pengguna (PDF)]({manual_url})** - langkah demi langkah, lengkap dengan gambar, untuk pemilik dan kasir (ditulis untuk GO; Cafe memakai dasar yang sama).
+**[Buku Panduan Oru POS GO (PDF)]({manual_url})** dan **[Buku Panduan Oru POS Cafe (PDF)]({manual_cafe_url})** - langkah demi langkah, lengkap dengan gambar, untuk pemilik, kasir, pelayan, dan dapur.
 *Step-by-step user guide with screenshots (Indonesian).*
 
 <p align="center"><img src="manual-qr.png" width="180" alt="QR buku panduan"><br><sub>Scan untuk membuka buku panduan / Scan to open the manual</sub></p>
@@ -135,6 +135,7 @@ Cafe dan GO adalah aplikasi terpisah; keduanya boleh terpasang di HP yang sama. 
 
 # Buku panduan pengguna (PDF) disimpan di repo rilis, folder manual/ (dibuat terpisah, bukan oleh skrip ini).
 MANUAL_URL = "https://raw.githubusercontent.com/{repo}/main/manual/Panduan-Oru-POS-GO.pdf"
+MANUAL_CAFE_URL = "https://raw.githubusercontent.com/{repo}/main/manual/Panduan-Oru-POS-Cafe.pdf"
 
 # Sidik jari sertifikat penanda tangan rilis (keystore Orulabs) - tampil di halaman unduh.
 CERT_SHA256 = "5ed6b68757b0c2092cd75e43bccc89028c58f1d61b203441c0fe75d460eb40aa"
@@ -250,6 +251,7 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
         sha256=manifest["sha256"],
         cert=CERT_SHA256,
         manual_url=MANUAL_URL.format(repo=repo),
+        manual_cafe_url=MANUAL_CAFE_URL.format(repo=repo),
     )
     with open(os.path.join(out_dir, "README.md"), "w", encoding="utf-8", newline="\n") as f:
         f.write(page)
