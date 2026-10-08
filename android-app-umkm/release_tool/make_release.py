@@ -145,6 +145,8 @@ Cafe dan GO adalah aplikasi terpisah; keduanya boleh terpasang di HP yang sama. 
 # Buku panduan pengguna (PDF) disimpan di repo rilis, folder manual/ (dibuat terpisah, bukan oleh skrip ini).
 MANUAL_URL = "https://raw.githubusercontent.com/{repo}/main/manual/Panduan-Oru-POS-GO.pdf"
 MANUAL_CAFE_URL = "https://raw.githubusercontent.com/{repo}/main/manual/Panduan-Oru-POS-Cafe.pdf"
+MANUAL_PRO_FILE = os.path.join("manual", "Panduan-Oru-POS-PRO.pdf")
+MANUAL_PRO_URL = "https://raw.githubusercontent.com/{repo}/main/manual/Panduan-Oru-POS-PRO.pdf"
 
 # Sidik jari sertifikat penanda tangan rilis (keystore Orulabs) - tampil di halaman unduh.
 CERT_SHA256 = "5ed6b68757b0c2092cd75e43bccc89028c58f1d61b203441c0fe75d460eb40aa"
@@ -212,7 +214,7 @@ BUTTONS = (
     ("btn-unduh-go.png", "Unduh GO", NAVY, "down"), ("btn-unduh-cafe.png", "Unduh Cafe", NAVY, "down"),
     ("btn-hubungi.png", "Hubungi penjual", NAVY, "chat"),
     ("btn-pdf-go.png", "Buka PDF GO", BLUE, "doc"), ("btn-pdf-cafe.png", "Buka PDF Cafe", BLUE, "doc"),
-    ("btn-minta-pro.png", "Minta panduan PRO", BLUE, "doc"),
+    ("btn-minta-pro.png", "Minta panduan PRO", BLUE, "doc"), ("btn-pdf-pro.png", "Buka PDF PRO", BLUE, "doc"),
 )
 
 
@@ -316,7 +318,13 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
         pro_qr = '<br><img src="wa-qr.png" width="190" alt="QR WhatsApp penjual"><br><sub>Scan untuk chat WhatsApp</sub><br><br>'
     pro_manual_cell = "<br>Diberikan penjual<br><sub>saat pemasangan di lokasi</sub><br><br>"
     pro_manual_qr = "&nbsp;"
-    if contact:
+    has_pro_manual = os.path.exists(os.path.join(out_dir, MANUAL_PRO_FILE))
+    if has_pro_manual:      # panduan PRO sudah terbit: tombol PDF + QR seperti GO dan Cafe
+        pro_manual_cell = ('<br><a href="%s"><img src="btn-pdf-pro.png" width="220" alt="Buka PDF PRO"></a><br><sub>resto &amp; banyak perangkat</sub><br><br>'
+                           % MANUAL_PRO_URL.format(repo=repo))
+        pro_manual_qr = ('<br><img src="manual-pro-qr.png" width="190" alt="QR buku panduan PRO"><br>'
+                         '<sub>Scan untuk membuka panduan PRO</sub><br><br>')
+    elif contact:
         pro_manual_cell = ('<br><a href="%s"><img src="btn-minta-pro.png" width="220" alt="Minta panduan PRO"></a><br><sub>kirim permintaan lewat WhatsApp</sub><br><br>'
                            % whatsapp_url(contact, PRO_MANUAL_TEXT))
         pro_manual_qr = ('<br><img src="wa-panduan-pro-qr.png" width="190" alt="QR minta panduan PRO"><br>'
@@ -371,15 +379,21 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
             os.remove(cafe_png)
         _qr(MANUAL_URL.format(repo=repo), os.path.join(out_dir, "manual-qr.png"))
         _qr(MANUAL_CAFE_URL.format(repo=repo), os.path.join(out_dir, "manual-cafe-qr.png"))
+        pro_qr_png = os.path.join(out_dir, "manual-pro-qr.png")
+        if has_pro_manual:
+            _qr(MANUAL_PRO_URL.format(repo=repo), pro_qr_png)
+        elif os.path.exists(pro_qr_png):
+            os.remove(pro_qr_png)
         wa_png = os.path.join(out_dir, "wa-qr.png")
         wa_pro_png = os.path.join(out_dir, "wa-panduan-pro-qr.png")
         if contact:
             _qr(whatsapp_url(contact), wa_png)
+        elif os.path.exists(wa_png):
+            os.remove(wa_png)
+        if contact and not has_pro_manual:
             _qr(whatsapp_url(contact, PRO_MANUAL_TEXT), wa_pro_png)
-        else:
-            for stale in (wa_png, wa_pro_png):
-                if os.path.exists(stale):
-                    os.remove(stale)
+        elif os.path.exists(wa_pro_png):
+            os.remove(wa_pro_png)
     except ImportError:
         print("(qrcode tidak terpasang - QR tidak dibuat; jalankan dengan python venv POS)")
 
