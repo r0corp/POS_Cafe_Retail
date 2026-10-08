@@ -94,11 +94,12 @@ APK ditandatangani **Orulabs** (sidik jari sertifikat SHA-256 `{cert}`). Android
 
 CARDS_TEMPLATE = """## Pilih edisi / Choose your edition
 
-<table width="100%">
+<div align="center">
+<table>
 <tr>
-<th align="center" width="33%">Oru POS GO</th>
-<th align="center" width="34%">Oru POS Cafe</th>
-<th align="center" width="33%">Oru POS PRO</th>
+<th align="center" width="270">Oru POS GO</th>
+<th align="center" width="270">Oru POS Cafe</th>
+<th align="center" width="270">Oru POS PRO</th>
 </tr>
 <tr>
 <td align="center" valign="top"><br><b>Gerobak &amp; warung</b><br><br>Satu HP, tanpa meja<br>Pilih menu, tekan Bayar<br><br></td>
@@ -108,14 +109,15 @@ CARDS_TEMPLATE = """## Pilih edisi / Choose your edition
 <tr>
 <td align="center"><br><a href="{go_url}"><b>&#11015; Unduh GO</b></a><br><sub>v{go_version} &middot; {go_size} MB</sub><br><br></td>
 <td align="center">{cafe_cell}</td>
-<td align="center"><br>Hubungi penjual<br><sub>pemasangan di lokasi</sub><br><br></td>
+<td align="center">{pro_cell}</td>
 </tr>
 <tr>
-<td align="center"><br><img src="download-qr.png" width="170" alt="QR download GO"><br><sub>Scan untuk mengunduh</sub><br><br></td>
+<td align="center"><br><img src="download-qr.png" width="190" alt="QR download GO"><br><sub>Scan untuk mengunduh</sub><br><br></td>
 <td align="center">{cafe_qr}</td>
-<td align="center">&nbsp;</td>
+<td align="center">{pro_qr}</td>
 </tr>
 </table>
+</div>
 
 """
 
@@ -161,6 +163,26 @@ def read_ios_config(out_dir):
     return cfg if cfg.get("url") else None
 
 
+CONTACT_CONFIG = "contact.json"
+
+
+def read_contact(out_dir):
+    """contact.json di repo rilis: {"whatsapp": "62812...", "text": "pesan awal"}. Tidak ada = tanpa kontak."""
+    path = os.path.join(out_dir, CONTACT_CONFIG)
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        cfg = json.load(f)
+    return cfg if cfg.get("whatsapp") else None
+
+
+def whatsapp_url(contact):
+    from urllib.parse import quote
+
+    url = "https://wa.me/%s" % contact["whatsapp"]
+    return url + ("?text=" + quote(contact["text"]) if contact.get("text") else "")
+
+
 CAFE_MANIFEST = os.path.join("cafe", "version.json")
 
 
@@ -193,8 +215,15 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
     if cafe:
         cafe_cell = '<br><a href="%s"><b>&#11015; Unduh Cafe</b></a><br><sub>v%s &middot; %.0f MB</sub><br><br>' % (
             cafe["apkUrl"], cafe["versionName"], cafe["sizeBytes"] / 1048576.0)
-        cafe_qr = '<br><img src="cafe-qr.png" width="170" alt="QR download Cafe"><br><sub>Scan untuk mengunduh</sub><br><br>'
-    cards = CARDS_TEMPLATE.format(go_url=manifest["apkUrl"], go_version=manifest["versionName"],
+        cafe_qr = '<br><img src="cafe-qr.png" width="190" alt="QR download Cafe"><br><sub>Scan untuk mengunduh</sub><br><br>'
+    contact = read_contact(out_dir)
+    pro_cell = "<br>Hubungi penjual<br><sub>pemasangan di lokasi</sub><br><br>"
+    pro_qr = "&nbsp;"
+    if contact:
+        pro_cell = ('<br><a href="%s"><b>&#128172; Hubungi penjual</b></a><br><sub>lewat WhatsApp &middot; pemasangan di lokasi</sub><br><br>'
+                    % whatsapp_url(contact))
+        pro_qr = '<br><img src="wa-qr.png" width="190" alt="QR WhatsApp penjual"><br><sub>Scan untuk chat WhatsApp</sub><br><br>'
+    cards = CARDS_TEMPLATE.format(pro_cell=pro_cell, pro_qr=pro_qr, go_url=manifest["apkUrl"], go_version=manifest["versionName"],
                                   go_size="%.0f" % (manifest["sizeBytes"] / 1048576.0), cafe_cell=cafe_cell, cafe_qr=cafe_qr)
     if cafe:
         cafe_section = CAFE_SECTION.format(
@@ -237,6 +266,11 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
         elif os.path.exists(cafe_png):
             os.remove(cafe_png)
         _qr(MANUAL_URL.format(repo=repo), os.path.join(out_dir, "manual-qr.png"))
+        wa_png = os.path.join(out_dir, "wa-qr.png")
+        if contact:
+            _qr(whatsapp_url(contact), wa_png)
+        elif os.path.exists(wa_png):
+            os.remove(wa_png)
     except ImportError:
         print("(qrcode tidak terpasang - QR tidak dibuat; jalankan dengan python venv POS)")
 
