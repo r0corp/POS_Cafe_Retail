@@ -119,28 +119,9 @@
                   </div>
                 </div>
 
-                <div class="col-12 col-lg-3 settings-col-divider" style="--form-field-label-width: 100px;">
-                  <div class="settings-section-title">
-                    <span class="settings-section-num">3</span> {{ _('Info WiFi') }}
-                  </div>
-                  <p class="text-muted small mb-3">
-                    {{ _('Aplikasi ini dipakai lewat jaringan lokal, bukan internet - tamu wajib nyambung ke WiFi toko dulu sebelum bisa scan QR meja. Diisi supaya info WiFi ikut tercetak di kartu QR.') }}
-                  </p>
-
-                  <div class="mb-3 form-field-row">
-                    <label class="form-label form-field-label small fw-semibold">{{ _('Nama WiFi') }}</label>
-                    <input type="text" name="wifi_name" class="form-control" style="flex: 1 1 100px; min-width: 0;" value="{{ settings.wifi_name or '' }}" placeholder="{{ _('Contoh: OrulabsCafeWifi') }}">
-                  </div>
-
-                  <div class="mb-1 form-field-row">
-                    <label class="form-label form-field-label small fw-semibold">{{ _('Password WiFi') }}</label>
-                    <input type="text" name="wifi_password" class="form-control" style="flex: 1 1 100px; min-width: 0;" value="{{ settings.wifi_password or '' }}" placeholder="{{ _('Kosongkan kalau WiFi tanpa password') }}">
-                  </div>
-                </div>
-
                 <div class="col-12 col-lg-3 settings-col-divider">
                   <div class="settings-section-title">
-                    <span class="settings-section-num">4</span> {{ _('Meja & Lantai') }}
+                    <span class="settings-section-num">3</span> {{ _('Meja & Lantai') }}
                   </div>
 
                   <div class="d-flex align-items-center gap-3 mb-3">
@@ -181,6 +162,28 @@
                     </button>
                   {% endif %}
                 </div>
+
+                {# Info WiFi hanya dipakai di kartu QR meja - tampil kalau "Pakai Meja?" menyala (nilai tersimpan tetap aman) #}
+                {% if settings.uses_tables %}
+                <div class="col-12 col-lg-3 settings-col-divider" style="--form-field-label-width: 100px;">
+                  <div class="settings-section-title">
+                    <span class="settings-section-num">4</span> {{ _('Info WiFi') }}
+                  </div>
+                  <p class="text-muted small mb-3">
+                    {{ _('Aplikasi ini dipakai lewat jaringan lokal, bukan internet - tamu wajib nyambung ke WiFi toko dulu sebelum bisa scan QR meja. Diisi supaya info WiFi ikut tercetak di kartu QR.') }}
+                  </p>
+
+                  <div class="mb-3 form-field-row">
+                    <label class="form-label form-field-label small fw-semibold">{{ _('Nama WiFi') }}</label>
+                    <input type="text" name="wifi_name" class="form-control" style="flex: 1 1 100px; min-width: 0;" value="{{ settings.wifi_name or '' }}" placeholder="{{ _('Contoh: OrulabsCafeWifi') }}">
+                  </div>
+
+                  <div class="mb-1 form-field-row">
+                    <label class="form-label form-field-label small fw-semibold">{{ _('Password WiFi') }}</label>
+                    <input type="text" name="wifi_password" class="form-control" style="flex: 1 1 100px; min-width: 0;" value="{{ settings.wifi_password or '' }}" placeholder="{{ _('Kosongkan kalau WiFi tanpa password') }}">
+                  </div>
+                </div>
+                {% endif %}
 
               </div>
             </div>

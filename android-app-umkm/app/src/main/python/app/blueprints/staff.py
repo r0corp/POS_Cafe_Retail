@@ -2879,8 +2879,11 @@ def admin_settings():
         settings.tiktok = request.form.get("tiktok", "").strip() or None
         settings.whatsapp = request.form.get("whatsapp", "").strip() or None
         settings.other_social = request.form.get("other_social", "").strip() or None
-        settings.wifi_name = request.form.get("wifi_name", "").strip() or None
-        settings.wifi_password = request.form.get("wifi_password", "").strip() or None
+        # Kolom Info WiFi disembunyikan bila "Pakai Meja?" mati - jangan hapus nilai tersimpan kalau kolomnya tidak ikut terkirim.
+        if "wifi_name" in request.form:
+            settings.wifi_name = request.form.get("wifi_name", "").strip() or None
+        if "wifi_password" in request.form:
+            settings.wifi_password = request.form.get("wifi_password", "").strip() or None
 
         settings.notification_enabled = request.form.get("notification_enabled") == "1"
         notification_sound = request.form.get("notification_sound", "church_bell")
