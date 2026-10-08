@@ -80,10 +80,8 @@ Pembaruan aplikasi muncul otomatis di dalam aplikasi (Pengaturan &rarr; Sistem &
 Langkah demi langkah, lengkap dengan gambar, untuk pemilik, kasir, pelayan, dan dapur. *Step-by-step guides with screenshots (Indonesian).*
 
 <div align="center">
+<picture><source media="(max-width: 700px)" srcset="hdr-panduan-m.png"><img src="hdr-panduan.png" width="811" align="top" alt="Panduan GO | Panduan Cafe | Panduan PRO"></picture>
 <table>
-<tr>
-<th colspan="3" align="center"><img src="hdr-panduan.png" width="784" alt="Panduan GO | Panduan Cafe | Panduan PRO"></th>
-</tr>
 <tr>
 <td width="270" align="center"><br><a href="{manual_url}"><img src="btn-pdf-go.png" width="220" alt="Buka PDF GO"></a><br><sub>gerobak &amp; warung</sub><br><br></td>
 <td width="270" align="center"><br><a href="{manual_cafe_url}"><img src="btn-pdf-cafe.png" width="220" alt="Buka PDF Cafe"></a><br><sub>mini cafe: meja, dapur, kasir</sub><br><br></td>
@@ -110,10 +108,8 @@ APK ditandatangani **Orulabs** (sidik jari sertifikat SHA-256 `{cert}`). Android
 CARDS_TEMPLATE = """## Pilih edisi / Choose your edition
 
 <div align="center">
+<picture><source media="(max-width: 700px)" srcset="hdr-edisi-m.png"><img src="hdr-edisi.png" width="811" align="top" alt="Oru POS GO | Oru POS Cafe | Oru POS PRO"></picture>
 <table>
-<tr>
-<th colspan="3" align="center"><img src="hdr-edisi.png" width="784" alt="Oru POS GO | Oru POS Cafe | Oru POS PRO"></th>
-</tr>
 <tr>
 <td width="270" align="center" valign="top"><br><b>Gerobak &amp; warung</b><br><br>Satu HP, tanpa meja<br>Pilih menu, tekan Bayar<br><br></td>
 <td width="270" align="center" valign="top"><br><b>Mini cafe</b><br><br>2-3 HP/tablet satu WiFi<br>Meja, dapur, dan kasir<br><br></td>
@@ -258,30 +254,35 @@ def write_buttons(out_dir):
 
 ORANGE = (244, 123, 39)  # oranye Orulabs
 BAND_BANNERS = (
-    ("hdr-edisi.png", ("Oru POS GO", "Oru POS Cafe", "Oru POS PRO")),
-    ("hdr-panduan.png", ("Panduan GO", "Panduan Cafe", "Panduan PRO")),
+    ("hdr-edisi", ("Oru POS GO", "Oru POS Cafe", "Oru POS PRO"), "Oru POS GO  |  Cafe  |  PRO"),
+    ("hdr-panduan", ("Panduan GO", "Panduan Cafe", "Panduan PRO"), "Panduan GO  |  Cafe  |  PRO"),
 )
 
 
 def write_header_banners(out_dir):
-    """Pita oranye selebar tabel untuk baris judul (GitHub membuang pewarnaan tabel, jadi dibuat sebagai gambar).
-    Ukuran mengikuti tabel di GitHub: 811 px, tiga kolom 270 px; isi sel 784 px, mulai 13 px dari tepi kiri tabel."""
+    """Pita oranye penuh di atas tabel (GitHub membuang pewarnaan tabel dan memberi padding di sel, jadi pita
+    dibuat sebagai gambar yang menempel di atas tabel). Ukuran mengikuti tabel di GitHub: 811 px, tiga kolom 270 px.
+    Versi -m dipakai layar sempit (<=700 px): tabel di sana bisa digeser, jadi judul per kolom tidak dipakai."""
     from PIL import Image, ImageDraw
 
     s = 2  # 2x supaya tajam
-    w, h = 784 * s, 36 * s
-    centers = (122 * s, 392 * s, 662 * s)
-    dividers = (257 * s, 527 * s)
+    h = 40 * s
     font = _button_font(17 * s)
-    for name, titles in BAND_BANNERS:
-        img = Image.new("RGBA", (w, h), ORANGE + (255,))
+    for name, titles, mobile in BAND_BANNERS:
+        img = Image.new("RGBA", (811 * s, h), ORANGE + (255,))
         d = ImageDraw.Draw(img)
-        for x in dividers:
-            d.rectangle([x - 1, 0, x, h], fill=(255, 255, 255, 90))
-        for cx, text in zip(centers, titles):
+        for x in (271 * s, 541 * s):
+            d.rectangle([x - s, 0, x, h], fill=(255, 255, 255, 90))
+        for cx, text in zip((136 * s, 406 * s, 676 * s), titles):
             box = d.textbbox((0, 0), text, font=font)
             d.text((cx - (box[2] - box[0]) / 2 - box[0], (h - (box[3] - box[1])) / 2 - box[1]), text, font=font, fill=(255, 255, 255, 255))
-        img.save(os.path.join(out_dir, name))
+        img.save(os.path.join(out_dir, name + ".png"))
+        m = Image.new("RGBA", (700 * s, h), ORANGE + (255,))
+        d = ImageDraw.Draw(m)
+        mfont = _button_font(26 * s)
+        box = d.textbbox((0, 0), mobile, font=mfont)
+        d.text((700 * s / 2 - (box[2] - box[0]) / 2 - box[0], (h - (box[3] - box[1])) / 2 - box[1]), mobile, font=mfont, fill=(255, 255, 255, 255))
+        m.save(os.path.join(out_dir, name + "-m.png"))
 
 
 def _qr(data, path):
