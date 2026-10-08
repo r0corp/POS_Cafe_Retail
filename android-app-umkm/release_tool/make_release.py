@@ -82,9 +82,9 @@ Langkah demi langkah, lengkap dengan gambar, untuk pemilik, kasir, pelayan, dan 
 <div align="center">
 <table>
 <tr>
-<th align="center" width="270">Panduan Oru POS GO</th>
-<th align="center" width="270">Panduan Oru POS Cafe</th>
-<th align="center" width="270">Panduan Oru POS PRO</th>
+<th align="center" width="270"><img src="hdr-panduan-go.png" width="250" alt="Panduan Oru POS GO"></th>
+<th align="center" width="270"><img src="hdr-panduan-cafe.png" width="250" alt="Panduan Oru POS Cafe"></th>
+<th align="center" width="270"><img src="hdr-panduan-pro.png" width="250" alt="Panduan Oru POS PRO"></th>
 </tr>
 <tr>
 <td align="center"><br><a href="{manual_url}"><b>&#128214; Buka PDF GO</b></a><br><sub>gerobak &amp; warung</sub><br><br></td>
@@ -114,9 +114,9 @@ CARDS_TEMPLATE = """## Pilih edisi / Choose your edition
 <div align="center">
 <table>
 <tr>
-<th align="center" width="270">Oru POS GO</th>
-<th align="center" width="270">Oru POS Cafe</th>
-<th align="center" width="270">Oru POS PRO</th>
+<th align="center" width="270"><img src="hdr-go.png" width="250" alt="Oru POS GO"></th>
+<th align="center" width="270"><img src="hdr-cafe.png" width="250" alt="Oru POS Cafe"></th>
+<th align="center" width="270"><img src="hdr-pro.png" width="250" alt="Oru POS PRO"></th>
 </tr>
 <tr>
 <td align="center" valign="top"><br><b>Gerobak &amp; warung</b><br><br>Satu HP, tanpa meja<br>Pilih menu, tekan Bayar<br><br></td>
@@ -214,6 +214,30 @@ def read_cafe_manifest(out_dir):
         return json.load(f)
 
 
+HEADER_BANNERS = (
+    ("hdr-go.png", "Oru POS GO"), ("hdr-cafe.png", "Oru POS Cafe"), ("hdr-pro.png", "Oru POS PRO"),
+    ("hdr-panduan-go.png", "Panduan GO"), ("hdr-panduan-cafe.png", "Panduan Cafe"), ("hdr-panduan-pro.png", "Panduan PRO"),
+)
+ORANGE = (244, 123, 39)  # oranye Orulabs
+
+
+def write_header_banners(out_dir):
+    """Banner oranye untuk judul kolom tabel (GitHub membuang pewarnaan tabel, jadi dibuat sebagai gambar)."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    font_path = next((p for p in ("C:/Windows/Fonts/segoeuib.ttf", "C:/Windows/Fonts/arialbd.ttf",
+                                   "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") if os.path.exists(p)), None)
+    w, h = 500, 76  # tampil 250 px (2x supaya tajam)
+    for name, text in HEADER_BANNERS:
+        img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.rounded_rectangle([0, 0, w - 1, h - 1], radius=16, fill=ORANGE + (255,))
+        font = ImageFont.truetype(font_path, 34) if font_path else ImageFont.load_default()
+        box = draw.textbbox((0, 0), text, font=font)
+        draw.text(((w - (box[2] - box[0])) / 2 - box[0], (h - (box[3] - box[1])) / 2 - box[1]), text, font=font, fill=(255, 255, 255, 255))
+        img.save(os.path.join(out_dir, name))
+
+
 def _qr(data, path):
     import qrcode
 
@@ -283,6 +307,10 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
     )
     with open(os.path.join(out_dir, "README.md"), "w", encoding="utf-8", newline="\n") as f:
         f.write(page)
+    try:
+        write_header_banners(out_dir)
+    except ImportError:
+        print("(Pillow tidak terpasang - banner header tidak dibuat)")
     try:
         _qr(manifest["apkUrl"], os.path.join(out_dir, "download-qr.png"))
         ios_png = os.path.join(out_dir, "ios-qr.png")          # iPhone: hanya tautan, tanpa QR
