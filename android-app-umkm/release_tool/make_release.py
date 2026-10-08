@@ -87,8 +87,8 @@ Langkah demi langkah, lengkap dengan gambar, untuk pemilik, kasir, pelayan, dan 
 <th align="center" width="270"><img src="hdr-panduan-pro.png" width="250" alt="Panduan Oru POS PRO"></th>
 </tr>
 <tr>
-<td align="center"><br><a href="{manual_url}"><b>&#128214; Buka PDF GO</b></a><br><sub>gerobak &amp; warung</sub><br><br></td>
-<td align="center"><br><a href="{manual_cafe_url}"><b>&#128214; Buka PDF Cafe</b></a><br><sub>mini cafe: meja, dapur, kasir</sub><br><br></td>
+<td align="center"><br><a href="{manual_url}"><img src="btn-pdf-go.png" width="220" alt="Buka PDF GO"></a><br><sub>gerobak &amp; warung</sub><br><br></td>
+<td align="center"><br><a href="{manual_cafe_url}"><img src="btn-pdf-cafe.png" width="220" alt="Buka PDF Cafe"></a><br><sub>mini cafe: meja, dapur, kasir</sub><br><br></td>
 <td align="center">{pro_manual_cell}</td>
 </tr>
 <tr>
@@ -124,7 +124,7 @@ CARDS_TEMPLATE = """## Pilih edisi / Choose your edition
 <td align="center" valign="top"><br><b>Resto &amp; banyak perangkat</b><br><br>Server mini PC + tablet<br>Dipasang oleh penjual<br><br></td>
 </tr>
 <tr>
-<td align="center"><br><a href="{go_url}"><b>&#11015; Unduh GO</b></a><br><sub>v{go_version} &middot; {go_size} MB</sub><br><br></td>
+<td align="center"><br><a href="{go_url}"><img src="btn-unduh-go.png" width="220" alt="Unduh GO"></a><br><sub>v{go_version} &middot; {go_size} MB</sub><br><br></td>
 <td align="center">{cafe_cell}</td>
 <td align="center">{pro_cell}</td>
 </tr>
@@ -238,6 +238,52 @@ def write_header_banners(out_dir):
         img.save(os.path.join(out_dir, name))
 
 
+NAVY = (14, 76, 117)     # biru tua Orulabs (tombol unduh)
+BLUE = (27, 160, 248)    # biru Orulabs (tombol PDF)
+BUTTONS = (
+    ("btn-unduh-go.png", "Unduh GO", NAVY, "down"), ("btn-unduh-cafe.png", "Unduh Cafe", NAVY, "down"),
+    ("btn-hubungi.png", "Hubungi penjual", NAVY, "chat"),
+    ("btn-pdf-go.png", "Buka PDF GO", BLUE, "doc"), ("btn-pdf-cafe.png", "Buka PDF Cafe", BLUE, "doc"),
+    ("btn-minta-pro.png", "Minta panduan PRO", BLUE, "doc"),
+)
+
+
+def _button_font(size):
+    from PIL import ImageFont
+
+    for p in ("C:/Windows/Fonts/segoeuib.ttf", "C:/Windows/Fonts/arialbd.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
+        if os.path.exists(p):
+            return ImageFont.truetype(p, size)
+    return ImageFont.load_default()
+
+
+def write_buttons(out_dir):
+    """Tombol bergambar (GitHub tidak mengizinkan tombol berwarna lewat HTML/CSS)."""
+    from PIL import Image, ImageDraw
+
+    w, h = 440, 96  # tampil 220 px (2x supaya tajam)
+    font = _button_font(32)
+    for name, text, color, icon in BUTTONS:
+        img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        d.rounded_rectangle([0, 0, w - 1, h - 1], radius=h // 2, fill=color + (255,))
+        cx, cy, r = 54, h // 2, 28  # lingkaran ikon putih di kiri
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 255, 255, 255))
+        if icon == "down":
+            d.polygon([(cx - 6, cy - 14), (cx + 6, cy - 14), (cx + 6, cy + 2), (cx + 15, cy + 2), (cx, cy + 17), (cx - 15, cy + 2), (cx - 6, cy + 2)], fill=color + (255,))
+        elif icon == "doc":
+            d.polygon([(cx - 12, cy - 17), (cx + 4, cy - 17), (cx + 12, cy - 9), (cx + 12, cy + 17), (cx - 12, cy + 17)], fill=color + (255,))
+            for k in (-2, 5, 12):
+                d.rectangle([cx - 6, cy + k - 1, cx + 6, cy + k + 1], fill=(255, 255, 255, 255))
+        else:  # chat
+            d.rounded_rectangle([cx - 16, cy - 15, cx + 16, cy + 9], radius=8, fill=color + (255,))
+            d.polygon([(cx - 8, cy + 8), (cx - 12, cy + 18), (cx + 2, cy + 8)], fill=color + (255,))
+        box = d.textbbox((0, 0), text, font=font)
+        tx0, tx1 = 2 * cx + r - 40, w - 24  # area teks di kanan ikon
+        d.text(((tx0 + tx1 - (box[2] - box[0])) / 2 - box[0], (h - (box[3] - box[1])) / 2 - box[1]), text, font=font, fill=(255, 255, 255, 255))
+        img.save(os.path.join(out_dir, name))
+
+
 def _qr(data, path):
     import qrcode
 
@@ -257,20 +303,20 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
     cafe_cell = "<br>Segera hadir<br><sub>edisi Cafe</sub><br><br>"
     cafe_qr = "&nbsp;"
     if cafe:
-        cafe_cell = '<br><a href="%s"><b>&#11015; Unduh Cafe</b></a><br><sub>v%s &middot; %.0f MB</sub><br><br>' % (
+        cafe_cell = '<br><a href="%s"><img src="btn-unduh-cafe.png" width="220" alt="Unduh Cafe"></a><br><sub>v%s &middot; %.0f MB</sub><br><br>' % (
             cafe["apkUrl"], cafe["versionName"], cafe["sizeBytes"] / 1048576.0)
         cafe_qr = '<br><img src="cafe-qr.png" width="190" alt="QR download Cafe"><br><sub>Scan untuk mengunduh</sub><br><br>'
     contact = read_contact(out_dir)
     pro_cell = "<br>Hubungi penjual<br><sub>pemasangan di lokasi</sub><br><br>"
     pro_qr = "&nbsp;"
     if contact:
-        pro_cell = ('<br><a href="%s"><b>&#128172; Hubungi penjual</b></a><br><sub>lewat WhatsApp &middot; pemasangan di lokasi</sub><br><br>'
+        pro_cell = ('<br><a href="%s"><img src="btn-hubungi.png" width="220" alt="Hubungi penjual"></a><br><sub>lewat WhatsApp &middot; pemasangan di lokasi</sub><br><br>'
                     % whatsapp_url(contact))
         pro_qr = '<br><img src="wa-qr.png" width="190" alt="QR WhatsApp penjual"><br><sub>Scan untuk chat WhatsApp</sub><br><br>'
     pro_manual_cell = "<br>Diberikan penjual<br><sub>saat pemasangan di lokasi</sub><br><br>"
     pro_manual_qr = "&nbsp;"
     if contact:
-        pro_manual_cell = ('<br><a href="%s"><b>&#128196; Minta panduan PRO</b></a><br><sub>kirim permintaan lewat WhatsApp</sub><br><br>'
+        pro_manual_cell = ('<br><a href="%s"><img src="btn-minta-pro.png" width="220" alt="Minta panduan PRO"></a><br><sub>kirim permintaan lewat WhatsApp</sub><br><br>'
                            % whatsapp_url(contact, PRO_MANUAL_TEXT))
         pro_manual_qr = ('<br><img src="wa-panduan-pro-qr.png" width="190" alt="QR minta panduan PRO"><br>'
                          '<sub>Scan untuk meminta panduan PRO</sub><br><br>')
@@ -309,6 +355,7 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
         f.write(page)
     try:
         write_header_banners(out_dir)
+        write_buttons(out_dir)
     except ImportError:
         print("(Pillow tidak terpasang - banner header tidak dibuat)")
     try:
