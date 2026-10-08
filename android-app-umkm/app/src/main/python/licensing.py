@@ -373,7 +373,7 @@ _ACTIVATION_PAGE = """
       <span class="login-dot login-dot-2"></span>
       <span class="login-dot login-dot-3"></span>
       <div class="login-logo-circle">
-        <img src="{{ url_for('static', filename='img/orulabs-logo.png') }}" alt="Orulabs">
+        <img src="{{ url_for('static', filename=edition_info.logo) }}" alt="{{ edition_info.short }}">
       </div>
     </div>
     <h3 class="login-title">Oru POS GO</h3>
@@ -532,6 +532,10 @@ def install_activation_gate(app, data_dir):
     @app.before_request
     def _check_activation():
         if request.path.startswith("/__activation"):
+            return None
+        # Aset tampilan (logo, CSS, JS) tetap boleh dimuat supaya halaman aktivasi tidak tampil dengan gambar rusak;
+        # foto menu/QR (static/uploads, static/qrcodes) tetap ikut diblokir.
+        if request.path.startswith(("/static/img/", "/static/css/", "/static/js/", "/static/vendor/")):
             return None
         if is_activated(data_dir):
             return None

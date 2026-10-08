@@ -73,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
         // menyala selama aplikasi terbuka (kalau layar mati, Android bisa menghentikan server).
         if ("cafe".equals(BuildConfig.EDITION)) {
             getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            startCafeServerService();
         }
 
         requestBluetoothPermissionIfNeeded();
@@ -259,6 +260,20 @@ public class MainActivity extends AppCompatActivity {
         }
 
         webView.loadUrl("http://127.0.0.1:" + PORT + "/");
+    }
+
+    /** Cafe: layanan latar depan agar server tidak dibekukan Android saat layar mati/aplikasi di latar belakang
+     * (lihat ServerService). Izin notifikasi (Android 13+) hanya memengaruhi tampilnya notifikasi, bukan jalannya layanan. */
+    private void startCafeServerService() {
+        if (android.os.Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 4401);
+        }
+        try {
+            ContextCompat.startForegroundService(this, new android.content.Intent(this, ServerService.class));
+        } catch (RuntimeException e) {
+            android.util.Log.e("MainActivity", "Layanan server Cafe gagal dimulai", e);
+        }
     }
 
     /** BLUETOOTH_CONNECT (Android 12+/API 31+) wajib diminta di runtime,

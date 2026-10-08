@@ -23,6 +23,13 @@ if (edition == "cafe") {
     buildDir = "build-cafe"
 }
 
+// Uji di emulator Android (x86_64): ./gradlew.bat assembleDebug -Pabis=x86_64  (hasil di app/build-emu/, JANGAN dirilis).
+// Tanpa -Pabis: hanya ARM (HP asli), seperti biasa.
+def abis = (project.findProperty("abis") ?: "arm64-v8a,armeabi-v7a").toString().split(",")
+if (project.hasProperty("abis")) {
+    buildDir = "build-emu"
+}
+
 // Alamat manifest update (version.json) di repo rilis publik. Build debug
 // (emulator) membaca dari PC pengembang lewat 10.0.2.2 supaya alur update
 // bisa dites tanpa menerbitkan apa pun.
@@ -45,14 +52,14 @@ android {
         buildConfigField "String", "EDITION", "\"${edition}\"" 
         minSdk 24
         targetSdk 34
-        versionCode 12
-        versionName "1.0.10"
+        versionCode 13
+        versionName "1.0.11"
 
         // Cuma ARM (HP asli) - x86/x86_64 cuma perlu buat emulator, dan
         // kita tidak punya emulator buat testing, jadi tidak usah
         // diikutkan (APK jadi lebih kecil & build lebih cepat).
         ndk {
-            abiFilters "arm64-v8a", "armeabi-v7a"
+            abiFilters(*abis)
         }
     }
 

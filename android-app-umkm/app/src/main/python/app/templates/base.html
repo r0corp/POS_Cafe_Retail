@@ -46,10 +46,8 @@
         {% if site_settings.app_logo_filename %}
           <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.app_logo_filename) }}"
                alt="{{ cafe_name }}" style="height: 40px; max-width: 130px; object-fit: contain; border-radius: 8px;">
-        {% elif license_state is defined and license_state.mode != 'trial' %}
-          <img src="{{ url_for('static', filename=edition_info.logo) }}" alt="{{ edition_info.short }}" class="brand-go-logo">
         {% else %}
-          <img src="{{ url_for('static', filename='img/orulabs-logo.png') }}" alt="Orulabs" class="brand-orulabs-logo">
+          <img src="{{ url_for('static', filename=edition_info.logo) }}" alt="{{ edition_info.short }}" class="brand-go-logo">
         {% endif %}
       {% endif %}
       {% if navbar_display != 'logo' %}

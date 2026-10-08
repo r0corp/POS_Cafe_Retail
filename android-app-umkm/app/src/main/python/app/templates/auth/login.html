@@ -13,10 +13,8 @@
       <div class="login-logo-circle">
         {% if site_settings.login_logo_filename %}
           <img src="{{ url_for('static', filename='uploads/branding/' + site_settings.login_logo_filename) }}" alt="{{ cafe_name }}">
-        {% elif license_state is defined and license_state.mode != 'trial' %}
-          <img src="{{ url_for('static', filename=edition_info.logo) }}" alt="{{ edition_info.short }}">
         {% else %}
-          <img src="{{ url_for('static', filename='img/orulabs-logo.png') }}" alt="Orulabs">
+          <img src="{{ url_for('static', filename=edition_info.logo) }}" alt="{{ edition_info.short }}">
         {% endif %}
       </div>
       {% if license_state is defined and license_state.mode == 'trial' %}

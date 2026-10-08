@@ -71,11 +71,11 @@ def _file_md5(path):
 def _refresh_bundled_assets(bundled_static_dir, writable_static_dir):
     """Salinan static/ cuma dibuat sekali (di atas), jadi CSS/JS dari APK
     yang baru dipasang TIDAK ikut terpakai - tampilan dan skrip tetap versi
-    APK lama. Di sini css/ dan js/ disamakan lagi dengan isi APK tiap app
+    APK lama. Di sini css/, js/, dan img/ (logo) disamakan lagi dengan isi APK tiap app
     dibuka (dibandingkan lewat hash, jadi hampir tanpa biaya kalau tidak
     ada yang berubah). Folder upload (foto menu, logo, QR) tidak disentuh."""
 
-    for sub in ("css", "js"):
+    for sub in ("css", "js", "img"):
         src_dir = os.path.join(bundled_static_dir, sub)
         dst_dir = os.path.join(writable_static_dir, sub)
         if not os.path.isdir(src_dir):
@@ -106,26 +106,28 @@ def _is_local_network(addr):
 def _apply_edition_defaults(app, data_dir, edition_code):
     """Sekali saja pada instalasi baru: pengaturan awal sesuai edisi (mis. Cafe: pakai meja).
 
-    GO: bawaan instalasi baru sudah di model (uses_tables mati). Untuk toko GO yang sudah berjalan, SEKALI saja:
-    bila fitur meja masih menyala tetapi toko belum punya satu pun meja (artinya tidak memakainya), dimatikan.
-    Toko yang sudah membuat meja tidak disentuh sama sekali."""
-    marker = os.path.join(data_dir, "edition_init.json")
-    if os.path.exists(marker):
-        return
-    if edition_code == "go":
-        import json
+    GO: bawaan instalasi baru sudah di model (uses_tables mati). Untuk instalasi GO yang sudah ada, SEKALI saja
+    (penanda go_tables_off.json), fitur meja dimatikan: GO adalah edisi tanpa meja. Data meja tidak dihapus; pemilik
+    bisa menyalakannya lagi di Pengaturan > Aplikasi > Pakai Meja? dan pilihan itu tidak ditimpa lagi."""
+    import json
 
+    if edition_code == "go":
+        marker = os.path.join(data_dir, "go_tables_off.json")
+        if os.path.exists(marker):
+            return
         from app import db
         from app.blueprints.staff import get_settings
-        from app.models import Table
 
         with app.app_context():
             settings = get_settings()
-            if settings.uses_tables and Table.query.count() == 0:
+            if settings.uses_tables:
                 settings.uses_tables = False
                 db.session.commit()
         with open(marker, "w", encoding="utf-8") as f:
-            json.dump({"edition": "go", "tables_migration": True}, f)
+            json.dump({"edition": "go"}, f)
+        return
+    marker = os.path.join(data_dir, "edition_init.json")
+    if os.path.exists(marker):
         return
     import json
 
