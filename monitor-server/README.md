@@ -19,6 +19,7 @@ Per perangkat, sekali tiap ~5 menit selama aplikasi dibuka dan ada internet:
 | `x` | tanggal berakhir sewa (YYYYMMDD), kosong bila bukan sewa |
 | `p` | `android` / `ios` |
 | `l` | bahasa |
+| `e` | edisi aplikasi: `go` atau `cafe` (aplikasi lama tanpa field ini dianggap `go`) |
 
 **Tidak** dikirim: nama toko, data penjualan, menu, pelanggan, lokasi, atau IP yang disimpan. Nama toko di layar
 penjual didapat dari riwayat pembuatan kode di HP penjual sendiri (dicocokkan lewat Kode Perangkat).

@@ -16,6 +16,9 @@ mengunduh APK dari GitHub Releases dan memeriksa SHA-256 sebelum memasang.
 
 ## Langkah rilis versi baru
 
+Ini alur edisi **GO**. Edisi Cafe dibangun dengan `-Pedition=cafe` (lihat `EDISI.md`); rilis Cafe punya manifest sendiri
+(`cafe/version.json` di repo rilis) dan belum diterbitkan.
+
 1. Naikkan `versionCode` (WAJIB lebih besar dari sebelumnya) dan `versionName`
    di `app/build.gradle`.
 2. Build rilis yang ditandatangani:
