@@ -17,7 +17,7 @@ Tujuan: memastikan mode server-di-tablet bekerja di perangkat asli sebelum Cafe 
    (GO tidak punya Meja/Dapur/Pengguna; Cafe punya semuanya).
 
 ## 2. Hubungkan tablet B
-1. Di A: **Pengaturan, tab Sistem, kartu "Hubungkan Perangkat Lain"**. Harus tampil alamat `http://192.168.x.x:5000` dan QR.
+1. Di A: **Pengaturan, tab Sistem, kartu "Hubungkan Perangkat Lain"**. Harus tampil alamat `http://192.168.x.x:5100` dan QR.
    (Bila tertulis "belum tersambung ke WiFi", sambungkan A ke WiFi lalu buka ulang halaman.)
 2. Di B: buka **Chrome**, ketik alamat itu (atau pindai QR). Halaman login Oru POS harus tampil.
 3. Di A: **Pengguna, tambah akun** `dapur1` dengan role **Dapur**. Di B login sebagai `dapur1`.

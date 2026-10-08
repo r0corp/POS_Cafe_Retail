@@ -3002,7 +3002,7 @@ def _lan_connect_context():
     ip = edition.lan_ip()
     if not ip:
         return {"lan_url": "", "lan_qr": None}
-    url = "http://%s:%s" % (ip, request.host.rsplit(":", 1)[-1] if ":" in request.host else "5000")
+    url = "http://%s:%s" % (ip, request.host.rsplit(":", 1)[-1] if ":" in request.host else "5100")
     try:
         import qrcode
 

@@ -45,7 +45,9 @@ import com.chaquo.python.android.AndroidPlatform;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final int PORT = 5000;
+    // GO dan Cafe boleh terpasang di HP yang sama dan bisa berjalan bersamaan; port harus berbeda, kalau tidak server
+    // yang kedua gagal naik ("Address already in use") dan WebView menampilkan halaman aplikasi yang satu lagi / loading terus.
+    private static final int PORT = "cafe".equals(BuildConfig.EDITION) ? 5100 : 5000;
 
     // Proses Android (dan thread-thread di dalamnya, termasuk server
     // Flask ini) bisa saja BERTAHAN HIDUP walau Activity-nya ditutup

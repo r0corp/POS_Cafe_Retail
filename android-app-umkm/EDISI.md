@@ -33,6 +33,7 @@ Definisi per edisi ada di `app/src/main/python/edition.py` (satu tempat untuk me
 | Nama di HP | Oru POS GO | Oru POS Cafe |
 | Manifest pembaruan | `.../main/version.json` | `.../main/cafe/version.json` |
 | APK di repo rilis | `apk/oru-go-<versi>.apk` | `apk/oru-pos-cafe-<versi>.apk` |
+| Port lokal | 5000 | 5100 (supaya GO dan Cafe bisa berjalan bersamaan) |
 | Layar | normal | dijaga tetap menyala (HP kasir adalah server) |
 
 Keduanya ditandatangani keystore rilis yang sama. versionCode/versionName satu angka untuk dua edisi.
@@ -48,7 +49,7 @@ Kode Aktivasi = tanda tangan RSA atas `device_id|expiry` (GO) atau `device_id|ex
 ## Cafe: menghubungkan tablet dapur/kasir lain
 
 HP/tablet kasir (yang memasang Cafe) menjadi server. Di **Pengaturan > Sistem > Hubungkan Perangkat Lain** tampil alamat
-(`http://<IP WiFi>:5000`) dan QR-nya. Tablet lain di WiFi yang sama membuka alamat itu di browser dan login memakai akun
+(`http://<IP WiFi>:5100`) dan QR-nya. Tablet lain di WiFi yang sama membuka alamat itu di browser dan login memakai akun
 masing-masing. Server hanya melayani alamat jaringan lokal (privat); permintaan dari alamat publik ditolak.
 
 Batasan yang perlu diingat:
