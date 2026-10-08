@@ -64,7 +64,6 @@ Satu HP, tanpa meja dan tanpa WiFi. Pilih menu, tekan **Bayar**, struk langsung 
 
 > **{version}** &middot; {size_mb} MB &middot; Android 7.0+ &middot; {date}
 
-<p align="center"><img src="download-qr.png" width="200" alt="QR download GO"><br><sub>Scan untuk mengunduh GO / Scan to download GO</sub></p>
 {cafe_section}{ios_section}
 ## Yang didapat / What you get
 
@@ -107,6 +106,7 @@ CARDS_TEMPLATE = """## Pilih edisi / Choose your edition
 |:---|:---|:---|
 | **Gerobak & warung**<br>Satu HP, tanpa meja<br>Pilih menu, tekan Bayar | **Mini cafe**<br>2-3 HP/tablet satu WiFi<br>Meja, dapur, dan kasir | **Resto & banyak perangkat**<br>Server mini PC + tablet<br>Dipasang oleh penjual |
 | [**&#11015; Unduh GO**]({go_url})<br><sub>v{go_version} &middot; {go_size} MB</sub> | {cafe_cell} | Hubungi penjual<br><sub>pemasangan di lokasi</sub> |
+| <img src="download-qr.png" width="150" alt="QR download GO"><br><sub>Scan untuk mengunduh</sub> | {cafe_qr} | &nbsp; |
 
 """
 
@@ -118,8 +118,6 @@ Meja, layar dapur, sampai 3 pengguna, dan tablet dapur/kasir lain yang tersambun
 [![Download Cafe](https://img.shields.io/badge/%E2%AC%87%20Download%20Cafe-v{version}-f97316?style=for-the-badge)]({apk_url})
 
 > **{version}** &middot; {size_mb} MB &middot; Android 7.0+ &middot; {date}
-
-<p align="center"><img src="cafe-qr.png" width="200" alt="QR download Cafe"><br><sub>Scan untuk mengunduh Cafe / Scan to download Cafe</sub></p>
 
 Cafe dan GO adalah aplikasi terpisah; keduanya boleh terpasang di HP yang sama. Kode Aktivasi tidak saling tukar.
 """
@@ -182,11 +180,13 @@ def write_download_page(out_dir, manifest, repo, date=None, cafe_date=None):
     today = datetime.date.today().strftime("%d-%m-%Y")
     cafe_section, cafe_sha_line = "", ""
     cafe_cell = "Segera hadir<br><sub>edisi Cafe</sub>"
+    cafe_qr = "&nbsp;"
     if cafe:
+        cafe_qr = '<img src="cafe-qr.png" width="150" alt="QR download Cafe"><br><sub>Scan untuk mengunduh</sub>'
         cafe_cell = "[**&#11015; Unduh Cafe**](%s)<br><sub>v%s &middot; %.0f MB</sub>" % (
             cafe["apkUrl"], cafe["versionName"], cafe["sizeBytes"] / 1048576.0)
     cards = CARDS_TEMPLATE.format(go_url=manifest["apkUrl"], go_version=manifest["versionName"],
-                                  go_size="%.0f" % (manifest["sizeBytes"] / 1048576.0), cafe_cell=cafe_cell)
+                                  go_size="%.0f" % (manifest["sizeBytes"] / 1048576.0), cafe_cell=cafe_cell, cafe_qr=cafe_qr)
     if cafe:
         cafe_section = CAFE_SECTION.format(
             version=cafe["versionName"], apk_url=cafe["apkUrl"], size_mb="%.0f" % (cafe["sizeBytes"] / 1048576.0),
