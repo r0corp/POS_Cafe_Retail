@@ -1,7 +1,7 @@
 # Pantau Aplikasi Oru POS GO
 
 Server kecil (Cloudflare Worker + database D1, **paket gratis cukup**) yang menerima status ringan dari aplikasi
-Oru POS GO dan ditampilkan di aplikasi **Oru Go License** (menu *Pantau Aplikasi*): siapa yang online, terakhir
+Oru POS GO dan ditampilkan di aplikasi **Oru License** (menu *Pantau Aplikasi*): siapa yang online, terakhir
 aktif kapan, versi berapa, siapa yang belum update, dan sewa mana yang segera habis.
 
 Selama alamat server belum diisi di aplikasi GO (`monitor.py` -> `ENDPOINT` kosong), **tidak ada yang dikirim**
@@ -70,12 +70,12 @@ Disarankan: di dashboard Cloudflare > Security > WAF, buat *rate limiting rule* 
 
 ## Hubungkan
 
-1. **Aplikasi penjual (Oru Go License)** > *Pantau Aplikasi* > isi alamat Worker dan Token admin. Disimpan lokal
+1. **Aplikasi penjual (Oru License)** > *Pantau Aplikasi* > isi alamat Worker dan Token admin. Disimpan lokal
    di HP penjual; tombol *Putuskan sambungan* menghapusnya.
 2. **Aplikasi pelanggan (GO):** isi `ENDPOINT` di `android-app-umkm/app/src/main/python/monitor.py` dengan alamat
    Worker, lalu rilis versi GO baru (perangkat lama baru melapor setelah update ke versi itu). Cangkang iPhone
    memakai kode Python yang sama.
-3. Bangun ulang APK Oru Go License bila ada perubahan di sisi penjual.
+3. Bangun ulang APK Oru License bila ada perubahan di sisi penjual.
 
 ## Tes
 

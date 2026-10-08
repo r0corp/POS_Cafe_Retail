@@ -8,12 +8,13 @@
 // Jawaban heartbeat memuat {"msg": {"id", "text"}} bila ada siaran aktif.
 //
 // Data yang diterima per perangkat: Kode Perangkat, versi aplikasi, mode lisensi, tanggal berakhir sewa,
-// platform, bahasa. TIDAK ada nama toko, data penjualan, atau lokasi.
+// platform, bahasa, edisi (go | cafe). TIDAK ada nama toko, data penjualan, atau lokasi.
 
 const DEVICE_RE = /^[A-Z2-7]{16}$/;
 const VERSION_RE = /^[0-9A-Za-z.\-+]{1,20}$/;
 const MODES = new Set(["trial", "permanent", "rental", "expired", "unknown"]);
 const PLATFORMS = new Set(["android", "ios"]);
+const EDITIONS = new Set(["go", "cafe"]);
 const LANGS = new Set(["id", "en"]);
 const MIN_INTERVAL_S = 60; // heartbeat yang lebih rapat dari ini diabaikan (tidak menulis ulang)
 const RETENTION_S = 180 * 24 * 3600;
@@ -42,9 +43,10 @@ export function validate(payload) {
   const expiry = String(payload.x || "");
   const platform = String(payload.p || "android");
   const lang = String(payload.l || "id");
-  if (!DEVICE_RE.test(device) || !VERSION_RE.test(version) || !MODES.has(mode) || !PLATFORMS.has(platform) || !LANGS.has(lang)) return null;
+  const edition = String(payload.e || "go"); // aplikasi lama (sebelum ada edisi) tidak mengirim e = GO
+  if (!DEVICE_RE.test(device) || !VERSION_RE.test(version) || !MODES.has(mode) || !PLATFORMS.has(platform) || !LANGS.has(lang) || !EDITIONS.has(edition)) return null;
   if (expiry && !/^\d{8}$/.test(expiry)) return null;
-  return { device, version, mode, expiry, platform, lang };
+  return { device, version, mode, expiry, platform, lang, edition };
 }
 
 // Siaran aktif (bila ada & belum kedaluwarsa) dititipkan di jawaban heartbeat. Gagal baca tidak boleh merusak heartbeat.
@@ -111,8 +113,8 @@ async function heartbeat(request, env, now) {
   if (existing) {
     if (now - existing.last_seen < MIN_INTERVAL_S) return reply(env, now, { ok: true, skipped: true });
     await env.DB.prepare(
-      "UPDATE devices SET version = ?, mode = ?, expiry = ?, platform = ?, lang = ?, last_seen = ? WHERE device = ?"
-    ).bind(data.version, data.mode, data.expiry, data.platform, data.lang, now, data.device).run();
+      "UPDATE devices SET version = ?, mode = ?, expiry = ?, platform = ?, lang = ?, edition = ?, last_seen = ? WHERE device = ?"
+    ).bind(data.version, data.mode, data.expiry, data.platform, data.lang, data.edition, now, data.device).run();
     return reply(env, now, { ok: true });
   }
 
@@ -121,8 +123,8 @@ async function heartbeat(request, env, now) {
   const count = await env.DB.prepare("SELECT COUNT(*) AS n FROM devices").first();
   if (count && count.n >= max) return json({ ok: false, error: "full" }, 507);
   await env.DB.prepare(
-    "INSERT INTO devices (device, version, mode, expiry, platform, lang, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-  ).bind(data.device, data.version, data.mode, data.expiry, data.platform, data.lang, now, now).run();
+    "INSERT INTO devices (device, version, mode, expiry, platform, lang, edition, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  ).bind(data.device, data.version, data.mode, data.expiry, data.platform, data.lang, data.edition, now, now).run();
   return reply(env, now, { ok: true, new: true });
 }
 
@@ -132,7 +134,7 @@ async function listDevices(request, env, now) {
   // buang data basi (tidak aktif > 180 hari) sebelum menampilkan
   await env.DB.prepare("DELETE FROM devices WHERE last_seen < ?").bind(now - RETENTION_S).run();
   const rows = await env.DB.prepare(
-    "SELECT device, version, mode, expiry, platform, lang, first_seen, last_seen FROM devices ORDER BY last_seen DESC LIMIT 2000"
+    "SELECT device, version, mode, expiry, platform, lang, edition, first_seen, last_seen FROM devices ORDER BY last_seen DESC LIMIT 2000"
   ).all();
   const msg = await activeBroadcast(env, now);
   return json({ ok: true, now, devices: rows.results || [], broadcast: msg });

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS devices (
   mode       TEXT NOT NULL,      -- trial | permanent | rental | expired | unknown
   expiry     TEXT NOT NULL DEFAULT '',  -- YYYYMMDD untuk sewa, kosong bila tidak ada
   platform   TEXT NOT NULL,      -- android | ios
+  edition    TEXT NOT NULL DEFAULT 'go',  -- go | cafe (edisi aplikasi); database lama: ALTER TABLE devices ADD COLUMN edition TEXT NOT NULL DEFAULT 'go';
   lang       TEXT NOT NULL DEFAULT 'id',
   first_seen INTEGER NOT NULL,   -- detik epoch
   last_seen  INTEGER NOT NULL
