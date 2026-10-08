@@ -757,10 +757,34 @@
         </div>
         {% endif %}
 
+        <div class="row g-4 mb-4">
+          <div class="col-md-6 d-flex flex-column">
+            <div class="settings-section-title">
+              <span class="settings-section-num">3</span> {{ _('Pengguna') }}
+            </div>
+            <div class="card flex-grow-1">
+              <div class="card-body system-card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                  <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-people fs-2" style="color: var(--color-accent);"></i>
+                    <div>
+                      <div class="fw-semibold mb-1">{{ _('Akun Pengguna') }}</div>
+                      <span class="text-muted small">{{ _('Tambah karyawan, atur peran, atau atur ulang password staf.') }}</span>
+                    </div>
+                  </div>
+                  <a href="{{ url_for('staff.admin_users') }}" class="btn btn-accent">
+                    <i class="bi bi-people"></i> {{ _('Kelola Pengguna') }}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="row g-4">
           <div class="col-sm-4 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">3</span> {{ _('Bersihkan Cache Aplikasi') }}
+              <span class="settings-section-num">4</span> {{ _('Bersihkan Cache Aplikasi') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -804,7 +828,7 @@
 
           <div class="col-sm-4 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">4</span> {{ _('Backup Database') }}
+              <span class="settings-section-num">5</span> {{ _('Backup Database') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -875,7 +899,7 @@
 
           <div class="col-sm-4 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">5</span> {{ _('Mode Demo') }}
+              <span class="settings-section-num">6</span> {{ _('Mode Demo') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -964,7 +988,7 @@
         <div class="row g-4 mt-0">
           <div class="col-sm-6 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">6</span> {{ _('Mode Perbaikan (Maintenance)') }}
+              <span class="settings-section-num">7</span> {{ _('Mode Perbaikan (Maintenance)') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">
@@ -1004,7 +1028,7 @@
 
           <div class="col-sm-6 d-flex flex-column">
             <div class="settings-section-title">
-              <span class="settings-section-num">7</span> {{ _('Reset ke Mode Pabrik') }}
+              <span class="settings-section-num">8</span> {{ _('Reset ke Mode Pabrik') }}
             </div>
             <div class="card flex-grow-1">
               <div class="card-body system-card-body">

@@ -202,12 +202,13 @@ class Settings(db.Model):
     # Sebagian usaha (gerobak/kaki lima/booth) tidak punya meja sama
     # sekali - matikan ini supaya menu "Meja", opsi "Makan di Tempat" di
     # Buat Pesanan, dan bagian "Lantai Toko" di Pengaturan tidak usah
-    # ditampilkan. Default AKTIF (True) supaya toko yang sudah pakai meja
-    # tidak terpengaruh sama sekali kalau tidak sengaja diubah -
-    # server_default WAJIB ada (bukan cuma default=) supaya baris
-    # Settings yang SUDAH ADA di database lama ikut ter-backfill True
-    # lewat ALTER TABLE, bukan NULL/falsy (lihat _add_missing_columns).
-    uses_tables = db.Column(db.Boolean, nullable=False, default=True, server_default=db.text("1"))
+    # ditampilkan. GO (toko 1 perangkat): MATI secara bawaan untuk
+    # instalasi baru; nyalakan di Pengaturan > Aplikasi ("Pakai Meja?").
+    # Toko yang sudah berjalan tetap memakai pilihannya (nilai tersimpan
+    # di baris Settings). server_default WAJIB ada (bukan cuma default=)
+    # supaya kolom baru di database lama terisi lewat ALTER TABLE, bukan
+    # NULL (lihat _add_missing_columns).
+    uses_tables = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text("0"))
 
     # Info kontak & sosial media - dilampirkan di struk pembelian supaya
     # pelanggan gampang follow toko.

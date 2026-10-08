@@ -63,6 +63,8 @@ NAV_ITEMS = [
         "icon": "bi-people",
         "label": _l("Pengguna"),
         "roles": [ROLE_OWNER],
+        # Di APK GO jarang dipakai: dipindah ke Pengaturan > Sistem dan menu profil.
+        "android_hidden": True,
     },
     {
         "endpoint": "staff.reports",

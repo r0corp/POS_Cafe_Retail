@@ -3397,3 +3397,9 @@ msgstr "Message from the app seller"
 
 msgid "Tutup"
 msgstr "Close"
+
+msgid "Akun Pengguna"
+msgstr "User Accounts"
+
+msgid "Tambah karyawan, atur peran, atau atur ulang password staf."
+msgstr "Add staff, set roles, or reset staff passwords."
